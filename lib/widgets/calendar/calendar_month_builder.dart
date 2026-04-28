@@ -12,8 +12,10 @@ List<CalendarDayCellData> buildCalendarMonthGrid({
 }) {
   final first = DateTime(year, month, 1);
   final lead = first.weekday % 7;
+  final dim = DateTime(year, month + 1, 0).day;
+  final rowsNeeded = ((lead + dim) / 7).ceil();
+  final totalCells = rowsNeeded * 7;
   final start = first.subtract(Duration(days: lead));
-  const totalCells = 42;
   final out = <CalendarDayCellData>[];
   for (int i = 0; i < totalCells; i++) {
     final d = start.add(Duration(days: i));

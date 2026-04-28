@@ -12,6 +12,7 @@ class EventTimelineList extends StatelessWidget {
     this.onBackToOverview,
     this.onTogglePin,
     this.scrollController,
+    this.shrinkWrapList = false,
   });
 
   static const Color _titleColor = Color(0xFF1D293D);
@@ -24,6 +25,7 @@ class EventTimelineList extends StatelessWidget {
   final VoidCallback? onBackToOverview;
   final ValueChanged<EventReminderData>? onTogglePin;
   final ScrollController? scrollController;
+  final bool shrinkWrapList;
 
   static const double _headerBandH = 40;
   static const double _titleFont = 18;
@@ -37,21 +39,24 @@ class EventTimelineList extends StatelessWidget {
     const sectionGap = 8.0;
 
     return Container(
-      decoration: const ShapeDecoration(
+      margin: EdgeInsets.zero,
+      decoration: BoxDecoration(
         color: Colors.white,
-        shape: RoundedRectangleBorder(
-          side: BorderSide(color: _borderColor, width: 0.75),
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(32),
-            topRight: Radius.circular(32),
-          ),
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(16),
+          bottomRight: Radius.circular(16),
         ),
-        shadows: [
+        border: const Border(
+          left: BorderSide(color: _borderColor, width: 0.75),
+          right: BorderSide(color: _borderColor, width: 0.75),
+          bottom: BorderSide(color: _borderColor, width: 0.75),
+        ),
+        boxShadow: const [
           BoxShadow(
-            color: Color(0x0C000000),
-            blurRadius: 24,
-            offset: Offset(0, -4),
-            spreadRadius: -8,
+            color: Color(0x08000000),
+            blurRadius: 8,
+            offset: Offset(0, 4),
+            spreadRadius: 0,
           ),
         ],
       ),
@@ -123,28 +128,68 @@ class EventTimelineList extends StatelessWidget {
             ),
             SizedBox(height: sectionGap),
             if (events.isEmpty)
-              Expanded(
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.calendar_today_outlined,
-                        size: SizeConfig.sp(context, 44).clamp(36.0, 52.0),
-                        color: _subtitleColor,
-                      ),
-                      SizedBox(height: SizeConfig.sp(context, 12)),
-                      Text(
-                        '暂无日程',
-                        style: TextStyle(
-                          fontSize: SizeConfig.sp(context, 15).clamp(13.0, 17.0),
-                          fontWeight: FontWeight.w400,
-                          color: _subtitleColor,
+              shrinkWrapList
+                  ? SizedBox(
+                      height: 200,
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.calendar_today_outlined,
+                              size: SizeConfig.sp(context, 44).clamp(36.0, 52.0),
+                              color: _subtitleColor,
+                            ),
+                            SizedBox(height: SizeConfig.sp(context, 12)),
+                            Text(
+                              '暂无日程',
+                              style: TextStyle(
+                                fontSize: SizeConfig.sp(context, 15).clamp(13.0, 17.0),
+                                fontWeight: FontWeight.w400,
+                                color: _subtitleColor,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
-                ),
+                    )
+                  : Expanded(
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.calendar_today_outlined,
+                              size: SizeConfig.sp(context, 44).clamp(36.0, 52.0),
+                              color: _subtitleColor,
+                            ),
+                            SizedBox(height: SizeConfig.sp(context, 12)),
+                            Text(
+                              '暂无日程',
+                              style: TextStyle(
+                                fontSize: SizeConfig.sp(context, 15).clamp(13.0, 17.0),
+                                fontWeight: FontWeight.w400,
+                                color: _subtitleColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+            else if (shrinkWrapList)
+              ListView.separated(
+                physics: const NeverScrollableScrollPhysics(),
+                shrinkWrap: true,
+                padding: EdgeInsets.only(bottom: bottomInset + SizeConfig.sp(context, 56)),
+                itemCount: events.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 8),
+                itemBuilder: (context, index) {
+                  final event = events[index];
+                  return EventReminderCard(
+                    event: event,
+                    onTogglePin: onTogglePin != null ? () => onTogglePin!(event) : null,
+                  );
+                },
               )
             else
               Expanded(

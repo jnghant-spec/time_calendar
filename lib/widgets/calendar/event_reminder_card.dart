@@ -61,6 +61,7 @@ class EventReminderCard extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
               '今天',
@@ -72,7 +73,8 @@ class EventReminderCard extends StatelessWidget {
                 height: 1.0,
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 2),
+            const SizedBox(height: 12),
           ],
         ),
       );
@@ -82,6 +84,7 @@ class EventReminderCard extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
               '已过去',
@@ -93,7 +96,8 @@ class EventReminderCard extends StatelessWidget {
                 height: 1.0,
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 2),
+            const SizedBox(height: 12),
           ],
         ),
       );
@@ -102,6 +106,7 @@ class EventReminderCard extends StatelessWidget {
       Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
             '$daysRemaining',
@@ -112,6 +117,7 @@ class EventReminderCard extends StatelessWidget {
               height: 1.0,
             ),
           ),
+          const SizedBox(height: 2),
           Text(
             '天后',
             style: TextStyle(

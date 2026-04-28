@@ -4,50 +4,49 @@ import 'package:flutter/material.dart';
 import 'package:time_calendar/utils/size_config.dart';
 import 'package:time_calendar/widgets/calendar/calendar_models.dart';
 
-/// 日历网格：在 [maxWidth]×[maxHeight] 内完整展示所有行，通过计算 [childAspectRatio] 适配小屏。
+/// 日历网格：星期行固定 26px，日期行高为 [targetCellMainExtent]，总高度随当月行数变化。
 class CalendarGrid extends StatelessWidget {
   const CalendarGrid({
     super.key,
     required this.weekDayLabels,
     required this.dayCells,
     required this.maxWidth,
-    required this.maxHeight,
+    this.targetCellMainExtent = 38.0,
     this.onDateSelected,
   });
 
   final List<String> weekDayLabels;
   final List<CalendarDayCellData> dayCells;
   final double maxWidth;
-  final double maxHeight;
+  /// 日期行高度；列表上滑时可在 38→30 间插值以压缩日历。
+  final double targetCellMainExtent;
   final void Function(CalendarDayCellData day)? onDateSelected;
 
   static const Duration _selectionDuration = Duration(milliseconds: 220);
   static const Color _todayFill = Color(0xFFE0F2FE);
   static const Color _selectedFill = Color(0xFFEFF6FF);
 
-  static const double _targetCellMainExtent = 38.0;
   static const double _weekdayBand = 26.0;
 
   @override
   Widget build(BuildContext context) {
     final rows = math.max(1, (dayCells.length / 7).ceil());
     final outerH = SizeConfig.sp(context, 0.5).clamp(0.0, 1.0);
-    final availRows = math.max(8.0, maxHeight - _weekdayBand - outerH * 2);
     final cellW = (maxWidth - outerH * 2) / 7.0;
-    final rowHFromParent = availRows / rows;
-    final cellMain = math.min(_targetCellMainExtent, rowHFromParent);
+    final cellMain = targetCellMainExtent.clamp(30.0, 38.0);
     final aspect = (cellW / cellMain).clamp(0.48, 1.45);
+    final gridH = rows * cellMain;
 
     const double dayNumSize = 14.0;
     const double lunarSize = 9.0;
 
     return SizedBox(
       width: maxWidth,
-      height: maxHeight,
+      height: 3 + _weekdayBand + gridH,
       child: Padding(
         padding: EdgeInsets.fromLTRB(outerH, 3, outerH, 0),
         child: Column(
-          mainAxisSize: MainAxisSize.max,
+          mainAxisSize: MainAxisSize.min,
           children: [
             SizedBox(
               height: _weekdayBand,
@@ -70,7 +69,8 @@ class CalendarGrid extends StatelessWidget {
                     .toList(),
               ),
             ),
-            Expanded(
+            SizedBox(
+              height: gridH,
               child: GridView.builder(
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: dayCells.length,

@@ -73,10 +73,11 @@ class CalendarPage extends StatefulWidget {
     ];
   }
 
-  static bool _isVisibleOnCalendarPage(EventReminderData e, DateTime today) {
-    if (e.isPinned) return true;
+  static bool _isVisibleOnCalendarTimeline(EventReminderData e, DateTime today) {
     final days = _dateOnly(e.eventDate).difference(_dateOnly(today)).inDays;
-    return days >= 0 && days <= 15;
+    if (days < 0) return false;
+    if (e.isPinned) return true;
+    return days <= 15;
   }
 
   static int _eventSort(EventReminderData a, EventReminderData b) {
@@ -92,7 +93,7 @@ class CalendarPage extends StatefulWidget {
     Iterable<EventReminderData> source,
     DateTime today,
   ) {
-    final list = source.where((e) => _isVisibleOnCalendarPage(e, today)).toList()..sort(_eventSort);
+    final list = source.where((e) => _isVisibleOnCalendarTimeline(e, today)).toList()..sort(_eventSort);
     return list;
   }
 
@@ -106,12 +107,22 @@ class _CalendarPageState extends State<CalendarPage> {
   late int _viewYear;
   late int _viewMonth;
 
-  static const double _kCalMaxF = 0.55;
-  static const double _kCalMinF = 0.35;
   static const double _kScrollToCompress = 500;
+  static const double _kCellExtentHi = 38;
+  static const double _kCellExtentLo = 30;
+  static const double _kMinListBody = 160;
+  /// 与 `MonthSelector(compact: true)` 视觉高度近似对齐，用于判断是否启用整页滚动。
+  static const double _kMonthSelectorCompactH = 58;
+  static const double _kGridTopPad = 3;
+  static const double _kWeekdayBand = 26;
+  static const double _kCalToListGap = 16;
+  static const double _kCalToListDividerH = 1;
 
   late final ScrollController _listController;
-  double _calendarFraction = _kCalMaxF;
+  late final ScrollController _pageScrollController;
+
+  /// 0 = 日期行高 38px；1 = 压至 30px。
+  double _compressT = 0;
 
   DateTime get _calendarToday {
     final n = DateTime.now();
@@ -124,24 +135,32 @@ class _CalendarPageState extends State<CalendarPage> {
     final t = _calendarToday;
     _viewYear = t.year;
     _viewMonth = t.month;
-    _listController = ScrollController()..addListener(_onListScroll);
+    _listController = ScrollController()..addListener(_compressFromScroll);
+    _pageScrollController = ScrollController()..addListener(_compressFromScroll);
   }
 
   @override
   void dispose() {
-    _listController.removeListener(_onListScroll);
+    _listController.removeListener(_compressFromScroll);
+    _pageScrollController.removeListener(_compressFromScroll);
     _listController.dispose();
+    _pageScrollController.dispose();
     super.dispose();
   }
 
-  void _onListScroll() {
-    if (!_listController.hasClients) return;
-    final o = _listController.offset;
+  void _compressFromScroll() {
+    ScrollController? c;
+    if (_pageScrollController.hasClients) {
+      c = _pageScrollController;
+    } else if (_listController.hasClients) {
+      c = _listController;
+    }
+    if (c == null) return;
+    final o = c.offset;
     if (o < 0) return;
     final t = (o / _kScrollToCompress).clamp(0.0, 1.0);
-    final next = _kCalMaxF - t * (_kCalMaxF - _kCalMinF);
-    if ((next - _calendarFraction).abs() > 0.002) {
-      setState(() => _calendarFraction = next);
+    if ((t - _compressT).abs() > 0.005) {
+      setState(() => _compressT = t);
     }
   }
 
@@ -149,7 +168,10 @@ class _CalendarPageState extends State<CalendarPage> {
     if (_listController.hasClients) {
       _listController.jumpTo(0);
     }
-    _calendarFraction = _kCalMaxF;
+    if (_pageScrollController.hasClients) {
+      _pageScrollController.jumpTo(0);
+    }
+    _compressT = 0;
   }
 
   String get _monthLabel => '$_viewYear年$_viewMonth月';
@@ -168,10 +190,8 @@ class _CalendarPageState extends State<CalendarPage> {
   }
 
   Map<String, List<Color>> _markerByDay() {
-    final today = _calendarToday;
     final m = <String, List<Color>>{};
     for (final e in _allMock) {
-      if (!CalendarPage._isVisibleOnCalendarPage(e, today)) continue;
       final k = '${e.eventDate.year}-${e.eventDate.month}-${e.eventDate.day}';
       m.putIfAbsent(k, () => []);
       if (m[k]!.length < 2 && !m[k]!.contains(e.accentColor)) {
@@ -272,19 +292,87 @@ class _CalendarPageState extends State<CalendarPage> {
 
   List<EventReminderData> _visibleEvents() {
     final today = _calendarToday;
-    final pool = CalendarPage._filteredCalendarEvents(_allMock, today);
     if (_selectedDate != null) {
-      return pool.where((e) => _isSameDay(e.eventDate, _selectedDate!)).toList();
+      return _allMock
+          .where((e) => _isSameDay(e.eventDate, _selectedDate!))
+          .toList()
+        ..sort(CalendarPage._eventSort);
     }
-    return pool;
+    return CalendarPage._filteredCalendarEvents(_allMock, today);
   }
 
   String _timelineTitle() => _selectedDate == null ? '未来15天' : '当日事件';
+
+  double _cellExtentForCompress(double t) => _kCellExtentHi - (_kCellExtentHi - _kCellExtentLo) * t;
+
+  double _calendarBlockHeight(int rowCount, double cellExtent, double dayGutter) {
+    final gridH = _kGridTopPad + _kWeekdayBand + rowCount * cellExtent;
+    final bridge = _kCalToListGap + _kCalToListDividerH;
+    return _kMonthSelectorCompactH + gridH + dayGutter + bridge;
+  }
 
   @override
   Widget build(BuildContext context) {
     final dayMode = _selectedDate != null;
     final gutterH = SizeConfig.screenHeight(context) * 0.01;
+    final dayGutter = (dayMode && gutterH > 0) ? gutterH : 0.0;
+
+    final cells = _buildDayCells();
+    final rowCount = (cells.length / 7).ceil();
+    final cellExtent = _cellExtentForCompress(_compressT);
+    final timelineTitle = _timelineTitle();
+    final timelineEvents = _visibleEvents();
+
+    Widget calendarColumn(double maxWidth) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: dayMode ? _backToOverview : null,
+            child: MonthSelector(
+              monthLabel: _monthLabel,
+              compact: true,
+              onPreviousMonth: _onPrevMonth,
+              onNextMonth: _onNextMonth,
+              onTitleTap: _onTitleTap,
+            ),
+          ),
+          CalendarGrid(
+            weekDayLabels: CalendarPage._weekDays,
+            dayCells: cells,
+            maxWidth: maxWidth,
+            targetCellMainExtent: cellExtent,
+            onDateSelected: _onDateSelected,
+          ),
+        ],
+      );
+    }
+
+    Widget calListBridge() => Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SizedBox(height: _kCalToListGap),
+            Divider(
+              height: _kCalToListDividerH,
+              thickness: 1,
+              color: Colors.grey.shade200,
+            ),
+          ],
+        );
+
+    Widget timelineSliver({required bool shrinkWrap}) {
+      return EventTimelineList(
+        title: timelineTitle,
+        events: timelineEvents,
+        isDayDetailMode: dayMode,
+        onBackToOverview: dayMode ? _backToOverview : null,
+        scrollController: shrinkWrap ? null : _listController,
+        shrinkWrapList: shrinkWrap,
+      );
+    }
 
     return ColoredBox(
       color: const Color(0xFFF8FAFC),
@@ -292,61 +380,44 @@ class _CalendarPageState extends State<CalendarPage> {
         bottom: false,
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final totalH = constraints.maxHeight;
-            final calH = totalH * _calendarFraction;
+            final maxW = constraints.maxWidth;
+            final maxH = constraints.maxHeight;
+            final calBlockH = _calendarBlockHeight(rowCount, cellExtent, dayGutter);
+            final remaining = maxH - calBlockH;
+            final outerScroll = remaining < _kMinListBody;
+
+            final afterCalSpacer = dayMode && gutterH > 0
+                ? GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onTap: _backToOverview,
+                    child: SizedBox(height: gutterH),
+                  )
+                : null;
+
+            if (outerScroll) {
+              return SingleChildScrollView(
+                controller: _pageScrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    calendarColumn(maxW),
+                    ?afterCalSpacer,
+                    calListBridge(),
+                    timelineSliver(shrinkWrap: true),
+                  ],
+                ),
+              );
+            }
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                SizedBox(
-                  height: calH,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      GestureDetector(
-                        behavior: HitTestBehavior.translucent,
-                        onTap: dayMode ? _backToOverview : null,
-                        child: MonthSelector(
-                          monthLabel: _monthLabel,
-                          compact: true,
-                          onPreviousMonth: _onPrevMonth,
-                          onNextMonth: _onNextMonth,
-                          onTitleTap: _onTitleTap,
-                        ),
-                      ),
-                      Expanded(
-                        child: LayoutBuilder(
-                          builder: (context, inner) {
-                            return CalendarGrid(
-                              weekDayLabels: CalendarPage._weekDays,
-                              dayCells: _buildDayCells(),
-                              maxWidth: inner.maxWidth,
-                              maxHeight: inner.maxHeight,
-                              onDateSelected: _onDateSelected,
-                            );
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (dayMode && gutterH > 0)
-                  GestureDetector(
-                    behavior: HitTestBehavior.translucent,
-                    onTap: _backToOverview,
-                    child: SizedBox(height: gutterH),
-                  ),
+                calendarColumn(maxW),
+                ?afterCalSpacer,
+                calListBridge(),
                 Expanded(
-                  child: Transform.translate(
-                    offset: const Offset(0, -8),
-                    child: EventTimelineList(
-                      title: _timelineTitle(),
-                      events: _visibleEvents(),
-                      isDayDetailMode: dayMode,
-                      onBackToOverview: dayMode ? _backToOverview : null,
-                      scrollController: _listController,
-                    ),
-                  ),
+                  child: timelineSliver(shrinkWrap: false),
                 ),
               ],
             );

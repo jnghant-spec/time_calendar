@@ -37,11 +37,8 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final hideAppBar = _currentIndex == 0 || _currentIndex == 2;
     return Scaffold(
-      appBar: hideAppBar
-          ? null
-          : AppBar(title: Text(_labels[_currentIndex])),
+      appBar: null,
       body: _pages[_currentIndex],
       bottomNavigationBar: _MainTabBar(
         currentIndex: _currentIndex,
