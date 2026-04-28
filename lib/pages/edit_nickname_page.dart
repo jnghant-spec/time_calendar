@@ -3,10 +3,7 @@ import 'package:flutter/services.dart';
 
 /// 修改昵称，确认后 [Navigator.pop] 返回新昵称；取消与返回不携带结果。
 class EditNicknamePage extends StatefulWidget {
-  const EditNicknamePage({
-    super.key,
-    required this.currentNickname,
-  });
+  const EditNicknamePage({super.key, required this.currentNickname});
 
   /// 当前已保存的昵称，可为空（与「用户昵称」展示一致）
   final String currentNickname;
@@ -46,9 +43,9 @@ class _EditNicknamePageState extends State<EditNicknamePage> {
   void _onConfirm() {
     final n = _controller.text.trim();
     if (n.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请输入昵称')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('请输入昵称')));
       return;
     }
     // TODO(后端): 提交昵称到服务端
@@ -97,10 +94,7 @@ class _EditNicknamePageState extends State<EditNicknamePage> {
           ),
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(1),
-            child: Container(
-              height: 0.7,
-              color: cs.outline,
-            ),
+            child: Container(height: 0.7, color: cs.outline),
           ),
         ),
         body: SafeArea(
@@ -129,9 +123,7 @@ class _EditNicknamePageState extends State<EditNicknamePage> {
                 SizedBox(height: (vBlock * 0.3).clamp(6.0, 10.0)),
                 TextField(
                   controller: _controller,
-                  inputFormatters: [
-                    LengthLimitingTextInputFormatter(_maxLen),
-                  ],
+                  inputFormatters: [LengthLimitingTextInputFormatter(_maxLen)],
                   style: textTheme.bodyLarge?.copyWith(
                     color: cs.onSurface,
                     fontWeight: FontWeight.w400,

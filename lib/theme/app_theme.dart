@@ -27,22 +27,23 @@ class AppTextStyles {
 // 统一的主题配置（与 ColorScheme 对齐，子页面用 Theme 取色避免硬编码）
 final ThemeData appTheme = ThemeData(
   useMaterial3: true,
-  colorScheme: ColorScheme.fromSeed(
-    seedColor: AppColors.primary,
-    brightness: Brightness.light,
-  ).copyWith(
-    surface: AppColors.pageBackground,
-    surfaceContainerHigh: Colors.white,
-    primary: AppColors.primary,
-    onPrimary: Colors.white,
-    primaryContainer: const Color(0xFFEFF6FF),
-    onSurface: AppColors.textPrimary,
-    onSurfaceVariant: const Color(0xFF64748B),
-    outline: const Color(0xFFE2E8F0),
-    outlineVariant: const Color(0xFFE2E8F0),
-    tertiary: const Color(0xFFEA580C),
-    onTertiary: Colors.white,
-  ),
+  colorScheme:
+      ColorScheme.fromSeed(
+        seedColor: AppColors.primary,
+        brightness: Brightness.light,
+      ).copyWith(
+        surface: AppColors.pageBackground,
+        surfaceContainerHigh: Colors.white,
+        primary: AppColors.primary,
+        onPrimary: Colors.white,
+        primaryContainer: const Color(0xFFEFF6FF),
+        onSurface: AppColors.textPrimary,
+        onSurfaceVariant: const Color(0xFF64748B),
+        outline: const Color(0xFFE2E8F0),
+        outlineVariant: const Color(0xFFE2E8F0),
+        tertiary: const Color(0xFFEA580C),
+        onTertiary: Colors.white,
+      ),
   primaryColor: AppColors.primary,
   scaffoldBackgroundColor: AppColors.pageBackground,
   appBarTheme: const AppBarTheme(
