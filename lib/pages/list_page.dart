@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
@@ -143,6 +145,15 @@ class _ListPageState extends State<ListPage> {
 
   ListCategory? _activeFilter;
 
+  Timer? _deleteSnackDismissTimer;
+  int _deleteSnackSeq = 0;
+
+  @override
+  void dispose() {
+    _deleteSnackDismissTimer?.cancel();
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -234,12 +245,14 @@ class _ListPageState extends State<ListPage> {
     return '农历 ${lunar.getMonthInChinese()}月${lunar.getDayInChinese()}';
   }
 
-  /// 排序：置顶（含过期）最前 → 未过期按日期升序 → 已过期最后，按过期由近到远（近先）
+  /// 排序：tier0 置顶未过期 → tier1 非置顶未过期 → tier2 置顶已过期 → tier3 非置顶已过期；已过期区域内按日期倒序（近先）。
   int _sortTier(ListEvent e, DateTime today) {
-    if (e.isPinned) return 0;
     final d = _displayDate(e);
-    if (!d.isBefore(today)) return 1;
-    return 2;
+    final expired = d.isBefore(today);
+    if (!expired) {
+      return e.isPinned ? 0 : 1;
+    }
+    return e.isPinned ? 2 : 3;
   }
 
   List<ListEvent> _sortedEvents() {
@@ -255,11 +268,8 @@ class _ListPageState extends State<ListPage> {
       if (ta != tb) return ta.compareTo(tb);
       final da = _displayDate(a);
       final db = _displayDate(b);
-      if (ta == 2) return db.compareTo(da);
-      if (ta == 0) {
-        if (a.isPinned != b.isPinned) {
-          return a.isPinned ? -1 : 1;
-        }
+      if (ta >= 2) {
+        return db.compareTo(da);
       }
       return da.compareTo(db);
     });
@@ -312,24 +322,50 @@ class _ListPageState extends State<ListPage> {
       EventUsageService.updateCount(_events.length);
     });
     if (!mounted) return;
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
+    final seq = ++_deleteSnackSeq;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.removeCurrentSnackBar();
+
+    _deleteSnackDismissTimer?.cancel();
+
+    late final ScaffoldFeatureController<SnackBar, SnackBarClosedReason> deleteSnackCtrl;
+    deleteSnackCtrl = messenger.showSnackBar(
       SnackBar(
         content: Text('「${backup.title}」已删除'),
-        duration: const Duration(seconds: 3),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.fixed,
+        dismissDirection: DismissDirection.down,
+        onVisible: () {
+          if (!mounted || seq != _deleteSnackSeq) return;
+          _deleteSnackDismissTimer?.cancel();
+          _deleteSnackDismissTimer = Timer(const Duration(seconds: 2), () {
+            if (!mounted || seq != _deleteSnackSeq) return;
+            deleteSnackCtrl.close();
+            _deleteSnackDismissTimer = null;
+          });
+        },
         action: SnackBarAction(
           label: '撤销',
           onPressed: () {
             if (!mounted) return;
+            _deleteSnackDismissTimer?.cancel();
+            _deleteSnackDismissTimer = null;
+            _deleteSnackSeq++;
             setState(() {
               final insertAt = index.clamp(0, _events.length);
               _events.insert(insertAt, backup);
               EventUsageService.updateCount(_events.length);
             });
+            messenger.removeCurrentSnackBar();
           },
         ),
       ),
     );
+
+    Future.delayed(const Duration(milliseconds: 2500), () {
+      if (!mounted || seq != _deleteSnackSeq) return;
+      deleteSnackCtrl.close();
+    });
   }
 
   void _shareEvent(ListEvent event) {
@@ -354,16 +390,10 @@ class _ListPageState extends State<ListPage> {
   }
 
   Color _pinActionColor(ListEvent event) {
-    if (event.category == ListCategory.partner) {
-      return Colors.red;
-    }
     return const Color(0xFF2441A7);
   }
 
   Color _shareActionColor(ListEvent event) {
-    if (event.category == ListCategory.partner) {
-      return Colors.red.withValues(alpha: 0.88);
-    }
     return AppColors.primary;
   }
 
@@ -581,7 +611,7 @@ class _ListPageState extends State<ListPage> {
                           return [
                             _buildSlideAction(
                               backgroundColor: _pinActionColor(event),
-                              icon: Icons.push_pin,
+                              icon: event.isPinned ? Icons.star_border : Icons.star,
                               label: event.isPinned ? '取消' : '置顶',
                               roundLeft: true,
                               roundRight: false,
@@ -1088,8 +1118,8 @@ class _ListEventCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Container(
-                    width: 36,
-                    height: 36,
+                    width: 32,
+                    height: 32,
                     decoration: BoxDecoration(
                       color: iconBg.withValues(alpha: 0.10),
                       shape: BoxShape.circle,
@@ -1136,9 +1166,9 @@ class _ListEventCard extends StatelessWidget {
                               ),
                             ),
                             if (lunarLine != null) ...[
-                              const SizedBox(width: 8),
+                              const SizedBox(width: 2),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
                                 decoration: BoxDecoration(
                                   color: expiredVisual ? Colors.grey.shade100 : _kLunarTagBg,
                                   borderRadius: BorderRadius.circular(6),
@@ -1206,7 +1236,7 @@ class _CountdownColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const w = 80.0;
+    const w = 72.0;
 
     if (!expired && daysDiff == 0) {
       final todayColor = _todayLabelColorFromAccent(accent);
@@ -1251,7 +1281,7 @@ class _CountdownColumn extends StatelessWidget {
             ),
             const SizedBox(height: 2),
             Text(
-              '天',
+              '天前',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w400,
