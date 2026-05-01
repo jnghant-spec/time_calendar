@@ -16,12 +16,15 @@ class CalendarPage extends StatefulWidget {
 
   static String _zhWeekday(DateTime d) => _kWeekdayZh[d.weekday - 1];
 
+  /// 标记农历事件（不可见）；须与 [EventReminderCard] 内解析逻辑一致。
+  static const String _kLunarDateLineMarker = '\u200e';
+
   static String _formatEventDateLine(DateTime date, {bool lunar = false}) {
     final y = date.year.toString().padLeft(4, '0');
     final m = date.month.toString().padLeft(2, '0');
     final day = date.day.toString().padLeft(2, '0');
     final base = '$y-$m-$day ${_zhWeekday(date)}';
-    if (lunar) return '$base (农历)';
+    if (lunar) return '$base$_kLunarDateLineMarker';
     return '$base ';
   }
 
@@ -75,9 +78,7 @@ class CalendarPage extends StatefulWidget {
 
   static bool _isVisibleOnCalendarTimeline(EventReminderData e, DateTime today) {
     final days = _dateOnly(e.eventDate).difference(_dateOnly(today)).inDays;
-    if (days < 0) return false;
-    if (e.isPinned) return true;
-    return days <= 15;
+    return days >= 0 && days <= 15;
   }
 
   static int _eventSort(EventReminderData a, EventReminderData b) {
@@ -375,7 +376,7 @@ class _CalendarPageState extends State<CalendarPage> {
     }
 
     return ColoredBox(
-      color: const Color(0xFFF8FAFC),
+      color: Colors.white,
       child: SafeArea(
         bottom: false,
         child: LayoutBuilder(

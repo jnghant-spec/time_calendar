@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:lunar/lunar.dart';
@@ -6,10 +7,36 @@ import 'package:time_calendar/models/list_event.dart';
 import 'package:time_calendar/pages/event_edit_page.dart';
 import 'package:time_calendar/services/event_usage_service.dart';
 import 'package:time_calendar/theme/app_theme.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-const _kListStarColor = Color(0xFFF59E0B);
-const _kLunarTagBg = Color(0xFFEBF5FF);
-const _kLunarTagFg = Color(0xFF1E40AF);
+/// 与日历节日类 accent（0xFF10B981）一致时「今天」用绿色，否则用事件自身 accent。
+Color _todayLabelColorFromAccent(Color accent) {
+  const festivalGreen = Color(0xFF10B981);
+  return accent.toARGB32() == festivalGreen.toARGB32() ? festivalGreen : accent;
+}
+
+const _kListStarColor = Color(0xFFFFB800);
+const _kLunarTagBg = Color(0xFFFFF7ED);
+const _kLunarTagFg = Color(0xFFF97316);
+const _kExpiredGrey = Color(0xFFC7C7CC);
+
+/// 每日分享人数累计（跨事件），按自然日 key 存储，次日自动换 key 即重置。
+class _ShareDailyQuota {
+  static String _keyFor(DateTime d) =>
+      'share_daily_${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  static Future<int> getTodayCount() async {
+    final p = await SharedPreferences.getInstance();
+    return p.getInt(_keyFor(DateTime.now())) ?? 0;
+  }
+
+  static Future<void> addToToday(int n) async {
+    if (n <= 0) return;
+    final p = await SharedPreferences.getInstance();
+    final k = _keyFor(DateTime.now());
+    await p.setInt(k, (p.getInt(k) ?? 0) + n);
+  }
+}
 
 class ListPage extends StatefulWidget {
   const ListPage({super.key});
@@ -34,15 +61,9 @@ class _ListPageState extends State<ListPage> {
 
   static const List<BoxShadow> _cardShadows = [
     BoxShadow(
-      color: Color(0x19000000),
-      blurRadius: 2,
-      offset: Offset(0, 1),
-      spreadRadius: -1,
-    ),
-    BoxShadow(
-      color: Color(0x19000000),
-      blurRadius: 3,
-      offset: Offset(0, 1),
+      color: Color(0x0D000000),
+      blurRadius: 8,
+      offset: Offset(0, 2),
       spreadRadius: 0,
     ),
   ];
@@ -55,6 +76,13 @@ class _ListPageState extends State<ListPage> {
       category: ListCategory.birthday,
       isPinned: true,
       isLunarRecurring: true,
+    ),
+    ListEvent(
+      id: 'today_test',
+      title: '今天测试',
+      baseDate: DateTime(2026, 4, 30),
+      category: ListCategory.goal,
+      isPinned: false,
     ),
     ListEvent(
       id: '2',
@@ -203,7 +231,7 @@ class _ListPageState extends State<ListPage> {
 
   String _lunarLine(DateTime solarDate) {
     final lunar = Lunar.fromDate(solarDate);
-    return '农历 ${lunar.getMonthInChinese()}${lunar.getDayInChinese()}';
+    return '农历 ${lunar.getMonthInChinese()}月${lunar.getDayInChinese()}';
   }
 
   /// 排序：置顶（含过期）最前 → 未过期按日期升序 → 已过期最后，按过期由近到远（近先）
@@ -248,15 +276,63 @@ class _ListPageState extends State<ListPage> {
     });
   }
 
-  void _deleteEvent(String id) {
+  Future<void> _confirmDeleteEvent(ListEvent event) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('确认删除'),
+          content: Text('确定要删除「${event.title}」吗？该操作不可撤销。'),
+          actions: [
+            OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: Colors.grey.shade400),
+              ),
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('取消'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFF04444),
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('确认删除'),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true || !mounted) return;
+    final index = _events.indexWhere((e) => e.id == event.id);
+    if (index < 0) return;
+    final backup = _events[index];
     setState(() {
-      _events.removeWhere((e) => e.id == id);
+      _events.removeAt(index);
       EventUsageService.updateCount(_events.length);
     });
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('「${backup.title}」已删除'),
+        duration: const Duration(seconds: 3),
+        action: SnackBarAction(
+          label: '撤销',
+          onPressed: () {
+            if (!mounted) return;
+            setState(() {
+              final insertAt = index.clamp(0, _events.length);
+              _events.insert(insertAt, backup);
+              EventUsageService.updateCount(_events.length);
+            });
+          },
+        ),
+      ),
+    );
   }
 
   void _shareEvent(ListEvent event) {
-    final phoneController = TextEditingController();
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -266,59 +342,14 @@ class _ListPageState extends State<ListPage> {
       ),
       builder: (sheetContext) {
         return Padding(
-          padding: EdgeInsets.fromLTRB(
-            20,
-            18,
-            20,
-            MediaQuery.viewInsetsOf(sheetContext).bottom + 18,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '分享「${event.title}」',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: phoneController,
-                keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                  labelText: '手机号码',
-                  hintText: '请输入接收方手机号',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(sheetContext).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('分享流程已触发（预留后端接口）')),
-                    );
-                  },
-                  child: const Text('下一步'),
-                ),
-              ),
-            ],
-          ),
+          padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(sheetContext).bottom),
+          child: _ShareEventSheet(parentContext: context),
         );
       },
-    ).whenComplete(phoneController.dispose);
+    );
   }
 
-  void _onSlideAction(
-    ListEvent event,
-    SwipeAction action,
-    BuildContext slidableContext,
-  ) {
-    Slidable.of(slidableContext)?.close();
+  void _onSlideAction(ListEvent event, SwipeAction action) {
     _handleSwipeAction(event, action);
   }
 
@@ -340,34 +371,54 @@ class _ListPageState extends State<ListPage> {
     required Color backgroundColor,
     required IconData icon,
     required String label,
+    required bool roundLeft,
     required bool roundRight,
     required VoidCallback onTap,
+    Color iconColor = Colors.white,
   }) {
+    BorderRadius borderRadius;
+    if (roundLeft && roundRight) {
+      borderRadius = BorderRadius.circular(12);
+    } else if (roundLeft) {
+      borderRadius = const BorderRadius.only(
+        topLeft: Radius.circular(12),
+        bottomLeft: Radius.circular(12),
+      );
+    } else if (roundRight) {
+      borderRadius = const BorderRadius.only(
+        topRight: Radius.circular(12),
+        bottomRight: Radius.circular(12),
+      );
+    } else {
+      borderRadius = BorderRadius.zero;
+    }
     return CustomSlidableAction(
       autoClose: true,
       padding: EdgeInsets.zero,
       backgroundColor: backgroundColor,
-      borderRadius: roundRight
-          ? const BorderRadius.only(
-              topRight: Radius.circular(12),
-              bottomRight: Radius.circular(12),
-            )
-          : BorderRadius.zero,
+      borderRadius: borderRadius,
       onPressed: (_) => onTap(),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: Colors.white, size: 26),
-          const SizedBox(height: 6),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 15,
-              fontWeight: FontWeight.w500,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: iconColor, size: 20),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -381,7 +432,7 @@ class _ListPageState extends State<ListPage> {
         _shareEvent(event);
         return;
       case SwipeAction.onDelete:
-        _deleteEvent(event.id);
+        _confirmDeleteEvent(event);
         return;
     }
   }
@@ -405,7 +456,7 @@ class _ListPageState extends State<ListPage> {
           child: Padding(
             padding: EdgeInsets.only(
               left: 16,
-              right: 8,
+              right: 16,
               top: MediaQuery.paddingOf(context).top,
             ),
             child: Row(
@@ -417,15 +468,6 @@ class _ListPageState extends State<ListPage> {
                         color: const Color(0xFF0F172A),
                         letterSpacing: -0.45,
                       ),
-                ),
-                const Spacer(),
-                IconButton(
-                  icon: Icon(Icons.search, size: 24, color: Colors.grey.shade600),
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('搜索（占位）')),
-                    );
-                  },
                 ),
               ],
             ),
@@ -471,10 +513,11 @@ class _ListPageState extends State<ListPage> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAFBFC),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _openCreateSheet,
-        backgroundColor: AppColors.primary,
-        child: const Icon(Icons.add, color: Colors.white),
+      floatingActionButton: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: _ListFab(onPressed: _openCreateSheet),
+        ),
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -488,17 +531,30 @@ class _ListPageState extends State<ListPage> {
           const SizedBox(height: 12),
           Expanded(
             child: cards.isEmpty
-                ? const Center(
-                    child: Text(
-                      '暂无事件',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w400,
-                        color: Color(0xFF64748B),
-                      ),
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.inbox_outlined, size: 64, color: Colors.grey.shade300),
+                        const SizedBox(height: 16),
+                        Text(
+                          '暂无事件',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '点击右下角按钮添加',
+                          style: TextStyle(fontSize: 14, color: Colors.grey.shade400),
+                        ),
+                      ],
                     ),
                   )
                 : ListView.separated(
+                    physics: const ClampingScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 94),
                     itemCount: cards.length,
                     separatorBuilder: (_, _) => const SizedBox(height: 12),
@@ -521,39 +577,40 @@ class _ListPageState extends State<ListPage> {
                         lunarLine: event.isLunarRecurring ? _lunarLine(displayDate) : null,
                         cardShadows: _cardShadows,
                         onTogglePin: () => _togglePin(event.id),
-                        slideActionsBuilder: (slidableContext) {
+                        slideActionsBuilder: (_) {
                           return [
                             _buildSlideAction(
                               backgroundColor: _pinActionColor(event),
                               icon: Icons.push_pin,
                               label: event.isPinned ? '取消' : '置顶',
+                              roundLeft: true,
                               roundRight: false,
+                              iconColor: _kListStarColor,
                               onTap: () => _onSlideAction(
                                 event,
                                 SwipeAction.onTogglePin,
-                                slidableContext,
                               ),
                             ),
                             _buildSlideAction(
                               backgroundColor: _shareActionColor(event),
                               icon: Icons.share_outlined,
                               label: '分享',
+                              roundLeft: false,
                               roundRight: false,
                               onTap: () => _onSlideAction(
                                 event,
                                 SwipeAction.onShare,
-                                slidableContext,
                               ),
                             ),
                             _buildSlideAction(
                               backgroundColor: const Color(0xFFF04444),
                               icon: Icons.delete_outline,
                               label: '删除',
+                              roundLeft: false,
                               roundRight: true,
                               onTap: () => _onSlideAction(
                                 event,
                                 SwipeAction.onDelete,
-                                slidableContext,
                               ),
                             ),
                           ];
@@ -563,6 +620,357 @@ class _ListPageState extends State<ListPage> {
                   ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// 清单页底部分享 Sheet（手机号多选、校验、结果展示、每日限额）。
+class _ShareResultEntry {
+  const _ShareResultEntry({required this.phone, required this.registered});
+  final String phone;
+  final bool registered;
+}
+
+class _ShareEventSheet extends StatefulWidget {
+  const _ShareEventSheet({required this.parentContext});
+
+  final BuildContext parentContext;
+
+  @override
+  State<_ShareEventSheet> createState() => _ShareEventSheetState();
+}
+
+class _ShareEventSheetState extends State<_ShareEventSheet> {
+  final List<TextEditingController> _controllers = [];
+
+  bool _resultsPhase = false;
+  List<_ShareResultEntry> _results = [];
+  int _registeredCount = 0;
+  int _smsCount = 0;
+
+  static const BoxDecoration _phoneDecorationNeutral = BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.all(Radius.circular(18)),
+    boxShadow: [
+      BoxShadow(
+        color: Color(0x0D111827),
+        blurRadius: 20,
+        offset: Offset(0, 8),
+      ),
+    ],
+    border: Border.fromBorderSide(BorderSide(color: Color(0xFFECEFF5))),
+  );
+
+  static final BoxDecoration _phoneDecorationError = _phoneDecorationNeutral.copyWith(
+    border: Border.all(color: Color(0xFFF04444)),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    final c = TextEditingController();
+    c.addListener(() => setState(() {}));
+    _controllers.add(c);
+  }
+
+  @override
+  void dispose() {
+    for (final c in _controllers) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  bool _hasFieldError(String text) {
+    if (text.isEmpty) return false;
+    return !RegExp(r'^\d{11}$').hasMatch(text);
+  }
+
+  bool _allEnteredPhonesValid() {
+    final phones = _controllers.map((c) => c.text.trim()).where((s) => s.isNotEmpty).toList();
+    if (phones.isEmpty) return false;
+    return phones.every((p) => RegExp(r'^\d{11}$').hasMatch(p));
+  }
+
+  void _tryAddField() {
+    if (_controllers.length >= 5) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('该事件单次最多可分享给 5 人')),
+      );
+      return;
+    }
+    final c = TextEditingController();
+    c.addListener(() => setState(() {}));
+    setState(() => _controllers.add(c));
+  }
+
+  void _removeField(int index) {
+    if (_controllers.length <= 1) return;
+    _controllers[index].dispose();
+    setState(() => _controllers.removeAt(index));
+  }
+
+  Future<void> _submitShare() async {
+    if (!_allEnteredPhonesValid()) return;
+    final phones = _controllers.map((c) => c.text.trim()).where((s) => s.isNotEmpty).toList();
+
+    final daily = await _ShareDailyQuota.getTodayCount();
+    if (!mounted) return;
+    if (daily + phones.length > 20) {
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          content: const Text('今日分享名额已满（每日最多 20 人），请明天再试'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('确定')),
+          ],
+        ),
+      );
+      return;
+    }
+
+    final results = <_ShareResultEntry>[];
+    var reg = 0;
+    var sms = 0;
+    for (final p in phones) {
+      final last = int.tryParse(p.substring(p.length - 1)) ?? 0;
+      final registered = last.isOdd;
+      results.add(_ShareResultEntry(phone: p, registered: registered));
+      if (registered) {
+        reg++;
+      } else {
+        sms++;
+      }
+    }
+
+    await _ShareDailyQuota.addToToday(phones.length);
+
+    setState(() {
+      _results = results;
+      _registeredCount = reg;
+      _smsCount = sms;
+      _resultsPhase = true;
+    });
+  }
+
+  void _finishSheet() {
+    final n = _results.length;
+    final m = _registeredCount;
+    final k = _smsCount;
+    Navigator.of(context).pop();
+    if (!widget.parentContext.mounted) return;
+    ScaffoldMessenger.of(widget.parentContext).showSnackBar(
+      SnackBar(content: Text('已分享给 $n 位，$m 位等待确认，$k 位将收到短信（免费）')),
+    );
+  }
+
+  Widget _phoneField(int index) {
+    final c = _controllers[index];
+    final err = _hasFieldError(c.text);
+    return Container(
+      decoration: err ? _phoneDecorationError : _phoneDecorationNeutral,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Row(
+        children: [
+          const Icon(Icons.phone, color: Color(0xFF9CA3AF), size: 22),
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextField(
+              controller: c,
+              keyboardType: TextInputType.phone,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: const InputDecoration(
+                hintText: '请输入手机号',
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(vertical: 14),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final atMaxFields = _controllers.length >= 5;
+    final showMaxHint = atMaxFields;
+
+    return SafeArea(
+      top: false,
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                '分享给…',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+              const SizedBox(height: 16),
+              if (!_resultsPhase) ...[
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _controllers.length,
+                  itemBuilder: (context, index) {
+                    final c = _controllers[index];
+                    final err = _hasFieldError(c.text);
+                    final isLast = index == _controllers.length - 1;
+                    return Padding(
+                      padding: EdgeInsets.only(bottom: index == _controllers.length - 1 ? 0 : 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Expanded(child: _phoneField(index)),
+                              if (_controllers.length >= 2)
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline),
+                                  color: Colors.grey.shade600,
+                                  onPressed: () => _removeField(index),
+                                ),
+                              if (isLast)
+                                IconButton(
+                                  icon: const Icon(Icons.add),
+                                  color: atMaxFields ? Colors.grey : Theme.of(context).colorScheme.primary,
+                                  onPressed: atMaxFields ? null : _tryAddField,
+                                ),
+                            ],
+                          ),
+                          if (err)
+                            const Padding(
+                              padding: EdgeInsets.only(top: 6, left: 4),
+                              child: Text(
+                                '请输入正确的 11 位手机号',
+                                style: TextStyle(fontSize: 12, color: Color(0xFFF04444)),
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+                if (showMaxHint) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    '该事件单次最多可分享给 5 人',
+                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: _allEnteredPhonesValid() ? _submitShare : null,
+                    child: const Text('确认分享'),
+                  ),
+                ),
+              ] else ...[
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 200),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    primary: false,
+                    itemCount: _results.length,
+                    itemBuilder: (context, i) {
+                      final r = _results[i];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              r.registered ? Icons.check_circle : Icons.sms_outlined,
+                              color: r.registered ? const Color(0xFF10B981) : const Color(0xFFF97316),
+                              size: 22,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    r.phone,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    r.registered ? '已发送至对方账号，等待确认' : '已发送邀请短信（免费）',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.grey.shade700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: _finishSheet,
+                    child: const Text('完成'),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ListFab extends StatefulWidget {
+  const _ListFab({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  State<_ListFab> createState() => _ListFabState();
+}
+
+class _ListFabState extends State<_ListFab> {
+  double _scale = 1;
+
+  void _setPressed(bool pressed) {
+    setState(() => _scale = pressed ? 0.95 : 1);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: (_) => _setPressed(true),
+      onPointerUp: (_) => _setPressed(false),
+      onPointerCancel: (_) => _setPressed(false),
+      child: AnimatedScale(
+        scale: _scale,
+        duration: const Duration(milliseconds: 100),
+        child: FloatingActionButton(
+          shape: const CircleBorder(),
+          onPressed: widget.onPressed,
+          backgroundColor: AppColors.primary,
+          child: const Icon(Icons.add, color: Colors.white),
+        ),
       ),
     );
   }
@@ -583,28 +991,27 @@ class _PillFilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: selected ? selectedColor : Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Container(
-          height: 36,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: selected ? null : Border.all(color: Colors.grey.shade300, width: 1),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              color: selected ? Colors.white : Colors.black,
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              height: 1.43,
-            ),
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+        height: 36,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: selected ? selectedColor : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: selected ? null : Border.all(color: Colors.grey.shade300, width: 1),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? Colors.white : Colors.black,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            height: 1.43,
           ),
         ),
       ),
@@ -643,143 +1050,145 @@ class _ListEventCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final greyText = Color.lerp(Colors.grey.shade600, Colors.grey.shade700, 0.2)!;
     final titleStyle = TextStyle(
       fontSize: 16,
       fontWeight: FontWeight.w700,
-      color: expiredVisual ? greyText : const Color(0xFF0F172A),
+      color: expiredVisual ? _kExpiredGrey : const Color(0xFF0F172A),
       height: 1.25,
       letterSpacing: -0.31,
     );
     final dateStyle = TextStyle(
       fontSize: 14,
       fontWeight: FontWeight.w400,
-      color: expiredVisual ? greyText : const Color(0xFF64748B),
+      color: expiredVisual ? _kExpiredGrey : const Color(0xFF64748B),
       height: 1.2,
     );
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final actionWidth = (constraints.maxWidth * 0.36).clamp(72.0, 112.0);
-        final ratio = ((actionWidth * 3) / constraints.maxWidth).clamp(0.60, 0.84);
-        return Slidable(
-          key: ValueKey(event.id),
-          closeOnScroll: true,
-          endActionPane: ActionPane(
-            motion: const DrawerMotion(),
-            extentRatio: ratio,
-            children: slideActionsBuilder(context)
-                .map((w) => SizedBox(width: actionWidth, child: w))
-                .toList(),
-          ),
-          child: Container(
+    return Slidable(
+      key: ValueKey(event.id),
+      closeOnScroll: true,
+      endActionPane: ActionPane(
+        motion: const DrawerMotion(),
+        extentRatio: 0.45,
+        children: slideActionsBuilder(context)
+            .map((w) => Expanded(child: w))
+            .toList(),
+      ),
+      child: Container(
             decoration: BoxDecoration(
-              color: expiredVisual ? Colors.grey.shade50 : Colors.white,
-              borderRadius: BorderRadius.circular(12),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(color: _border, width: 0.75),
               boxShadow: cardShadows,
             ),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Opacity(
-                  opacity: expiredVisual ? 0.5 : 1,
-                  child: Container(
-                    width: 48,
-                    height: 48,
+            child: Opacity(
+              opacity: expiredVisual ? 0.6 : 1,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
                     decoration: BoxDecoration(
-                      color: iconBg,
+                      color: iconBg.withValues(alpha: 0.10),
                       shape: BoxShape.circle,
                     ),
                     alignment: Alignment.center,
                     child: _categoryLeadingIcon(event.category, accent, expiredVisual),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              event.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: titleStyle,
-                            ),
-                          ),
-                          if (event.isPinned) ...[
-                            const SizedBox(width: 4),
-                            Icon(Icons.star, size: 16, color: _kListStarColor),
-                          ],
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Wrap(
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        spacing: 8,
-                        runSpacing: 4,
-                        children: [
-                          Text(
-                            '${displayDate.year}-${displayDate.month.toString().padLeft(2, '0')}-${displayDate.day.toString().padLeft(2, '0')} 周${weekdayTextBuilder(displayDate.weekday)}',
-                            style: dateStyle,
-                          ),
-                          if (lunarLine != null)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: _kLunarTagBg,
-                                borderRadius: BorderRadius.circular(6),
-                              ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
                               child: Text(
-                                lunarLine!,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  color: _kLunarTagFg,
-                                  height: 1.2,
+                                event.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: titleStyle,
+                              ),
+                            ),
+                            if (event.isPinned) ...[
+                              const SizedBox(width: 2),
+                              Icon(
+                                Icons.star,
+                                size: 16,
+                                color: expiredVisual ? _kExpiredGrey : _kListStarColor,
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '${displayDate.year}-${displayDate.month.toString().padLeft(2, '0')}-${displayDate.day.toString().padLeft(2, '0')} 周${weekdayTextBuilder(displayDate.weekday)}',
+                                style: dateStyle,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (lunarLine != null) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: expiredVisual ? Colors.grey.shade100 : _kLunarTagBg,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  lunarLine!,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    color: expiredVisual ? _kExpiredGrey : _kLunarTagFg,
+                                    height: 1.2,
+                                  ),
                                 ),
                               ),
-                            ),
-                        ],
-                      ),
-                    ],
+                            ],
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                _CountdownColumn(
-                  daysDiff: daysDiff,
-                  accent: accent,
-                  expired: expiredVisual,
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  _CountdownColumn(
+                    daysDiff: daysDiff,
+                    accent: accent,
+                    expired: expiredVisual,
+                  ),
+                ],
+              ),
             ),
           ),
-        );
-      },
     );
   }
 
   Widget _categoryLeadingIcon(ListCategory category, Color accent, bool expired) {
-    final c = expired ? Colors.grey.shade600 : accent;
+    final c = expired ? _kExpiredGrey : accent;
     switch (category) {
       case ListCategory.partner:
         return SvgPicture.asset(
           'assets/images/ic_couple_hearts.svg',
-          width: 24,
-          height: 24,
+          width: 20,
+          height: 20,
           colorFilter: ColorFilter.mode(c, BlendMode.srcIn),
         );
       case ListCategory.birthday:
-        return Icon(Icons.cake, color: c, size: 24);
+        return Icon(Icons.cake, color: c, size: 20);
       case ListCategory.goal:
-        return Icon(Icons.track_changes, color: c, size: 24);
+        // TODO: 替换为 goal SVG 图标
+        return Icon(Icons.track_changes, color: c, size: 20);
       case ListCategory.idol:
-        return Icon(Icons.star, color: c, size: 24);
+        return Icon(Icons.star, color: c, size: 20);
     }
   }
 }
@@ -797,39 +1206,23 @@ class _CountdownColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const labelStyle = TextStyle(
-      fontSize: 12,
-      color: Color(0xFF64748B),
-      height: 1.0,
-    );
-    final greyAccent = Colors.grey.shade600;
+    const w = 80.0;
 
-    if (expired) {
-      final n = daysDiff.abs();
+    if (!expired && daysDiff == 0) {
+      final todayColor = _todayLabelColorFromAccent(accent);
       return SizedBox(
-        width: 72,
+        width: w,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('已过', style: labelStyle),
-            const SizedBox(height: 2),
             Text(
-              '-$n',
+              '今天',
               style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
-                color: greyAccent,
-                height: 1.0,
-              ),
-            ),
-            Text(
-              '天',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
-                color: greyAccent.withValues(alpha: 0.8),
-                height: 1.0,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: todayColor,
+                height: 1,
               ),
             ),
           ],
@@ -837,31 +1230,65 @@ class _CountdownColumn extends StatelessWidget {
       );
     }
 
-    final sub = accent.withValues(alpha: 0.8);
+    if (expired) {
+      final n = daysDiff.abs();
+      final topColor = Colors.grey.shade500;
+      final bottomColor = topColor.withValues(alpha: 0.8);
+      return SizedBox(
+        width: w,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '$n',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: topColor,
+                height: 1,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              '天',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w400,
+                color: bottomColor,
+                height: 1,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final n = daysDiff.abs();
+    final unitColor = accent.withValues(alpha: 0.7);
     return SizedBox(
-      width: 72,
+      width: w,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('还有', style: labelStyle),
-          const SizedBox(height: 2),
           Text(
-            '${daysDiff.abs()}',
+            '$n',
             style: TextStyle(
-              fontSize: 24,
+              fontSize: 22,
               fontWeight: FontWeight.w700,
               color: accent,
-              height: 1.0,
+              height: 1,
             ),
           ),
+          const SizedBox(height: 8),
           Text(
-            '天',
+            '天后',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: 10,
               fontWeight: FontWeight.w400,
-              color: sub,
-              height: 1.0,
+              color: unitColor,
+              height: 1,
             ),
           ),
         ],

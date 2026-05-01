@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:time_calendar/widgets/calendar/calendar_models.dart';
 
-/// 日历事件卡片：日期+星标同一行左齐，倒计时右齐；第二行标题；左侧色条。
+/// 日历事件卡片：标题在上、日期在下；左侧色条；右侧倒计时。
+/// 农历 pill 依赖 [CalendarPage._formatEventDateLine] 写入的不可见标记 `\u200e`。
 class EventReminderCard extends StatelessWidget {
   const EventReminderCard({
     super.key,
@@ -9,10 +10,15 @@ class EventReminderCard extends StatelessWidget {
     this.onTogglePin,
   });
 
-  static const Color _titleColor = Color(0xFF1D293D);
-  static const Color _dateColor = Color(0xFF62748E);
+  /// 须与 `calendar_page.dart` 中 `_kLunarDateLineMarker` 一致。
+  static const String _kLunarDateLineMarker = '\u200e';
+
+  static const Color _titleColorCal = Color(0xFF0F172A);
+  static const Color _dateColorCal = Color(0xFF64748B);
   static const Color _borderColor = Color(0xFFF1F5F9);
-  static const Color _starColor = Color(0xFFF59E0B);
+  static const Color _starColor = Color(0xFFFFB800);
+  static const Color _lunarPillBg = Color(0xFFFFF7ED);
+  static const Color _lunarPillFg = Color(0xFFF97316);
 
   static const List<BoxShadow> _cardShadows = [
     BoxShadow(
@@ -32,6 +38,11 @@ class EventReminderCard extends StatelessWidget {
   final EventReminderData event;
   final VoidCallback? onTogglePin;
 
+  static String _stripLunarMarker(String raw) =>
+      raw.replaceAll(_kLunarDateLineMarker, '').trim();
+
+  static bool _hasLunarMarker(String raw) => raw.contains(_kLunarDateLineMarker);
+
   static String countdownText(int daysFromToday) {
     if (daysFromToday == 0) {
       return '今天';
@@ -45,9 +56,15 @@ class EventReminderCard extends StatelessWidget {
     return '$daysFromToday天后';
   }
 
-  static Widget _countdownTrailing(int daysRemaining, Color accent) {
-    const w = 70.0;
-    final subColor = accent.withValues(alpha: 0.8);
+  static Color _todayTextColor(Color accent) {
+    const festivalGreen = Color(0xFF10B981);
+    return accent.toARGB32() == festivalGreen.toARGB32() ? festivalGreen : accent;
+  }
+
+  static Widget _countdownTrailing(EventReminderData event) {
+    const w = 80.0;
+    final accent = event.accentColor;
+    final daysRemaining = event.daysRemaining;
 
     Widget band(Widget child) {
       return SizedBox(
@@ -67,14 +84,12 @@ class EventReminderCard extends StatelessWidget {
               '今天',
               textAlign: TextAlign.right,
               style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: accent,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: _todayTextColor(accent),
                 height: 1.0,
               ),
             ),
-            const SizedBox(height: 2),
-            const SizedBox(height: 12),
           ],
         ),
       );
@@ -111,19 +126,19 @@ class EventReminderCard extends StatelessWidget {
           Text(
             '$daysRemaining',
             style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
               color: accent,
               height: 1.0,
             ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 8),
           Text(
             '天后',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: 10,
               fontWeight: FontWeight.w400,
-              color: subColor,
+              color: accent.withValues(alpha: 0.7),
               height: 1.0,
             ),
           ),
@@ -134,12 +149,16 @@ class EventReminderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const barW = 3.0;
+    const barW = 4.0;
+    const barH = 36.0;
     const innerPadH = 16.0;
-    const innerPadV = 10.0;
+    const innerPadV = 12.0;
     final accent = event.accentColor;
     const titleSize = 16.0;
     const dateSize = 14.0;
+    final rawDate = event.dateText;
+    final showLunar = _hasLunarMarker(rawDate);
+    final dateDisplay = _stripLunarMarker(rawDate);
 
     return Semantics(
       label: event.title,
@@ -149,7 +168,7 @@ class EventReminderCard extends StatelessWidget {
         child: Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(color: _borderColor, width: 0.75),
             boxShadow: _cardShadows,
           ),
@@ -159,15 +178,22 @@ class EventReminderCard extends StatelessWidget {
               // TODO: 待后续注入交互逻辑（进入日程详情）
             },
             onLongPress: onTogglePin,
-            child: SizedBox(
-              height: 80,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Container(width: barW, color: accent),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(innerPadH, innerPadV, innerPadH, innerPadV),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: innerPadH, vertical: innerPadV),
+              child: IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: barW,
+                      height: barH,
+                      decoration: BoxDecoration(
+                        color: accent,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
@@ -177,65 +203,82 @@ class EventReminderCard extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                SizedBox(
-                                  height: 18,
-                                  child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.center,
-                                    children: [
-                                      Flexible(
-                                        child: Text(
-                                          event.dateText.trim(),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(
-                                            fontSize: dateSize,
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        event.title,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: titleSize,
+                                          fontWeight: FontWeight.w700,
+                                          color: _titleColorCal,
+                                          height: 1.25,
+                                          letterSpacing: -0.31,
+                                        ),
+                                      ),
+                                    ),
+                                    if (event.isPinned) ...[
+                                      const SizedBox(width: 2),
+                                      const Icon(
+                                        Icons.star,
+                                        size: 16,
+                                        color: _starColor,
+                                        semanticLabel: '已置顶',
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        dateDisplay,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: dateSize,
+                                          fontWeight: FontWeight.w400,
+                                          color: _dateColorCal,
+                                          height: 1.0,
+                                        ),
+                                      ),
+                                    ),
+                                    if (showLunar) ...[
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: _lunarPillBg,
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: const Text(
+                                          '农历',
+                                          style: TextStyle(
+                                            fontSize: 12,
                                             fontWeight: FontWeight.w500,
-                                            color: _dateColor,
-                                            height: 1.0,
+                                            color: _lunarPillFg,
+                                            height: 1.2,
                                           ),
                                         ),
                                       ),
-                                      if (event.isPinned) ...[
-                                        const SizedBox(width: 4),
-                                        const Icon(
-                                          Icons.star,
-                                          size: 14,
-                                          color: _starColor,
-                                          semanticLabel: '已置顶',
-                                        ),
-                                      ],
                                     ],
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                SizedBox(
-                                  height: 20,
-                                  child: Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: Text(
-                                      event.title,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        fontSize: titleSize,
-                                        fontWeight: FontWeight.w700,
-                                        color: _titleColor,
-                                        height: 1.25,
-                                        letterSpacing: -0.31,
-                                      ),
-                                    ),
-                                  ),
+                                  ],
                                 ),
                               ],
                             ),
                           ),
                           const SizedBox(width: 8),
-                          _countdownTrailing(event.daysRemaining, accent),
+                          _countdownTrailing(event),
                         ],
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

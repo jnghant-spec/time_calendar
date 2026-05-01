@@ -24,7 +24,8 @@ class CalendarGrid extends StatelessWidget {
 
   static const Duration _selectionDuration = Duration(milliseconds: 220);
   static const Color _todayFill = Color(0xFFE0F2FE);
-  static const Color _selectedFill = Color(0xFFEFF6FF);
+  /// 非今天的选中日期背景（加深版浅蓝，易辨认）。
+  static const Color _selectedFill = Color(0xFFC7D9F8);
 
   static const double _weekdayBand = 26.0;
 
@@ -93,7 +94,10 @@ class CalendarGrid extends StatelessWidget {
 
                   Color backgroundColor;
                   List<BoxShadow>? shadows;
-                  if (day.isSelected) {
+                  if (day.isToday) {
+                    backgroundColor = _todayFill;
+                    shadows = null;
+                  } else if (day.isSelected) {
                     backgroundColor = _selectedFill;
                     shadows = const [
                       BoxShadow(
@@ -102,9 +106,6 @@ class CalendarGrid extends StatelessWidget {
                         offset: Offset(0, 2),
                       ),
                     ];
-                  } else if (day.isToday) {
-                    backgroundColor = _todayFill;
-                    shadows = null;
                   } else {
                     backgroundColor = Colors.transparent;
                     shadows = null;
