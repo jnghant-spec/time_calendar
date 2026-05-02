@@ -6,7 +6,7 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:lunar/lunar.dart';
 import 'package:time_calendar/models/list_event.dart';
-import 'package:time_calendar/pages/event_edit_page.dart';
+import 'package:time_calendar/pages/event_add_page.dart';
 import 'package:time_calendar/services/event_usage_service.dart';
 import 'package:time_calendar/theme/app_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -468,10 +468,13 @@ class _ListPageState extends State<ListPage> {
   }
 
   Future<void> _openCreateSheet() async {
-    final result = await showEventEditSheet(context, isVip: false);
+    final result = await Navigator.push<ListEvent>(
+      context,
+      MaterialPageRoute(builder: (_) => const EventAddPage()),
+    );
     if (result == null) return;
     setState(() {
-      _events.add(result);
+      _events.add(result.copyWith(pendingShareAfterAdd: false));
       EventUsageService.updateCount(_events.length);
     });
   }

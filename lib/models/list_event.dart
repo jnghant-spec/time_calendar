@@ -14,6 +14,27 @@ enum ListCategory {
   idol,
 }
 
+enum EventRepeatRule {
+  none,
+  daily,
+  weekly,
+  monthly,
+  yearly,
+}
+
+enum EventReminderType {
+  advanceAndSameDay,
+  advanceOnly,
+  sameDayOnly,
+}
+
+enum EventAdvanceDaysOption {
+  oneDay,
+  threeDays,
+  oneWeek,
+  oneMonth,
+}
+
 class ListEvent {
   const ListEvent({
     required this.id,
@@ -23,6 +44,14 @@ class ListEvent {
     this.isPinned = false,
     this.isLunarRecurring = false,
     this.isExpired = false,
+    this.repeatRule = EventRepeatRule.none,
+    this.reminderType = EventReminderType.sameDayOnly,
+    this.advanceDaysOption = EventAdvanceDaysOption.oneDay,
+    this.advanceTimeHm = '09:00',
+    this.sameDayTimeHm = '09:00',
+    this.isLunarDate = false,
+    this.photoUrl,
+    this.pendingShareAfterAdd = false,
   });
 
   final String id;
@@ -35,6 +64,17 @@ class ListEvent {
   /// 一次性已过期事项：固定按 [baseDate] 展示，不参与“roll”到下一年。
   final bool isExpired;
 
+  final EventRepeatRule repeatRule;
+  final EventReminderType reminderType;
+  final EventAdvanceDaysOption advanceDaysOption;
+  final String advanceTimeHm;
+  final String sameDayTimeHm;
+  /// 用户在添加页是否按农历选择日期。
+  final bool isLunarDate;
+  final String? photoUrl;
+  /// FAB 添加成功后是否立刻打开分享 Sheet（由 ListPage 消费后应还原为 false）。
+  final bool pendingShareAfterAdd;
+
   ListEvent copyWith({
     String? id,
     String? title,
@@ -43,6 +83,14 @@ class ListEvent {
     bool? isPinned,
     bool? isLunarRecurring,
     bool? isExpired,
+    EventRepeatRule? repeatRule,
+    EventReminderType? reminderType,
+    EventAdvanceDaysOption? advanceDaysOption,
+    String? advanceTimeHm,
+    String? sameDayTimeHm,
+    bool? isLunarDate,
+    String? photoUrl,
+    bool? pendingShareAfterAdd,
   }) {
     return ListEvent(
       id: id ?? this.id,
@@ -52,6 +100,14 @@ class ListEvent {
       isPinned: isPinned ?? this.isPinned,
       isLunarRecurring: isLunarRecurring ?? this.isLunarRecurring,
       isExpired: isExpired ?? this.isExpired,
+      repeatRule: repeatRule ?? this.repeatRule,
+      reminderType: reminderType ?? this.reminderType,
+      advanceDaysOption: advanceDaysOption ?? this.advanceDaysOption,
+      advanceTimeHm: advanceTimeHm ?? this.advanceTimeHm,
+      sameDayTimeHm: sameDayTimeHm ?? this.sameDayTimeHm,
+      isLunarDate: isLunarDate ?? this.isLunarDate,
+      photoUrl: photoUrl ?? this.photoUrl,
+      pendingShareAfterAdd: pendingShareAfterAdd ?? this.pendingShareAfterAdd,
     );
   }
 }
