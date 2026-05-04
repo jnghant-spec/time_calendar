@@ -8,6 +8,7 @@ class EventReminderCard extends StatelessWidget {
     super.key,
     required this.event,
     this.onTogglePin,
+    this.onCardTap,
   });
 
   /// 须与 `calendar_page.dart` 中 `_kLunarDateLineMarker` 一致。
@@ -37,11 +38,106 @@ class EventReminderCard extends StatelessWidget {
 
   final EventReminderData event;
   final VoidCallback? onTogglePin;
+  final VoidCallback? onCardTap;
 
   static String _stripLunarMarker(String raw) =>
       raw.replaceAll(_kLunarDateLineMarker, '').trim();
 
   static bool _hasLunarMarker(String raw) => raw.contains(_kLunarDateLineMarker);
+
+  /// 从 `festival_${core}_${y}_${m}_${d}` 解析节日核心 id（与日历页逻辑一致）。
+  static String? festivalCoreIdFromReminderId(String reminderId) {
+    if (!reminderId.startsWith('festival_')) return null;
+    final parts = reminderId.substring('festival_'.length).split('_');
+    if (parts.length < 4) return null;
+    final y = int.tryParse(parts[parts.length - 3]);
+    final m = int.tryParse(parts[parts.length - 2]);
+    final d = int.tryParse(parts[parts.length - 1]);
+    if (y == null || m == null || d == null) return null;
+    return parts.sublist(0, parts.length - 3).join('_');
+  }
+
+  /// `religious_${教派}_${序号}` → 「道教节日」等。
+  static String? religiousDenominationLabel(String coreId) {
+    if (!coreId.startsWith('religious_')) return null;
+    final rest = coreId.substring('religious_'.length);
+    final parts = rest.split('_');
+    if (parts.isEmpty || parts.first.isEmpty) return null;
+    final denom = parts.first;
+    switch (denom) {
+      case 'taoism':
+        return '道教节日';
+      case 'buddhism':
+        return '佛教节日';
+      case 'christianity':
+        return '基督教节日';
+      case 'islam':
+        return '伊斯兰教节日';
+      case 'hinduism':
+        return '印度教节日';
+      default:
+        return '宗教节日';
+    }
+  }
+
+  static String festivalTypeTagLabel(EventReminderData event) {
+    assert(event.isFestival);
+    switch (event.festivalCategoryKey) {
+      case 'gregorian':
+        return '公历节日';
+      case 'lunar':
+        return '农历节日';
+      case 'ethnic':
+        return '民族节日';
+      case 'religious':
+        final core = festivalCoreIdFromReminderId(event.id);
+        if (core != null) {
+          final sub = religiousDenominationLabel(core);
+          if (sub != null) return sub;
+        }
+        return '宗教节日';
+      default:
+        return '节日';
+    }
+  }
+
+  static (Color bg, Color fg) festivalTypeTagColors(EventReminderData event) {
+    assert(event.isFestival);
+    switch (event.festivalCategoryKey) {
+      case 'gregorian':
+        return (const Color(0xFFDBEAFE), const Color(0xFF1E40AF));
+      case 'lunar':
+        return (const Color(0xFFFFF7ED), const Color(0xFFF97316));
+      case 'ethnic':
+        return (const Color(0xFFF5F3FF), const Color(0xFF8B5CF6));
+      case 'religious':
+        return (const Color(0xFFF0F9FF), const Color(0xFF0EA5E9));
+      default:
+        return (const Color(0xFFF1F5F9), const Color(0xFF64748B));
+    }
+  }
+
+  /// 日历时间线/清单卡片标题右侧的节日细分标签。
+  static Widget festivalTypeTag(EventReminderData event) {
+    final (bg, fg) = festivalTypeTagColors(event);
+    final label = festivalTypeTagLabel(event);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          color: fg,
+          height: 1.2,
+        ),
+      ),
+    );
+  }
 
   static String countdownText(int daysFromToday) {
     if (daysFromToday == 0) {
@@ -73,6 +169,23 @@ class EventReminderCard extends StatelessWidget {
       );
     }
 
+    if (event.isFestival) {
+      const amber = Color(0xFFF59E0B);
+      return band(
+        Center(
+          child: Text(
+            '节日',
+            textAlign: TextAlign.right,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: amber,
+              height: 1.0,
+            ),
+          ),
+        ),
+      );
+    }
     if (daysRemaining == 0) {
       return band(
         Column(
@@ -157,12 +270,14 @@ class EventReminderCard extends StatelessWidget {
     const titleSize = 16.0;
     const dateSize = 14.0;
     final rawDate = event.dateText;
-    final showLunar = _hasLunarMarker(rawDate);
+    final showLunar = !event.isFestival && _hasLunarMarker(rawDate);
     final dateDisplay = _stripLunarMarker(rawDate);
+    final barColor =
+        event.isFestival ? const Color(0xFFF59E0B) : accent;
 
     return Semantics(
       label: event.title,
-      hint: countdownText(event.daysRemaining),
+      hint: event.isFestival ? '节日' : countdownText(event.daysRemaining),
       child: Material(
         color: Colors.transparent,
         child: Container(
@@ -174,9 +289,7 @@ class EventReminderCard extends StatelessWidget {
           ),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
-            onTap: () {
-              // TODO: 待后续注入交互逻辑（进入日程详情）
-            },
+            onTap: onCardTap,
             onLongPress: onTogglePin,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: innerPadH, vertical: innerPadV),
@@ -188,7 +301,7 @@ class EventReminderCard extends StatelessWidget {
                       width: barW,
                       height: barH,
                       decoration: BoxDecoration(
-                        color: accent,
+                        color: barColor,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -220,7 +333,7 @@ class EventReminderCard extends StatelessWidget {
                                         ),
                                       ),
                                     ),
-                                    if (event.isPinned) ...[
+                                    if (event.isPinned && !event.isFestival) ...[
                                       const SizedBox(width: 2),
                                       const Icon(
                                         Icons.star,
@@ -228,6 +341,10 @@ class EventReminderCard extends StatelessWidget {
                                         color: _starColor,
                                         semanticLabel: '已置顶',
                                       ),
+                                    ],
+                                    if (event.isFestival) ...[
+                                      const SizedBox(width: 8),
+                                      EventReminderCard.festivalTypeTag(event),
                                     ],
                                   ],
                                 ),

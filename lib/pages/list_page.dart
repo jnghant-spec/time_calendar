@@ -9,6 +9,7 @@ import 'package:time_calendar/models/list_event.dart';
 import 'package:time_calendar/pages/event_add_page.dart';
 import 'package:time_calendar/services/event_usage_service.dart';
 import 'package:time_calendar/theme/app_theme.dart';
+import 'package:time_calendar/utils/event_date_utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 与日历节日类 accent（0xFF10B981）一致时「今天」用绿色，否则用事件自身 accent。
@@ -41,7 +42,14 @@ class _ShareDailyQuota {
 }
 
 class ListPage extends StatefulWidget {
-  const ListPage({super.key});
+  const ListPage({
+    super.key,
+    required this.initialEvents,
+    required this.onEventsChanged,
+  });
+
+  final List<ListEvent> initialEvents;
+  final ValueChanged<List<ListEvent>> onEventsChanged;
 
   @override
   State<ListPage> createState() => _ListPageState();
@@ -70,78 +78,7 @@ class _ListPageState extends State<ListPage> {
     ),
   ];
 
-  final List<ListEvent> _events = [
-    ListEvent(
-      id: '1',
-      title: '妈妈的生日',
-      baseDate: DateTime(2026, 4, 20),
-      category: ListCategory.birthday,
-      isPinned: true,
-      isLunarRecurring: true,
-    ),
-    ListEvent(
-      id: 'today_test',
-      title: '今天测试',
-      baseDate: DateTime(2026, 4, 30),
-      category: ListCategory.goal,
-      isPinned: false,
-    ),
-    ListEvent(
-      id: '2',
-      title: '父亲生日',
-      baseDate: DateTime(2026, 4, 20),
-      category: ListCategory.birthday,
-      isPinned: true,
-      isLunarRecurring: true,
-    ),
-    ListEvent(
-      id: '3',
-      title: '周杰伦演唱会',
-      baseDate: DateTime(2026, 5, 1),
-      category: ListCategory.idol,
-    ),
-    ListEvent(
-      id: '4',
-      title: '考研倒计时',
-      baseDate: DateTime(2026, 12, 25),
-      category: ListCategory.goal,
-    ),
-    ListEvent(
-      id: '5',
-      title: '恋爱纪念日（两周年）',
-      baseDate: DateTime(2026, 4, 18),
-      category: ListCategory.partner,
-    ),
-    ListEvent(
-      id: 'exp1',
-      title: '参加老同学聚会',
-      baseDate: DateTime(2026, 4, 5),
-      category: ListCategory.partner,
-      isExpired: true,
-    ),
-    ListEvent(
-      id: 'exp2',
-      title: '提交年度报告',
-      baseDate: DateTime(2026, 3, 31),
-      category: ListCategory.goal,
-      isExpired: true,
-    ),
-    ListEvent(
-      id: 'exp3',
-      title: '办理信用卡',
-      baseDate: DateTime(2026, 4, 2),
-      category: ListCategory.idol,
-      isExpired: true,
-    ),
-    ListEvent(
-      id: 'exp4',
-      title: '爷爷生日',
-      baseDate: DateTime(2026, 4, 10),
-      category: ListCategory.birthday,
-      isLunarRecurring: true,
-      isExpired: true,
-    ),
-  ];
+  late List<ListEvent> _events;
 
   ListCategory? _activeFilter;
 
@@ -157,10 +94,22 @@ class _ListPageState extends State<ListPage> {
   @override
   void initState() {
     super.initState();
+    _events = List.from(widget.initialEvents);
     EventUsageService.updateCount(_events.length);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      widget.onEventsChanged(_events);
+    });
   }
 
-  static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
+  @override
+  void didUpdateWidget(ListPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(widget.initialEvents, oldWidget.initialEvents)) {
+      _events = List.from(widget.initialEvents);
+      EventUsageService.updateCount(_events.length);
+    }
+  }
 
   static Color _categoryAccent(ListCategory category) {
     switch (category) {
@@ -206,49 +155,14 @@ class _ListPageState extends State<ListPage> {
     return w[weekday - 1];
   }
 
-  DateTime _nextOccurrence(ListEvent event) {
-    final today = _dateOnly(DateTime.now());
-    if (event.isExpired) {
-      return _dateOnly(event.baseDate);
-    }
-    DateTime candidate = DateTime(
-      today.year,
-      event.baseDate.month,
-      event.baseDate.day,
-    );
-    if (event.isLunarRecurring) {
-      candidate = DateTime(
-        today.year,
-        event.baseDate.month,
-        event.baseDate.day,
-      );
-    }
-    if (candidate.isBefore(today)) {
-      candidate = DateTime(
-        today.year + 1,
-        event.baseDate.month,
-        event.baseDate.day,
-      );
-    }
-    return candidate;
-  }
-
-  DateTime _displayDate(ListEvent event) {
-    if (event.isExpired) {
-      return _dateOnly(event.baseDate);
-    }
-    return _dateOnly(_nextOccurrence(event));
-  }
-
   String _lunarLine(DateTime solarDate) {
     final lunar = Lunar.fromDate(solarDate);
     return '农历 ${lunar.getMonthInChinese()}月${lunar.getDayInChinese()}';
   }
 
   /// 排序：tier0 置顶未过期 → tier1 非置顶未过期 → tier2 置顶已过期 → tier3 非置顶已过期；已过期区域内按日期倒序（近先）。
-  int _sortTier(ListEvent e, DateTime today) {
-    final d = _displayDate(e);
-    final expired = d.isBefore(today);
+  int _sortTier(ListEvent e) {
+    final expired = isEventExpired(e);
     if (!expired) {
       return e.isPinned ? 0 : 1;
     }
@@ -256,18 +170,17 @@ class _ListPageState extends State<ListPage> {
   }
 
   List<ListEvent> _sortedEvents() {
-    final today = _dateOnly(DateTime.now());
     final source = _events.where((e) {
       if (_activeFilter == null) return true;
       return e.category == _activeFilter;
     }).toList();
 
     source.sort((a, b) {
-      final ta = _sortTier(a, today);
-      final tb = _sortTier(b, today);
+      final ta = _sortTier(a);
+      final tb = _sortTier(b);
       if (ta != tb) return ta.compareTo(tb);
-      final da = _displayDate(a);
-      final db = _displayDate(b);
+      final da = effectiveDate(a);
+      final db = effectiveDate(b);
       if (ta >= 2) {
         return db.compareTo(da);
       }
@@ -277,13 +190,14 @@ class _ListPageState extends State<ListPage> {
   }
 
   void _togglePin(String id) {
+    final index = _events.indexWhere((e) => e.id == id);
+    if (index < 0) return;
     setState(() {
-      final index = _events.indexWhere((e) => e.id == id);
-      if (index < 0) return;
       _events[index] = _events[index].copyWith(
         isPinned: !_events[index].isPinned,
       );
     });
+    widget.onEventsChanged(_events);
   }
 
   Future<void> _confirmDeleteEvent(ListEvent event) async {
@@ -321,6 +235,7 @@ class _ListPageState extends State<ListPage> {
       _events.removeAt(index);
       EventUsageService.updateCount(_events.length);
     });
+    widget.onEventsChanged(_events);
     if (!mounted) return;
     final seq = ++_deleteSnackSeq;
     final messenger = ScaffoldMessenger.of(context);
@@ -356,6 +271,7 @@ class _ListPageState extends State<ListPage> {
               _events.insert(insertAt, backup);
               EventUsageService.updateCount(_events.length);
             });
+            widget.onEventsChanged(_events);
             messenger.removeCurrentSnackBar();
           },
         ),
@@ -477,6 +393,25 @@ class _ListPageState extends State<ListPage> {
       _events.add(result.copyWith(pendingShareAfterAdd: false));
       EventUsageService.updateCount(_events.length);
     });
+    widget.onEventsChanged(_events);
+  }
+
+  Future<void> _openEditSheet(ListEvent event) async {
+    final result = await Navigator.push<ListEvent>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EventAddPage(initialEvent: event),
+      ),
+    );
+    if (result == null) return;
+    setState(() {
+      final index = _events.indexWhere((e) => e.id == result.id);
+      if (index >= 0) {
+        _events[index] = result;
+        EventUsageService.updateCount(_events.length);
+      }
+    });
+    widget.onEventsChanged(_events);
   }
 
   Widget _buildHeader() {
@@ -593,10 +528,9 @@ class _ListPageState extends State<ListPage> {
                     separatorBuilder: (_, _) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final event = cards[index];
-                      final displayDate = _displayDate(event);
-                      final today = _dateOnly(DateTime.now());
-                      final diff = _dateOnly(displayDate).difference(today).inDays;
-                      final expired = diff < 0;
+                      final displayDate = effectiveDate(event);
+                      final diff = daysUntil(event);
+                      final expired = isEventExpired(event);
                       final accent = _categoryAccent(event.category);
 
                       return _ListEventCard(
@@ -609,6 +543,7 @@ class _ListPageState extends State<ListPage> {
                         weekdayTextBuilder: _weekdayZh,
                         lunarLine: event.isLunarRecurring ? _lunarLine(displayDate) : null,
                         cardShadows: _cardShadows,
+                        onTap: () => _openEditSheet(event),
                         onTogglePin: () => _togglePin(event.id),
                         slideActionsBuilder: (_) {
                           return [
@@ -1063,6 +998,7 @@ class _ListEventCard extends StatelessWidget {
     required this.weekdayTextBuilder,
     required this.lunarLine,
     required this.cardShadows,
+    this.onTap,
     required this.onTogglePin,
     required this.slideActionsBuilder,
   });
@@ -1076,6 +1012,7 @@ class _ListEventCard extends StatelessWidget {
   final String Function(int weekday) weekdayTextBuilder;
   final String? lunarLine;
   final List<BoxShadow> cardShadows;
+  final VoidCallback? onTap;
   final VoidCallback onTogglePin;
   final List<Widget> Function(BuildContext slidableContext) slideActionsBuilder;
 
@@ -1107,7 +1044,10 @@ class _ListEventCard extends StatelessWidget {
             .map((w) => Expanded(child: w))
             .toList(),
       ),
-      child: Container(
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
@@ -1116,7 +1056,7 @@ class _ListEventCard extends StatelessWidget {
             ),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Opacity(
-              opacity: expiredVisual ? 0.6 : 1,
+              opacity: expiredVisual ? 0.38 : 1,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -1202,6 +1142,7 @@ class _ListEventCard extends StatelessWidget {
               ),
             ),
           ),
+      ),
     );
   }
 

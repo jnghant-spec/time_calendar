@@ -17,29 +17,6 @@ const List<BoxShadow> _kInputShadow = [
   BoxShadow(color: Color(0x0D111827), blurRadius: 20, offset: Offset(0, 8)),
 ];
 
-/// 选中行指示：半透明主题蓝 + 细边框，避免实心灰块遮挡文字。
-class _PickerHighlightOverlay extends StatelessWidget {
-  const _PickerHighlightOverlay();
-
-  @override
-  Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: const Color(0x1A1A73E8),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Color(0x661A73E8), width: 1),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 /// 日期滚轮单项：选中项浅灰圆角底 + 加粗，未选中灰色字（与任务稿一致）。
 Widget _dateWheelLabelCell(String text, bool isSelected) {
   final style = TextStyle(
@@ -669,14 +646,18 @@ class _TimePickerModalState extends State<_TimePickerModal> {
         widget.onConfirm(TimeOfDay(hour: _hour.clamp(0, 23), minute: minute));
       },
       child: SizedBox(
-        height: 216,
+        height: 240,
         child: Row(
           children: [
             Expanded(
+              flex: 3,
               child: CupertinoPicker(
-                selectionOverlay: const _PickerHighlightOverlay(),
+                selectionOverlay: const _TransparentPickerOverlay(),
                 scrollController: _hourCtrl,
-                itemExtent: 32,
+                itemExtent: 44,
+                diameterRatio: 1.2,
+                magnification: 1.0,
+                squeeze: 0.9,
                 looping: false,
                 onSelectedItemChanged: (i) {
                   HapticFeedback.lightImpact();
@@ -684,28 +665,31 @@ class _TimePickerModalState extends State<_TimePickerModal> {
                 },
                 children: List.generate(
                   24,
-                  (i) => Center(
-                    child: Text(
-                      i.toString().padLeft(2, '0'),
-                      style: const TextStyle(fontSize: 18),
-                    ),
+                  (i) => _dateWheelLabelCell(
+                    i.toString().padLeft(2, '0'),
+                    i == _hour,
                   ),
                 ),
               ),
             ),
+            const SizedBox(width: 24),
             Expanded(
+              flex: 2,
               child: CupertinoPicker(
-                selectionOverlay: const _PickerHighlightOverlay(),
+                selectionOverlay: const _TransparentPickerOverlay(),
                 scrollController: _minuteCtrl,
-                itemExtent: 32,
+                itemExtent: 44,
+                diameterRatio: 1.2,
+                magnification: 1.0,
+                squeeze: 0.9,
                 looping: false,
                 onSelectedItemChanged: (i) {
                   HapticFeedback.lightImpact();
                   setState(() => _minuteIndex = i.clamp(0, 1));
                 },
-                children: const [
-                  Center(child: Text('00', style: TextStyle(fontSize: 18))),
-                  Center(child: Text('30', style: TextStyle(fontSize: 18))),
+                children: [
+                  _dateWheelLabelCell('00分', _minuteIndex == 0),
+                  _dateWheelLabelCell('30分', _minuteIndex == 1),
                 ],
               ),
             ),
@@ -935,13 +919,38 @@ class _LunarDatePickerModalState extends State<_LunarDatePickerModal> {
 
 enum _TypeSeg { birthday, partner, goal, idol }
 
+_TypeSeg _typeSegFromCategory(ListCategory c) {
+  switch (c) {
+    case ListCategory.birthday:
+      return _TypeSeg.birthday;
+    case ListCategory.partner:
+      return _TypeSeg.partner;
+    case ListCategory.goal:
+      return _TypeSeg.goal;
+    case ListCategory.idol:
+      return _TypeSeg.idol;
+  }
+}
+
+TimeOfDay _parseTimeHm(String hm, TimeOfDay fallback) {
+  final parts = hm.split(':');
+  if (parts.length != 2) return fallback;
+  final h = int.tryParse(parts[0]);
+  final m = int.tryParse(parts[1]);
+  if (h == null || m == null) return fallback;
+  if (h < 0 || h > 23 || m < 0 || m > 59) return fallback;
+  return TimeOfDay(hour: h, minute: m);
+}
+
 class EventAddPage extends StatefulWidget {
   const EventAddPage({
     super.key,
+    this.initialEvent,
     this.onGalleryTap,
     this.onCameraTap,
   });
 
+  final ListEvent? initialEvent;
   final VoidCallback? onGalleryTap;
   final VoidCallback? onCameraTap;
 
@@ -971,6 +980,8 @@ class _EventAddPageState extends State<EventAddPage> {
 
   bool _shareEnabled = false;
 
+  bool get _isEditMode => widget.initialEvent != null;
+
   static const Color _cBirthday = Color(0xFFF97316);
   static const Color _cPartner = Color(0xFFF43F5E);
   static const Color _cGoal = Color(0xFF3B82F6);
@@ -979,10 +990,38 @@ class _EventAddPageState extends State<EventAddPage> {
   @override
   void initState() {
     super.initState();
-    final lunar = Lunar.fromDate(_solarDate);
-    _lunarYear = lunar.getYear();
-    _lunarMonthSigned = lunar.getMonth();
-    _lunarDay = lunar.getDay();
+    final initial = widget.initialEvent;
+    const fallbackTime = TimeOfDay(hour: 9, minute: 0);
+    if (initial != null) {
+      _titleCtrl.text = initial.title;
+      _type = _typeSegFromCategory(initial.category);
+      _pinned = initial.isPinned;
+      _solarMode = !(initial.isLunarDate || initial.isLunarRecurring);
+      final bd = initial.baseDate;
+      _solarDate = DateTime(bd.year, bd.month, bd.day);
+      if (_solarMode) {
+        final lunar = Lunar.fromDate(_solarDate);
+        _lunarYear = lunar.getYear();
+        _lunarMonthSigned = lunar.getMonth();
+        _lunarDay = lunar.getDay();
+      } else {
+        final lunar = Lunar.fromDate(DateTime(bd.year, bd.month, bd.day));
+        _lunarYear = lunar.getYear();
+        _lunarMonthSigned = lunar.getMonth();
+        _lunarDay = lunar.getDay();
+      }
+      _repeat = initial.repeatRule;
+      _reminder = initial.reminderType;
+      _advanceDays = initial.advanceDaysOption;
+      _advanceTime = _parseTimeHm(initial.advanceTimeHm, fallbackTime);
+      _sameDayTime = _parseTimeHm(initial.sameDayTimeHm, fallbackTime);
+      _shareEnabled = initial.pendingShareAfterAdd;
+    } else {
+      final lunar = Lunar.fromDate(_solarDate);
+      _lunarYear = lunar.getYear();
+      _lunarMonthSigned = lunar.getMonth();
+      _lunarDay = lunar.getDay();
+    }
     _titleCtrl.addListener(() => setState(() {}));
   }
 
@@ -1173,19 +1212,25 @@ class _EventAddPageState extends State<EventAddPage> {
     final nav = Navigator.of(context);
     final navCtx = nav.context;
     final base = _effectiveGregorian();
+    final today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+    final baseDay = DateTime(base.year, base.month, base.day);
+    final isExpired = (_repeat == EventRepeatRule.none) && baseDay.isBefore(today);
+    final initial = widget.initialEvent;
     final event = ListEvent(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: initial?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
       title: _titleCtrl.text.trim(),
       baseDate: DateTime(base.year, base.month, base.day),
       category: _categoryForType(_type),
       isPinned: _pinned,
       isLunarRecurring: !_solarMode,
+      isExpired: isExpired,
       repeatRule: _repeat,
       reminderType: _reminder,
       advanceDaysOption: _advanceDays,
       advanceTimeHm: _fmtTime(_advanceTime),
       sameDayTimeHm: _fmtTime(_sameDayTime),
       isLunarDate: !_solarMode,
+      photoUrl: initial?.photoUrl,
       pendingShareAfterAdd: _shareEnabled,
     );
     nav.pop(event);
@@ -1551,7 +1596,9 @@ class _EventAddPageState extends State<EventAddPage> {
                     ),
                     onPressed: _titleOk ? _submit : null,
                     child: Text(
-                      _shareEnabled ? '保存并分享' : '添加事件',
+                      _isEditMode
+                          ? '保存修改'
+                          : (_shareEnabled ? '保存并分享' : '添加事件'),
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
