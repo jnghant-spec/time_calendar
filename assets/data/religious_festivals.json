@@ -429,7 +429,7 @@
       "religion_id": "taoism",
       "religious_type": "道教",
       "calendar_type": "unknown",
-      "calendar_date": "",
+      "calendar_date": "1-9",
       "description": "崇尚玉清上清太清三清尊神圣诞，宫观举行朝科法会诵经礼忏；信众供奉清香花灯祈求消灾解厄，体现道教神学体系的至高崇拜格局。",
       "customs": [
         "法会"
@@ -441,10 +441,13 @@
       "tags": [
         "道教"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "lunar_convert",
       "confidence": "low",
-      "note": "三清圣诞日在不同道派典籍中记载不一。",
-      "default_subscribed": false
+      "note": "道教重要节日，玉清元始天尊圣诞（正月九日），上清灵宝天尊（七月十五日），太清道德天尊（十月十五日）。不同道派典籍记载日期不一，此处取正月九日为代表",
+      "default_subscribed": false,
+      "available": false,
+      "display_mode": "culture_only",
+      "source_references": []
     },
     {
       "id": "taoism_shangyuan",
@@ -738,23 +741,37 @@
       "name": "主显节",
       "religion_id": "christianity",
       "religious_type": "基督教",
-      "calendar_type": "unknown",
-      "calendar_date": "",
+      "calendar_type": "gregorian",
+      "calendar_date": "1-6",
       "description": "纪念东方博士朝拜圣婴与耶稣受洗显现神性；部分地区行了祝福圣水与烛光游行强调启示光照万国。",
       "customs": [
         "礼拜"
       ],
       "foods": [],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-01-06",
+        "2027": "2027-01-06",
+        "2028": "2028-01-06",
+        "2029": "2029-01-06",
+        "2030": "2030-01-06",
+        "2031": "2031-01-06",
+        "2032": "2032-01-06",
+        "2033": "2033-01-06",
+        "2034": "2034-01-06",
+        "2035": "2035-01-06"
+      },
       "is_major": false,
       "tags": [
         "基督教"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "fixed",
       "confidence": "medium",
-      "note": "东正教与西方教会日期不一。",
-      "default_subscribed": false
+      "note": "基督教重要节日，纪念耶稣向世人显现。西方教会定于1月6日，东正教会定于1月19日（儒略历1月6日）。此处取西方教会日期",
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "hinduism_diwali",
