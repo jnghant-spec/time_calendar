@@ -41,4 +41,14 @@ void main() {
     expect(may.length, 2);
     expect(may.map((e) => e.id).toSet(), {'labour_day', 'mothers_day'});
   });
+
+  test('display_mode hidden is omitted from calendar even when subscribed', () {
+    final list = FestivalService.getFestivalsForMonth(
+      2026,
+      1,
+      subscribedIds: {'christianity_thanksgiving_x', 'new_year'},
+    );
+    expect(list.any((e) => e.id == 'christianity_thanksgiving_x'), false);
+    expect(list.any((e) => e.id == 'new_year'), true);
+  });
 }

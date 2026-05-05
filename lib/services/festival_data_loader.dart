@@ -123,4 +123,21 @@ class FestivalDataLoader {
     final t = s.trim();
     return t.isEmpty ? null : t;
   }
+
+  /// `display_mode == hidden`：不参与日历、不出现在节日设置列表。
+  static bool festivalDisplayHidden(Map<String, dynamic> json) =>
+      safeString(json, 'display_mode') == 'hidden';
+
+  /// 设置页展示（hidden 除外）。
+  static bool festivalShowInSettings(Map<String, dynamic> json) =>
+      !festivalDisplayHidden(json);
+
+  /// 可走日历推算且允许订阅的节日。
+  static bool festivalCalendarEligible(Map<String, dynamic> json) {
+    if (!festivalShowInSettings(json)) return false;
+    if (!safeBool(json, 'available', defaultValue: true)) return false;
+    final dm = safeString(json, 'display_mode');
+    if (dm == 'culture_only') return false;
+    return true;
+  }
 }

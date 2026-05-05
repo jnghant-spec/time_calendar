@@ -237,6 +237,7 @@ class FestivalService {
     for (final f in festivals) {
       final id = FestivalDataLoader.safeString(f, 'id');
       if (id == null || id.isEmpty) continue;
+      if (FestivalDataLoader.festivalDisplayHidden(f)) continue;
       if (subscribedIds != null && !subscribedIds.contains(id)) continue;
 
       final date = FestivalDataLoader.getGregorianDate(f, year);
@@ -273,6 +274,7 @@ class FestivalService {
     for (final f in festivals) {
       final id = FestivalDataLoader.safeString(f, 'id');
       if (id == null || id.isEmpty) continue;
+      if (FestivalDataLoader.festivalDisplayHidden(f)) continue;
       if (subscribedIds != null && !subscribedIds.contains(id)) continue;
 
       final date = FestivalDataLoader.getGregorianDate(f, year);

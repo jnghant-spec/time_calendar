@@ -36,7 +36,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "buddhism_laba",
@@ -72,7 +75,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "buddhism_ulan",
@@ -108,7 +114,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "buddhism_nirvana",
@@ -143,7 +152,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "medium",
       "note": "汉传与南传纪念日期传说有异。",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "buddhism_enlightenment",
@@ -178,7 +190,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "medium",
       "note": "与腊八民俗并行，寺院侧重不同。",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "buddhism_guanyin",
@@ -213,7 +228,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "islam_eid_fitr",
@@ -248,7 +266,10 @@
       "date_strategy": "algorithm",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "islam_eid_adha",
@@ -283,7 +304,10 @@
       "date_strategy": "algorithm",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "islam_mawlid",
@@ -318,7 +342,10 @@
       "date_strategy": "algorithm",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "islam_ashura",
@@ -353,7 +380,10 @@
       "date_strategy": "algorithm",
       "confidence": "medium",
       "note": "教法学派对斋戒义务认定不同。",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "islam_qadr",
@@ -388,7 +418,10 @@
       "date_strategy": "algorithm",
       "confidence": "medium",
       "note": "具体夜晚依学派在斋月末旬浮动。",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "taoism_sanqing",
@@ -445,7 +478,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "taoism_zhongyuan",
@@ -479,7 +515,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "taoism_xiayuan",
@@ -513,7 +552,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "taoism_yuhuang",
@@ -547,7 +589,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "christianity_christmas",
@@ -581,7 +626,10 @@
       "date_strategy": "fixed",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "christianity_easter",
@@ -615,7 +663,10 @@
       "date_strategy": "fixed",
       "confidence": "medium",
       "note": "日期按复活节算法浮动，待批量填充。",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "christianity_good_friday",
@@ -650,7 +701,10 @@
       "date_strategy": "fixed",
       "confidence": "medium",
       "note": "与复活节周相连具体日期待算法填充。",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "christianity_thanksgiving_x",
@@ -674,7 +728,10 @@
       "date_strategy": "unknown",
       "confidence": "low",
       "note": "教会历感恩主日与美洲世俗感恩节不同步。",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": false,
+      "display_mode": "hidden",
+      "source_references": []
     },
     {
       "id": "christianity_epiphany",
@@ -718,9 +775,12 @@
         "印度教"
       ],
       "date_strategy": "unknown",
-      "confidence": "medium",
+      "confidence": "low",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": false,
+      "display_mode": "culture_only",
+      "source_references": []
     },
     {
       "id": "hinduism_holi",
@@ -741,9 +801,12 @@
         "印度教"
       ],
       "date_strategy": "unknown",
-      "confidence": "medium",
+      "confidence": "low",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": false,
+      "display_mode": "culture_only",
+      "source_references": []
     }
   ]
 }

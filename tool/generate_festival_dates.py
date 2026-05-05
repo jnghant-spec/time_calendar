@@ -249,6 +249,11 @@ def _build_years_for_festival(fest: Dict[str, Any]) -> Dict[str, str]:
     fid = str(fest.get("id") or "")
     out: Dict[str, str] = {}
 
+    dm = str(fest.get("display_mode") or "")
+    av = fest.get("available")
+    if dm == "hidden" or (dm == "culture_only" and av is False):
+        return {}
+
     if strategy == "skip":
         return {}
 
@@ -296,6 +301,12 @@ def _build_years_for_festival(fest: Dict[str, Any]) -> Dict[str, str]:
             gen = _khao_phansa
         elif fid in ("dai_opening_door", "dea_open_gate"):
             gen = _ok_phansa
+        elif fid in ("mul_yifan", "tuzu_nadun", "shui_duan", "shui_mao") and md:
+
+            def _lk(y: int, lm: int = md[0], ld: int = md[1]) -> Optional[date]:
+                return _lunar_md_in_gyear(y, lm, ld)
+
+            gen = _lk
         else:
             gen = None
 
@@ -320,21 +331,6 @@ def _build_years_for_festival(fest: Dict[str, Any]) -> Dict[str, str]:
                 d = None
             if d is not None:
                 out[str(y)] = _fmt(d)
-
-    # Lunar placeholders for lookup festivals without published calendars (2026–2028 only).
-    lookup_lunar_extra = {
-        "mul_yifan": (11, 1),
-        "shui_duan": (9, 1),
-        "shui_mao": (6, 1),
-        "tuzu_nadun": (7, 1),
-    }
-    if fid in lookup_lunar_extra:
-        lm, ld = lookup_lunar_extra[fid]
-        for y in (2026, 2027, 2028):
-            if str(y) not in out:
-                d = _lunar_md_in_gyear(y, lm, ld)
-                if d is not None:
-                    out[str(y)] = _fmt(d)
 
     return out
 

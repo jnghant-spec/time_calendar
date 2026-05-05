@@ -41,7 +41,10 @@
       "date_strategy": "algorithm",
       "confidence": "high",
       "note": "",
-      "default_subscribed": true
+      "default_subscribed": true,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "zang_saga_dawa",
@@ -78,7 +81,10 @@
       "date_strategy": "algorithm",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "zang_shoton",
@@ -116,7 +122,10 @@
       "date_strategy": "algorithm",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "zang_burning_lamp",
@@ -151,7 +160,10 @@
       "date_strategy": "algorithm",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "zang_wongkor",
@@ -188,7 +200,10 @@
       "date_strategy": "algorithm",
       "confidence": "medium",
       "note": "田间活动时间依各村安排而异。",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "menggu_white_month",
@@ -226,7 +241,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "high",
       "note": "",
-      "default_subscribed": true
+      "default_subscribed": true,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "menggu_nadam",
@@ -264,15 +282,18 @@
       "date_strategy": "lunar_convert",
       "confidence": "medium",
       "note": "开幕日期各地浮动，属集会型节庆。",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "menggu_mare_milk",
       "name": "马奶节",
       "ethnic_id": "menggu",
       "ethnic_name": "蒙古族",
-      "calendar_type": "unknown",
-      "calendar_date": "7-15",
+      "calendar_type": "lunar",
+      "calendar_date": "8-1",
       "description": "夏秋牲畜膘肥时节牧民汇聚品尝发酵马奶，敬酒祈福牲畜无病；伴随短时赛马或长调民歌，规模因地而异，体现游牧生计与自然节律相契合的庆贺方式。",
       "customs": [
         "尝马奶"
@@ -281,15 +302,29 @@
         "马奶酒"
       ],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-09-11",
+        "2027": "2027-09-01",
+        "2028": "2028-09-19",
+        "2029": "2029-09-08",
+        "2030": "2030-08-29",
+        "2031": "2031-09-17",
+        "2032": "2032-09-05",
+        "2033": "2033-08-25",
+        "2034": "2034-09-13",
+        "2035": "2035-09-02"
+      },
       "is_major": false,
       "tags": [
         "游牧"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "lunar_convert",
       "confidence": "low",
       "note": "命名与时间牧区间差异大。",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "menggu_lamp_memorial",
@@ -323,7 +358,10 @@
       "date_strategy": "algorithm",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "weiwu_gurban",
@@ -361,7 +399,10 @@
       "date_strategy": "algorithm",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "weiwu_rozah",
@@ -398,7 +439,10 @@
       "date_strategy": "algorithm",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "weiwu_nowruz",
@@ -435,7 +479,10 @@
       "date_strategy": "fixed",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "hui_gurban",
@@ -472,7 +519,10 @@
       "date_strategy": "algorithm",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "hui_eid_fitr",
@@ -509,7 +559,10 @@
       "date_strategy": "algorithm",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "hui_mawlid",
@@ -544,7 +597,10 @@
       "date_strategy": "algorithm",
       "confidence": "medium",
       "note": "各地历日与礼仪略有流派差异。",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "yi_huoba",
@@ -581,7 +637,10 @@
       "date_strategy": "algorithm",
       "confidence": "high",
       "note": "",
-      "default_subscribed": true
+      "default_subscribed": true,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "yi_year_yi",
@@ -618,7 +677,10 @@
       "date_strategy": "algorithm",
       "confidence": "medium",
       "note": "方言区岁首时段仍有差异。",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "yi_tiger_leap",
@@ -641,7 +703,10 @@
       "date_strategy": "unknown",
       "confidence": "low",
       "note": "仅存局部县域口述资料。",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": false,
+      "display_mode": "culture_only",
+      "source_references": []
     },
     {
       "id": "yi_flower_day",
@@ -676,7 +741,10 @@
       "date_strategy": "unknown",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "dai_water_splashing",
@@ -713,7 +781,10 @@
       "date_strategy": "lookup",
       "confidence": "high",
       "note": "",
-      "default_subscribed": true
+      "default_subscribed": true,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "dai_closing_door",
@@ -747,7 +818,10 @@
       "date_strategy": "lookup",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "dai_opening_door",
@@ -781,7 +855,10 @@
       "date_strategy": "lookup",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "miao_new_year",
@@ -818,7 +895,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "medium",
       "note": "各地月份略有参差。",
-      "default_subscribed": true
+      "default_subscribed": true,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "miao_sisters",
@@ -854,7 +934,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "high",
       "note": "",
-      "default_subscribed": true
+      "default_subscribed": true,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "miao_april8",
@@ -890,7 +973,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "miao_lusheng_hui",
@@ -924,7 +1010,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "zhuang_sanyuesan",
@@ -961,7 +1050,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "high",
       "note": "",
-      "default_subscribed": true
+      "default_subscribed": true,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "zhuang_tuoluo",
@@ -995,7 +1087,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "zhuang_tonggu",
@@ -1031,7 +1126,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "man_banjin",
@@ -1067,7 +1165,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "man_chongwang",
@@ -1103,7 +1204,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "man_shangyuan",
@@ -1137,7 +1241,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "medium",
       "note": "与汉族元宵节深度融合。",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "chaoxian_wonwoo",
@@ -1173,7 +1280,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "chaoxian_hanshi",
@@ -1209,7 +1319,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "chaoxian_autumn_eve",
@@ -1246,7 +1359,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "chaoxian_huijia",
@@ -1271,7 +1387,10 @@
       "date_strategy": "unknown",
       "confidence": "low",
       "note": "具体日以寿星生辰确定。",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": false,
+      "display_mode": "culture_only",
+      "source_references": []
     },
     {
       "id": "dong_new_year",
@@ -1308,7 +1427,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "dong_huapao",
@@ -1342,7 +1464,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "dong_sama",
@@ -1376,7 +1501,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "yao_panwang",
@@ -1412,7 +1540,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "yao_danu",
@@ -1448,7 +1579,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "yao_shewang",
@@ -1482,7 +1616,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "bai_march_street",
@@ -1517,7 +1654,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "high",
       "note": "",
-      "default_subscribed": true
+      "default_subscribed": true,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "bai_raosanling",
@@ -1551,7 +1691,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "bai_torch_bai",
@@ -1585,7 +1728,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "bai_benzhu",
@@ -1619,7 +1765,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "medium",
       "note": "各村本主诞辰不同。",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "tujia_ganian",
@@ -1655,7 +1804,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "tujia_sheba",
@@ -1689,7 +1841,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "tujia_june6",
@@ -1723,7 +1878,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "hani_zhalet",
@@ -1755,46 +1913,74 @@
       "name": "苦扎扎",
       "ethnic_id": "hani",
       "ethnic_name": "哈尼族",
-      "calendar_type": "unknown",
-      "calendar_date": "6-1",
+      "calendar_type": "lunar",
+      "calendar_date": "6-24",
       "description": "栽秧结束感恩夏日休息，打磨秋千立于村寨广场；男女对唱哈巴叙事插秧苦乐，祭祀田地神灵保佑梯田蓄水。",
       "customs": [
         "秋千"
       ],
       "foods": [],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-08-06",
+        "2027": "2027-07-27",
+        "2028": "2028-08-14",
+        "2029": "2029-08-03",
+        "2030": "2030-07-24",
+        "2031": "2031-08-11",
+        "2032": "2032-07-30",
+        "2033": "2033-07-20",
+        "2034": "2034-08-08",
+        "2035": "2035-07-28"
+      },
       "is_major": false,
       "tags": [
         "农耕"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "lunar_convert",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "hani_angmatu",
       "name": "昂玛突",
       "ethnic_id": "hani",
       "ethnic_name": "哈尼族",
-      "calendar_type": "unknown",
-      "calendar_date": "2-1",
+      "calendar_type": "lunar",
+      "calendar_date": "1-1",
       "description": "祭寨神确立村寨神圣边界，长老主持分配狩猎采集禁忌；仪式后全民清扫巷道修补沟渠，强化山林资源的社群共治。",
       "customs": [
         "祭寨神"
       ],
       "foods": [],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-02-17",
+        "2027": "2027-02-06",
+        "2028": "2028-01-26",
+        "2029": "2029-02-13",
+        "2030": "2030-02-03",
+        "2031": "2031-01-23",
+        "2032": "2032-02-11",
+        "2033": "2033-01-31",
+        "2034": "2034-02-19",
+        "2035": "2035-02-08"
+      },
       "is_major": false,
       "tags": [
         "祭祀"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "lunar_convert",
       "confidence": "low",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "kaz_nowruz",
@@ -1830,7 +2016,10 @@
       "date_strategy": "fixed",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "kaz_gurban",
@@ -1866,7 +2055,10 @@
       "date_strategy": "algorithm",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "kaz_rozi",
@@ -1902,7 +2094,10 @@
       "date_strategy": "algorithm",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "li_march3",
@@ -1938,7 +2133,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "li_love",
@@ -1972,15 +2170,18 @@
       "date_strategy": "lunar_convert",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "li_shanlan",
       "name": "山栏节",
       "ethnic_id": "li",
       "ethnic_name": "黎族",
-      "calendar_type": "unknown",
-      "calendar_date": "8-1",
+      "calendar_type": "lunar",
+      "calendar_date": "3-1",
       "description": "庆贺山栏稻收割，酿酒杀猪款待帮工；长老讲述黎锦纹样禁忌，强化山地稻作互助伦理。",
       "customs": [
         "收割祭"
@@ -1989,15 +2190,29 @@
         "山栏酒"
       ],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-04-17",
+        "2027": "2027-04-07",
+        "2028": "2028-03-26",
+        "2029": "2029-04-14",
+        "2030": "2030-04-03",
+        "2031": "2031-03-23",
+        "2032": "2032-04-10",
+        "2033": "2033-03-31",
+        "2034": "2034-04-19",
+        "2035": "2035-04-08"
+      },
       "is_major": false,
       "tags": [
         "稻作"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "lunar_convert",
       "confidence": "low",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "she_third_march",
@@ -2033,7 +2248,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "she_huiqin",
@@ -2069,7 +2287,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "she_fenglong",
@@ -2103,7 +2324,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "low",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "buyi_june6",
@@ -2139,7 +2363,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "buyi_chabai",
@@ -2173,7 +2400,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "buyi_thirdmar",
@@ -2209,7 +2439,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "naxi_sanduo",
@@ -2243,7 +2476,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "high",
       "note": "",
-      "default_subscribed": true
+      "default_subscribed": true,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "naxi_bangbang",
@@ -2277,7 +2513,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "naxi_qiyue",
@@ -2311,7 +2550,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "gaoshan_harvest",
@@ -2336,7 +2578,10 @@
       "date_strategy": "unknown",
       "confidence": "low",
       "note": "各族群祭仪名称时间不一。",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": false,
+      "display_mode": "culture_only",
+      "source_references": []
     },
     {
       "id": "gaoshan_sowing",
@@ -2359,37 +2604,54 @@
       "date_strategy": "unknown",
       "confidence": "low",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": false,
+      "display_mode": "culture_only",
+      "source_references": []
     },
     {
       "id": "lahu_hulu",
       "name": "葫芦节",
       "ethnic_id": "lahu",
       "ethnic_name": "拉祜族",
-      "calendar_type": "unknown",
-      "calendar_date": "4-8",
+      "calendar_type": "lunar",
+      "calendar_date": "10-15",
       "description": "传说中的葫芦孕育祖先，村寨摆葫芦图腾宴跳芦笙；巫师讲述迁徙史诗并分配山林采摘禁忌。",
       "customs": [
         "芦笙舞"
       ],
       "foods": [],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-11-23",
+        "2027": "2027-11-12",
+        "2028": "2028-11-30",
+        "2029": "2029-11-20",
+        "2030": "2030-11-10",
+        "2031": "2031-11-29",
+        "2032": "2032-11-17",
+        "2033": "2033-11-06",
+        "2034": "2034-11-25",
+        "2035": "2035-11-14"
+      },
       "is_major": true,
       "tags": [
         "祖先"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "lunar_convert",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "lahu_kuota",
       "name": "扩塔节",
       "ethnic_id": "lahu",
       "ethnic_name": "拉祜族",
-      "calendar_type": "unknown",
+      "calendar_type": "lunar",
       "calendar_date": "1-1",
       "description": "拉祜新年杀猪祭祖荡秋千，夜间火把巡游驱散疫病；青年男女互换烟草荷包订立口头婚约。",
       "customs": [
@@ -2397,15 +2659,29 @@
       ],
       "foods": [],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-02-17",
+        "2027": "2027-02-06",
+        "2028": "2028-01-26",
+        "2029": "2029-02-13",
+        "2030": "2030-02-03",
+        "2031": "2031-01-23",
+        "2032": "2032-02-11",
+        "2033": "2033-01-31",
+        "2034": "2034-02-19",
+        "2035": "2035-02-08"
+      },
       "is_major": false,
       "tags": [
         "新年"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "lunar_convert",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "shui_duan",
@@ -2425,7 +2701,14 @@
       "years": {
         "2026": "2026-10-10",
         "2027": "2027-09-30",
-        "2028": "2028-10-18"
+        "2028": "2028-10-18",
+        "2029": "2029-10-08",
+        "2030": "2030-09-27",
+        "2031": "2031-10-16",
+        "2032": "2032-10-04",
+        "2033": "2033-09-23",
+        "2034": "2034-10-12",
+        "2035": "2035-10-01"
       },
       "is_major": true,
       "tags": [
@@ -2433,8 +2716,11 @@
       ],
       "date_strategy": "lookup",
       "confidence": "medium",
-      "note": "水历推算依赖端寨历法查表。",
-      "default_subscribed": false
+      "note": "水历推算依赖端寨历法查表。 2029-2035 年为近似推算（农历对照占位）；具体日以地方历书或政府公告为准。",
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "shui_mao",
@@ -2452,7 +2738,14 @@
       "years": {
         "2026": "2026-07-14",
         "2027": "2027-07-04",
-        "2028": "2028-07-22"
+        "2028": "2028-07-22",
+        "2029": "2029-07-11",
+        "2030": "2030-07-01",
+        "2031": "2031-07-19",
+        "2032": "2032-07-07",
+        "2033": "2033-06-27",
+        "2034": "2034-07-16",
+        "2035": "2035-07-05"
       },
       "is_major": false,
       "tags": [
@@ -2460,8 +2753,11 @@
       ],
       "date_strategy": "lookup",
       "confidence": "low",
-      "note": "",
-      "default_subscribed": false
+      "note": "2029-2035 年为近似推算（农历对照占位）；具体日以地方历书或政府公告为准。",
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "dongx_gurban",
@@ -2497,7 +2793,10 @@
       "date_strategy": "algorithm",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "dongx_eid",
@@ -2531,7 +2830,10 @@
       "date_strategy": "algorithm",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "jingp_munao",
@@ -2561,23 +2863,37 @@
       "name": "新米节",
       "ethnic_id": "jingp",
       "ethnic_name": "景颇族",
-      "calendar_type": "unknown",
-      "calendar_date": "10-1",
+      "calendar_type": "lunar",
+      "calendar_date": "8-1",
       "description": "尝新米饭祭祖告知秋收喜讯，长者讲述刀耕火种记忆；青年斗牛射箭选拔勇者护卫村寨。",
       "customs": [
         "尝新"
       ],
       "foods": [],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-09-11",
+        "2027": "2027-09-01",
+        "2028": "2028-09-19",
+        "2029": "2029-09-08",
+        "2030": "2030-08-29",
+        "2031": "2031-09-17",
+        "2032": "2032-09-05",
+        "2033": "2033-08-25",
+        "2034": "2034-09-13",
+        "2035": "2035-09-02"
+      },
       "is_major": false,
       "tags": [
         "丰收"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "lunar_convert",
       "confidence": "low",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "keq_nowruz",
@@ -2613,7 +2929,10 @@
       "date_strategy": "fixed",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "keq_gurban",
@@ -2649,7 +2968,10 @@
       "date_strategy": "algorithm",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "tuzu_nadun",
@@ -2667,7 +2989,14 @@
       "years": {
         "2026": "2026-08-13",
         "2027": "2027-08-02",
-        "2028": "2028-08-20"
+        "2028": "2028-08-20",
+        "2029": "2029-08-10",
+        "2030": "2030-07-30",
+        "2031": "2031-08-18",
+        "2032": "2032-08-06",
+        "2033": "2033-07-26",
+        "2034": "2034-08-14",
+        "2035": "2035-08-04"
       },
       "is_major": true,
       "tags": [
@@ -2675,8 +3004,11 @@
       ],
       "date_strategy": "lookup",
       "confidence": "medium",
-      "note": "",
-      "default_subscribed": false
+      "note": "2029-2035 年为近似推算（农历对照占位）；具体日以地方历书或政府公告为准。",
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "tuzu_huaer",
@@ -2710,30 +3042,47 @@
       "date_strategy": "lookup",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "tuzu_leitai",
       "name": "擂台会",
       "ethnic_id": "tuzu",
       "ethnic_name": "土族",
-      "calendar_type": "unknown",
-      "calendar_date": "5-1",
+      "calendar_type": "lunar",
+      "calendar_date": "2-2",
       "description": "传统的比武与商贸结合的庙会，青年摔跤射箭争夺荣誉；商贩借机交流畜种农具。",
       "customs": [
         "摔跤"
       ],
       "foods": [],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-03-20",
+        "2027": "2027-03-09",
+        "2028": "2028-02-26",
+        "2029": "2029-03-16",
+        "2030": "2030-03-05",
+        "2031": "2031-02-22",
+        "2032": "2032-03-13",
+        "2033": "2033-03-02",
+        "2034": "2034-03-21",
+        "2035": "2035-03-11"
+      },
       "is_major": false,
       "tags": [
         "竞技"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "lunar_convert",
       "confidence": "low",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "daw_anie",
@@ -2769,14 +3118,17 @@
       "date_strategy": "lunar_convert",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "daw_kumle",
       "name": "库木勒节",
       "ethnic_id": "daw",
       "ethnic_name": "达斡尔族",
-      "calendar_type": "unknown",
+      "calendar_type": "lunar",
       "calendar_date": "5-1",
       "description": "采集柳蒿芽共享野蔬宴感恩自然馈赠；歌舞讲述渔猎转型农耕的经验互助。",
       "customs": [
@@ -2784,15 +3136,29 @@
       ],
       "foods": [],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-06-15",
+        "2027": "2027-06-05",
+        "2028": "2028-05-24",
+        "2029": "2029-06-12",
+        "2030": "2030-06-01",
+        "2031": "2031-06-20",
+        "2032": "2032-06-08",
+        "2033": "2033-05-28",
+        "2034": "2034-06-16",
+        "2035": "2035-06-06"
+      },
       "is_major": false,
       "tags": [
         "迎春"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "lunar_convert",
       "confidence": "low",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "mul_yifan",
@@ -2810,7 +3176,14 @@
       "years": {
         "2026": "2026-12-09",
         "2027": "2027-11-28",
-        "2028": "2028-12-16"
+        "2028": "2028-12-16",
+        "2029": "2029-12-05",
+        "2030": "2030-11-25",
+        "2031": "2031-12-14",
+        "2032": "2032-12-03",
+        "2033": "2033-11-22",
+        "2034": "2034-12-11",
+        "2035": "2035-11-30"
       },
       "is_major": true,
       "tags": [
@@ -2818,8 +3191,11 @@
       ],
       "date_strategy": "lookup",
       "confidence": "medium",
-      "note": "具体周期依宗族占卜。",
-      "default_subscribed": false
+      "note": "具体周期依宗族占卜。 2029-2035 年为近似推算（农历对照占位）；具体日以地方历书或政府公告为准。",
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "mul_paopo",
@@ -2855,14 +3231,17 @@
       "date_strategy": "lunar_convert",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "qiang_rmai",
       "name": "羌历新年",
       "ethnic_id": "qiang",
       "ethnic_name": "羌族",
-      "calendar_type": "unknown",
+      "calendar_type": "lunar",
       "calendar_date": "10-1",
       "description": "日麦节杀猪敬白石神祈愿人畜平安，莎朗集体歌舞环绕火塘；释比吟唱创世史诗分配来年耕作禁忌。",
       "customs": [
@@ -2872,46 +3251,74 @@
         "咂酒"
       ],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-11-09",
+        "2027": "2027-10-29",
+        "2028": "2028-11-16",
+        "2029": "2029-11-06",
+        "2030": "2030-10-27",
+        "2031": "2031-11-15",
+        "2032": "2032-11-03",
+        "2033": "2033-10-23",
+        "2034": "2034-11-11",
+        "2035": "2035-10-31"
+      },
       "is_major": true,
       "tags": [
         "新年"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "lunar_convert",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "qiang_mount",
       "name": "祭山会",
       "ethnic_id": "qiang",
       "ethnic_name": "羌族",
-      "calendar_type": "unknown",
-      "calendar_date": "5-1",
+      "calendar_type": "lunar",
+      "calendar_date": "3-1",
       "description": "高山村寨祭祀山神禁止砍伐狩猎数日；长老颁布封山育林乡约维护生态。",
       "customs": [
         "祭山"
       ],
       "foods": [],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-04-17",
+        "2027": "2027-04-07",
+        "2028": "2028-03-26",
+        "2029": "2029-04-14",
+        "2030": "2030-04-03",
+        "2031": "2031-03-23",
+        "2032": "2032-04-10",
+        "2033": "2033-03-31",
+        "2034": "2034-04-19",
+        "2035": "2035-04-08"
+      },
       "is_major": false,
       "tags": [
         "信仰"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "lunar_convert",
       "confidence": "low",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "blang_hounan",
       "name": "厚南节",
       "ethnic_id": "blang",
       "ethnic_name": "布朗族",
-      "calendar_type": "unknown",
-      "calendar_date": "4-1",
+      "calendar_type": "lunar",
+      "calendar_date": "3-1",
       "description": "布朗新年泼水祝福清扫村寨，长者背诵迁徙史诗分配茶园采摘权；青年敲鼓绕寨驱邪。",
       "customs": [
         "泼水"
@@ -2920,38 +3327,66 @@
         "糯米"
       ],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-04-17",
+        "2027": "2027-04-07",
+        "2028": "2028-03-26",
+        "2029": "2029-04-14",
+        "2030": "2030-04-03",
+        "2031": "2031-03-23",
+        "2032": "2032-04-10",
+        "2033": "2033-03-31",
+        "2034": "2034-04-19",
+        "2035": "2035-04-08"
+      },
       "is_major": true,
       "tags": [
         "新年"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "lunar_convert",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "blang_shankang",
       "name": "山康节",
       "ethnic_id": "blang",
       "ethnic_name": "布朗族",
-      "calendar_type": "unknown",
-      "calendar_date": "2-1",
+      "calendar_type": "lunar",
+      "calendar_date": "6-1",
       "description": "祭祀部落祖先与茶祖，仪式后开行茶市互换普洱茶苗；歌舞模拟采茶揉捻工序。",
       "customs": [
         "祭茶祖"
       ],
       "foods": [],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-07-14",
+        "2027": "2027-07-04",
+        "2028": "2028-07-22",
+        "2029": "2029-07-11",
+        "2030": "2030-07-01",
+        "2031": "2031-07-19",
+        "2032": "2032-07-07",
+        "2033": "2033-06-27",
+        "2034": "2034-07-16",
+        "2035": "2035-07-05"
+      },
       "is_major": false,
       "tags": [
         "茶"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "lunar_convert",
       "confidence": "low",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "sala_gurban",
@@ -2987,7 +3422,10 @@
       "date_strategy": "algorithm",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "sala_eid",
@@ -3021,7 +3459,10 @@
       "date_strategy": "algorithm",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "sala_mawlid",
@@ -3055,7 +3496,10 @@
       "date_strategy": "algorithm",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "mnan_fenlong",
@@ -3091,7 +3535,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "mnan_pumpkin",
@@ -3127,7 +3574,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "gela_year",
@@ -3163,14 +3613,17 @@
       "date_strategy": "lunar_convert",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "gela_chixin",
       "name": "吃新节",
       "ethnic_id": "gela",
       "ethnic_name": "仡佬族",
-      "calendar_type": "unknown",
+      "calendar_type": "lunar",
       "calendar_date": "7-1",
       "description": "尝新米祭祖告知秋收起始，长老诵读祭谷魂辞；禁忌解除后方可开仓。",
       "customs": [
@@ -3178,22 +3631,36 @@
       ],
       "foods": [],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-08-13",
+        "2027": "2027-08-02",
+        "2028": "2028-08-20",
+        "2029": "2029-08-10",
+        "2030": "2030-07-30",
+        "2031": "2031-08-18",
+        "2032": "2032-08-06",
+        "2033": "2033-07-26",
+        "2034": "2034-08-14",
+        "2035": "2035-08-04"
+      },
       "is_major": false,
       "tags": [
         "稻作"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "lunar_convert",
       "confidence": "low",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "gela_mountgod",
       "name": "祭山节",
       "ethnic_id": "gela",
       "ethnic_name": "仡佬族",
-      "calendar_type": "unknown",
+      "calendar_type": "lunar",
       "calendar_date": "3-1",
       "description": "仡佬山寨祭山封刀三日禁止砍伐；芦笙引导队伍巡游界定村寨神圣边界。",
       "customs": [
@@ -3201,15 +3668,29 @@
       ],
       "foods": [],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-04-17",
+        "2027": "2027-04-07",
+        "2028": "2028-03-26",
+        "2029": "2029-04-14",
+        "2030": "2030-04-03",
+        "2031": "2031-03-23",
+        "2032": "2032-04-10",
+        "2033": "2033-03-31",
+        "2034": "2034-04-19",
+        "2035": "2035-04-08"
+      },
       "is_major": false,
       "tags": [
         "信仰"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "lunar_convert",
       "confidence": "low",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "xibo_west_move",
@@ -3245,7 +3726,10 @@
       "date_strategy": "lunar_convert",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "xibo_spring_day",
@@ -3281,61 +3765,92 @@
       "date_strategy": "lunar_convert",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "ach_aluwo",
       "name": "阿露窝罗节",
       "ethnic_id": "ach",
       "ethnic_name": "阿昌族",
-      "calendar_type": "unknown",
-      "calendar_date": "3-1",
+      "calendar_type": "lunar",
+      "calendar_date": "3-20",
       "description": "蹬窝罗螺旋舞步祭祀创世祖先遮帕麻与遮米麻；青龙白象道具巡游讲述天地开辟神话。",
       "customs": [
         "蹬窝罗"
       ],
       "foods": [],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-05-06",
+        "2027": "2027-04-26",
+        "2028": "2028-04-14",
+        "2029": "2029-05-03",
+        "2030": "2030-04-22",
+        "2031": "2031-04-11",
+        "2032": "2032-04-29",
+        "2033": "2033-04-19",
+        "2034": "2034-05-08",
+        "2035": "2035-04-27"
+      },
       "is_major": true,
       "tags": [
         "创世"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "lunar_convert",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "ach_huijie",
       "name": "会街节",
       "ethnic_id": "ach",
       "ethnic_name": "阿昌族",
-      "calendar_type": "unknown",
-      "calendar_date": "9-1",
+      "calendar_type": "lunar",
+      "calendar_date": "9-15",
       "description": "宗教信仰与商贸结合的集会，青龙白象舞沿街巡游并施舍米花；青年借机挑选银饰工匠拜师。",
       "customs": [
         "巡游"
       ],
       "foods": [],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-10-24",
+        "2027": "2027-10-14",
+        "2028": "2028-11-01",
+        "2029": "2029-10-22",
+        "2030": "2030-10-11",
+        "2031": "2031-10-30",
+        "2032": "2032-10-18",
+        "2033": "2033-10-07",
+        "2034": "2034-10-26",
+        "2035": "2035-10-15"
+      },
       "is_major": false,
       "tags": [
         "集会"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "lunar_convert",
       "confidence": "low",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "pumi_wuxi",
       "name": "吾昔节",
       "ethnic_id": "pumi",
       "ethnic_name": "普米族",
-      "calendar_type": "unknown",
-      "calendar_date": "7-1",
+      "calendar_type": "lunar",
+      "calendar_date": "1-1",
       "description": "普米新年杀猪祭祖跳锅庄，韩规巫师主持敬锅庄女神仪式；荞麦粑粑与苏里玛酒象征山地耐寒生计。",
       "customs": [
         "锅庄"
@@ -3344,22 +3859,36 @@
         "粑粑"
       ],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-02-17",
+        "2027": "2027-02-06",
+        "2028": "2028-01-26",
+        "2029": "2029-02-13",
+        "2030": "2030-02-03",
+        "2031": "2031-01-23",
+        "2032": "2032-02-11",
+        "2033": "2033-01-31",
+        "2034": "2034-02-19",
+        "2035": "2035-02-08"
+      },
       "is_major": true,
       "tags": [
         "新年"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "lunar_convert",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "pumi_zhuanshan",
       "name": "转山节",
       "ethnic_id": "pumi",
       "ethnic_name": "普米族",
-      "calendar_type": "unknown",
+      "calendar_type": "lunar",
       "calendar_date": "7-15",
       "description": "环绕神山诵经撒五谷祈福，禁止砍伐狩猎七日；青年赛马选拔护卫神山志愿者。",
       "customs": [
@@ -3367,15 +3896,29 @@
       ],
       "foods": [],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-08-27",
+        "2027": "2027-08-16",
+        "2028": "2028-09-03",
+        "2029": "2029-08-24",
+        "2030": "2030-08-13",
+        "2031": "2031-09-01",
+        "2032": "2032-08-20",
+        "2033": "2033-08-09",
+        "2034": "2034-08-28",
+        "2035": "2035-08-18"
+      },
       "is_major": false,
       "tags": [
         "信仰"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "lunar_convert",
       "confidence": "low",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "taj_nowruz_tjk",
@@ -3411,7 +3954,10 @@
       "date_strategy": "fixed",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "taj_gurban",
@@ -3447,14 +3993,17 @@
       "date_strategy": "algorithm",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "nu_fairy",
       "name": "仙女节",
       "ethnic_id": "nu",
       "ethnic_name": "怒族",
-      "calendar_type": "unknown",
+      "calendar_type": "lunar",
       "calendar_date": "3-15",
       "description": "怒江峡谷采集杜鹃鲜花祭祀仙女岩洞，歌舞通宵祈求村寨免受泥石流之苦；妇女主导仪式凸显性别互助。",
       "customs": [
@@ -3462,38 +4011,66 @@
       ],
       "foods": [],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-05-01",
+        "2027": "2027-04-21",
+        "2028": "2028-04-09",
+        "2029": "2029-04-28",
+        "2030": "2030-04-17",
+        "2031": "2031-04-06",
+        "2032": "2032-04-24",
+        "2033": "2033-04-14",
+        "2034": "2034-05-03",
+        "2035": "2035-04-22"
+      },
       "is_major": true,
       "tags": [
         "信仰"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "lunar_convert",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "nu_forest",
       "name": "祭山林节",
       "ethnic_id": "nu",
       "ethnic_name": "怒族",
-      "calendar_type": "unknown",
-      "calendar_date": "2-1",
+      "calendar_type": "lunar",
+      "calendar_date": "3-1",
       "description": "封山育林祭祀禁止砍伐狩猎若干日；长老宣读资源分配公约调解林地纠纷。",
       "customs": [
         "祭林"
       ],
       "foods": [],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-04-17",
+        "2027": "2027-04-07",
+        "2028": "2028-03-26",
+        "2029": "2029-04-14",
+        "2030": "2030-04-03",
+        "2031": "2031-03-23",
+        "2032": "2032-04-10",
+        "2033": "2033-03-31",
+        "2034": "2034-04-19",
+        "2035": "2035-04-08"
+      },
       "is_major": false,
       "tags": [
         "生态"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "lunar_convert",
       "confidence": "low",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "uzb_gurban",
@@ -3529,7 +4106,10 @@
       "date_strategy": "algorithm",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "uzb_eid",
@@ -3565,7 +4145,10 @@
       "date_strategy": "algorithm",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "uzb_nowruz",
@@ -3601,7 +4184,10 @@
       "date_strategy": "fixed",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "elu_easter",
@@ -3637,7 +4223,10 @@
       "date_strategy": "fixed",
       "confidence": "medium",
       "note": "教会礼仪年日期因年与教派而异，待算法填充。",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "elu_christmas",
@@ -3673,14 +4262,17 @@
       "date_strategy": "fixed",
       "confidence": "medium",
       "note": "各地教会礼仪日程不一，占位日期待核对。",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "ewk_sebin",
       "name": "瑟宾节",
       "ethnic_id": "ewk",
       "ethnic_name": "鄂温克族",
-      "calendar_type": "unknown",
+      "calendar_type": "lunar",
       "calendar_date": "6-18",
       "description": "鄂温克猎人欢聚驯鹿营地摔跤射箭，萨满鼓声祈祷山林猎物丰盈；非遗传承人讲述使鹿部落迁徙故事。",
       "customs": [
@@ -3688,22 +4280,36 @@
       ],
       "foods": [],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-07-31",
+        "2027": "2027-07-21",
+        "2028": "2028-08-08",
+        "2029": "2029-07-28",
+        "2030": "2030-07-18",
+        "2031": "2031-08-05",
+        "2032": "2032-07-24",
+        "2033": "2033-07-14",
+        "2034": "2034-08-02",
+        "2035": "2035-07-22"
+      },
       "is_major": true,
       "tags": [
         "游牧"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "lunar_convert",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "ewk_mikulu",
       "name": "米阔鲁节",
       "ethnic_id": "ewk",
       "ethnic_name": "鄂温克族",
-      "calendar_type": "unknown",
+      "calendar_type": "lunar",
       "calendar_date": "5-1",
       "description": "春季接羔繁育节庆，牧民给羔羊剪耳标记分配草场；宴饮表彰接羔能手。",
       "customs": [
@@ -3713,15 +4319,29 @@
         "奶制品"
       ],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-06-15",
+        "2027": "2027-06-05",
+        "2028": "2028-05-24",
+        "2029": "2029-06-12",
+        "2030": "2030-06-01",
+        "2031": "2031-06-20",
+        "2032": "2032-06-08",
+        "2033": "2033-05-28",
+        "2034": "2034-06-16",
+        "2035": "2035-06-06"
+      },
       "is_major": false,
       "tags": [
         "畜牧"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "lunar_convert",
       "confidence": "low",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "dea_water",
@@ -3757,14 +4377,17 @@
       "date_strategy": "lookup",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "dea_flower_water",
       "name": "浇花节",
       "ethnic_id": "dea",
       "ethnic_name": "德昂族",
-      "calendar_type": "unknown",
+      "calendar_type": "lunar",
       "calendar_date": "3-1",
       "description": "青年男女相互浇花表达爱慕，佛寺诵经祈愿茶树丰收；仪式后采摘春茶祭谷魂。",
       "customs": [
@@ -3772,15 +4395,29 @@
       ],
       "foods": [],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-04-17",
+        "2027": "2027-04-07",
+        "2028": "2028-03-26",
+        "2029": "2029-04-14",
+        "2030": "2030-04-03",
+        "2031": "2031-03-23",
+        "2032": "2032-04-10",
+        "2033": "2033-03-31",
+        "2034": "2034-04-19",
+        "2035": "2035-04-08"
+      },
       "is_major": false,
       "tags": [
         "婚恋"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "lunar_convert",
       "confidence": "low",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "dea_open_gate",
@@ -3814,7 +4451,10 @@
       "date_strategy": "lookup",
       "confidence": "low",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "bao_gurban",
@@ -3850,7 +4490,10 @@
       "date_strategy": "algorithm",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "bao_eid",
@@ -3884,7 +4527,10 @@
       "date_strategy": "algorithm",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "bao_mawlid",
@@ -3918,15 +4564,18 @@
       "date_strategy": "algorithm",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "yug_horse_mane",
       "name": "剪马鬃节",
       "ethnic_id": "yug",
       "ethnic_name": "裕固族",
-      "calendar_type": "unknown",
-      "calendar_date": "5-1",
+      "calendar_type": "lunar",
+      "calendar_date": "4-1",
       "description": "初夏给骏马剪鬃洗浴祈福水草丰美，骑手赛马叼羊展示驯牧技艺；帐篷宴饮传唱史诗。",
       "customs": [
         "剪鬃"
@@ -3935,22 +4584,36 @@
         "奶茶"
       ],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-05-17",
+        "2027": "2027-05-06",
+        "2028": "2028-04-25",
+        "2029": "2029-05-13",
+        "2030": "2030-05-02",
+        "2031": "2031-05-21",
+        "2032": "2032-05-09",
+        "2033": "2033-04-29",
+        "2034": "2034-05-18",
+        "2035": "2035-05-08"
+      },
       "is_major": true,
       "tags": [
         "畜牧"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "lunar_convert",
       "confidence": "low",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "yug_ovoo",
       "name": "鄂博节",
       "ethnic_id": "yug",
       "ethnic_name": "裕固族",
-      "calendar_type": "unknown",
+      "calendar_type": "lunar",
       "calendar_date": "6-1",
       "description": "祭祀敖包堆砌石块祈福人畜平安，萨满诵经撒五谷；赛马摔跤选拔部落勇士。",
       "customs": [
@@ -3958,38 +4621,66 @@
       ],
       "foods": [],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-07-14",
+        "2027": "2027-07-04",
+        "2028": "2028-07-22",
+        "2029": "2029-07-11",
+        "2030": "2030-07-01",
+        "2031": "2031-07-19",
+        "2032": "2032-07-07",
+        "2033": "2033-06-27",
+        "2034": "2034-07-16",
+        "2035": "2035-07-05"
+      },
       "is_major": false,
       "tags": [
         "信仰"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "lunar_convert",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "yug_fire_offer",
       "name": "祭火节",
       "ethnic_id": "yug",
       "ethnic_name": "裕固族",
-      "calendar_type": "unknown",
-      "calendar_date": "12-1",
+      "calendar_type": "lunar",
+      "calendar_date": "1-1",
       "description": "冬季祭火塘讲述迁徙河西走廊记忆，羊拐游戏凝聚家族男性同盟。",
       "customs": [
         "祭火"
       ],
       "foods": [],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-02-17",
+        "2027": "2027-02-06",
+        "2028": "2028-01-26",
+        "2029": "2029-02-13",
+        "2030": "2030-02-03",
+        "2031": "2031-01-23",
+        "2032": "2032-02-11",
+        "2033": "2033-01-31",
+        "2034": "2034-02-19",
+        "2035": "2035-02-08"
+      },
       "is_major": false,
       "tags": [
         "祭祖"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "lunar_convert",
       "confidence": "low",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "jingr_ha",
@@ -4025,7 +4716,10 @@
       "date_strategy": "lookup",
       "confidence": "medium",
       "note": "各村哈节日期轮流。",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "jingr_changha",
@@ -4059,7 +4753,10 @@
       "date_strategy": "lookup",
       "confidence": "low",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "tata_gurban",
@@ -4095,7 +4792,10 @@
       "date_strategy": "algorithm",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "tata_eid",
@@ -4129,7 +4829,10 @@
       "date_strategy": "algorithm",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "tata_saban",
@@ -4152,7 +4855,10 @@
       "date_strategy": "unknown",
       "confidence": "low",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": false,
+      "display_mode": "culture_only",
+      "source_references": []
     },
     {
       "id": "dulo_kachewa",
@@ -4175,7 +4881,10 @@
       "date_strategy": "unknown",
       "confidence": "low",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": false,
+      "display_mode": "culture_only",
+      "source_references": []
     },
     {
       "id": "dulo_sky_offer",
@@ -4198,14 +4907,17 @@
       "date_strategy": "unknown",
       "confidence": "low",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": false,
+      "display_mode": "culture_only",
+      "source_references": []
     },
     {
       "id": "elc_bonfire",
       "name": "篝火节",
       "ethnic_id": "elc",
       "ethnic_name": "鄂伦春族",
-      "calendar_type": "unknown",
+      "calendar_type": "lunar",
       "calendar_date": "6-18",
       "description": "森林猎民围着篝火跳兽皮舞讲述熊图腾禁忌；赛马射箭选拔新一代猎手首领。",
       "customs": [
@@ -4213,15 +4925,29 @@
       ],
       "foods": [],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-07-31",
+        "2027": "2027-07-21",
+        "2028": "2028-08-08",
+        "2029": "2029-07-28",
+        "2030": "2030-07-18",
+        "2031": "2031-08-05",
+        "2032": "2032-07-24",
+        "2033": "2033-07-14",
+        "2034": "2034-08-02",
+        "2035": "2035-07-22"
+      },
       "is_major": true,
       "tags": [
         "狩猎"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "lunar_convert",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "elc_spring_year",
@@ -4255,15 +4981,18 @@
       "date_strategy": "lunar_convert",
       "confidence": "high",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "hez_wurig",
       "name": "乌日贡节",
       "ethnic_id": "hez",
       "ethnic_name": "赫哲族",
-      "calendar_type": "unknown",
-      "calendar_date": "7-1",
+      "calendar_type": "lunar",
+      "calendar_date": "5-15",
       "description": "乌苏里江流域民族文艺体育盛会，鱼皮画鱼皮衣展演讲述渔猎技艺；鹿棋摔跤选拔村寨代表。",
       "customs": [
         "鱼皮工艺"
@@ -4272,22 +5001,36 @@
         "鱼肉"
       ],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-06-29",
+        "2027": "2027-06-19",
+        "2028": "2028-06-07",
+        "2029": "2029-06-26",
+        "2030": "2030-06-15",
+        "2031": "2031-07-04",
+        "2032": "2032-06-22",
+        "2033": "2033-06-11",
+        "2034": "2034-06-30",
+        "2035": "2035-06-20"
+      },
       "is_major": true,
       "tags": [
         "非遗"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "lunar_convert",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "hez_river_lamp",
       "name": "河灯节",
       "ethnic_id": "hez",
       "ethnic_name": "赫哲族",
-      "calendar_type": "unknown",
+      "calendar_type": "lunar",
       "calendar_date": "7-15",
       "description": "放河灯超度溺水亡灵并祈求江水平静渔汛安稳；萨满鼓声引导船队巡游。",
       "customs": [
@@ -4295,22 +5038,36 @@
       ],
       "foods": [],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-08-27",
+        "2027": "2027-08-16",
+        "2028": "2028-09-03",
+        "2029": "2029-08-24",
+        "2030": "2030-08-13",
+        "2031": "2031-09-01",
+        "2032": "2032-08-20",
+        "2033": "2033-08-09",
+        "2034": "2034-08-28",
+        "2035": "2035-08-18"
+      },
       "is_major": false,
       "tags": [
         "祭祀"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "lunar_convert",
       "confidence": "low",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "menb_new_year",
       "name": "门巴新年",
       "ethnic_id": "menb",
       "ethnic_name": "门巴族",
-      "calendar_type": "unknown",
+      "calendar_type": "tibetan",
       "calendar_date": "1-1",
       "description": "藏南门巴村寨杀猪酿酒跳锅庄迎新岁，祭祀山神保佑古道商旅平安；传说融合吐蕃与门巴口传史诗。",
       "customs": [
@@ -4320,15 +5077,29 @@
         "青稞酒"
       ],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-02-18",
+        "2027": "2027-02-07",
+        "2028": "2028-02-26",
+        "2029": "2029-02-14",
+        "2030": "2030-03-05",
+        "2031": "2031-02-22",
+        "2032": "2032-02-12",
+        "2033": "2033-03-02",
+        "2034": "2034-02-19",
+        "2035": "2035-02-09"
+      },
       "is_major": true,
       "tags": [
         "新年"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "algorithm",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "menb_wongkor",
@@ -4362,7 +5133,10 @@
       "date_strategy": "algorithm",
       "confidence": "medium",
       "note": "与藏族望果同源而异俗。",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "luob_xudulong",
@@ -4385,7 +5159,10 @@
       "date_strategy": "unknown",
       "confidence": "low",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": false,
+      "display_mode": "culture_only",
+      "source_references": []
     },
     {
       "id": "luob_dongen",
@@ -4408,14 +5185,17 @@
       "date_strategy": "unknown",
       "confidence": "low",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": false,
+      "display_mode": "culture_only",
+      "source_references": []
     },
     {
       "id": "jino_techmark",
       "name": "特懋克节",
       "ethnic_id": "jino",
       "ethnic_name": "基诺族",
-      "calendar_type": "unknown",
+      "calendar_type": "gregorian",
       "calendar_date": "2-6",
       "description": "基诺新年打铁祭鼓祈谷魂归来，长老敲响牛皮大鼓带领全村跳卓舞；竹笋宴象征热带雨林生计。",
       "customs": [
@@ -4425,22 +5205,36 @@
         "竹笋"
       ],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-02-06",
+        "2027": "2027-02-06",
+        "2028": "2028-02-06",
+        "2029": "2029-02-06",
+        "2030": "2030-02-06",
+        "2031": "2031-02-06",
+        "2032": "2032-02-06",
+        "2033": "2033-02-06",
+        "2034": "2034-02-06",
+        "2035": "2035-02-06"
+      },
       "is_major": true,
       "tags": [
         "新年"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "fixed",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "jino_new_rice_jino",
       "name": "新米节",
       "ethnic_id": "jino",
       "ethnic_name": "基诺族",
-      "calendar_type": "unknown",
+      "calendar_type": "lunar",
       "calendar_date": "9-1",
       "description": "尝新米杀猪祭祖告知秋收喜讯，青年交替敲击竹筒传递喜讯至邻寨。",
       "customs": [
@@ -4448,23 +5242,37 @@
       ],
       "foods": [],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-10-10",
+        "2027": "2027-09-30",
+        "2028": "2028-10-18",
+        "2029": "2029-10-08",
+        "2030": "2030-09-27",
+        "2031": "2031-10-16",
+        "2032": "2032-10-04",
+        "2033": "2033-09-23",
+        "2034": "2034-10-12",
+        "2035": "2035-10-01"
+      },
       "is_major": false,
       "tags": [
         "丰收"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "lunar_convert",
       "confidence": "low",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "lisu_kuoshi",
       "name": "阔时节",
       "ethnic_id": "lisu",
       "ethnic_name": "傈僳族",
-      "calendar_type": "unknown",
-      "calendar_date": "12-1",
+      "calendar_type": "gregorian",
+      "calendar_date": "12-20",
       "description": "傈僳新年跳嘎洒搓澡迎新岁，弩弓射靶比赛选拔猎手；同心酒仪式重申村寨联盟。",
       "customs": [
         "搓澡舞"
@@ -4473,22 +5281,36 @@
         "杵酒"
       ],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-12-20",
+        "2027": "2027-12-20",
+        "2028": "2028-12-20",
+        "2029": "2029-12-20",
+        "2030": "2030-12-20",
+        "2031": "2031-12-20",
+        "2032": "2032-12-20",
+        "2033": "2033-12-20",
+        "2034": "2034-12-20",
+        "2035": "2035-12-20"
+      },
       "is_major": true,
       "tags": [
         "新年"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "fixed",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "lisu_knife_ladder",
       "name": "刀杆节",
       "ethnic_id": "lisu",
       "ethnic_name": "傈僳族",
-      "calendar_type": "unknown",
+      "calendar_type": "lunar",
       "calendar_date": "2-8",
       "description": "勇士赤脚踏刀刃爬上高架祈福战胜灾祸；喃咪巫师吟诵史诗安抚亡灵。",
       "customs": [
@@ -4496,46 +5318,74 @@
       ],
       "foods": [],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-03-26",
+        "2027": "2027-03-15",
+        "2028": "2028-03-03",
+        "2029": "2029-03-22",
+        "2030": "2030-03-11",
+        "2031": "2031-02-28",
+        "2032": "2032-03-19",
+        "2033": "2033-03-08",
+        "2034": "2034-03-27",
+        "2035": "2035-03-17"
+      },
       "is_major": false,
       "tags": [
         "祭祀"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "lunar_convert",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "lisu_hot_spring",
       "name": "澡塘会",
       "ethnic_id": "lisu",
       "ethnic_name": "傈僳族",
-      "calendar_type": "unknown",
-      "calendar_date": "2-1",
+      "calendar_type": "lunar",
+      "calendar_date": "1-3",
       "description": "怒江峡谷温泉集聚洗衣歌舞择偶，货物集市互换药材山货。",
       "customs": [
         "沐浴"
       ],
       "foods": [],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-02-19",
+        "2027": "2027-02-08",
+        "2028": "2028-01-28",
+        "2029": "2029-02-15",
+        "2030": "2030-02-05",
+        "2031": "2031-01-25",
+        "2032": "2032-02-13",
+        "2033": "2033-02-02",
+        "2034": "2034-02-21",
+        "2035": "2035-02-10"
+      },
       "is_major": false,
       "tags": [
         "社交"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "lunar_convert",
       "confidence": "low",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "wa_new_rice_wa",
       "name": "新米节",
       "ethnic_id": "wa",
       "ethnic_name": "佤族",
-      "calendar_type": "unknown",
-      "calendar_date": "10-1",
+      "calendar_type": "lunar",
+      "calendar_date": "8-1",
       "description": "全寨品尝新米剽牛告知谷魂归来，木鼓敲击节奏贯穿祭祀与歌舞；禁忌解除后方可开仓。",
       "customs": [
         "敲木鼓"
@@ -4544,45 +5394,73 @@
         "鸡肉烂饭"
       ],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-09-11",
+        "2027": "2027-09-01",
+        "2028": "2028-09-19",
+        "2029": "2029-09-08",
+        "2030": "2030-08-29",
+        "2031": "2031-09-17",
+        "2032": "2032-09-05",
+        "2033": "2033-08-25",
+        "2034": "2034-09-13",
+        "2035": "2035-09-02"
+      },
       "is_major": true,
       "tags": [
         "稻作"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "lunar_convert",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "wa_wood_drum",
       "name": "木鼓节",
       "ethnic_id": "wa",
       "ethnic_name": "佤族",
-      "calendar_type": "unknown",
-      "calendar_date": "5-1",
+      "calendar_type": "gregorian",
+      "calendar_date": "4-1",
       "description": "拉木鼓进山祭祀神明保佑村寨平安，男女裸体彩绘跳舞驱邪；被视为佤族最具标志性的信仰盛典。",
       "customs": [
         "拉木鼓"
       ],
       "foods": [],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-04-01",
+        "2027": "2027-04-01",
+        "2028": "2028-04-01",
+        "2029": "2029-04-01",
+        "2030": "2030-04-01",
+        "2031": "2031-04-01",
+        "2032": "2032-04-01",
+        "2033": "2033-04-01",
+        "2034": "2034-04-01",
+        "2035": "2035-04-01"
+      },
       "is_major": false,
       "tags": [
         "祭祀"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "fixed",
       "confidence": "low",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     },
     {
       "id": "wa_monihei",
       "name": "摸你黑狂欢节",
       "ethnic_id": "wa",
       "ethnic_name": "佤族",
-      "calendar_type": "unknown",
+      "calendar_type": "gregorian",
       "calendar_date": "5-1",
       "description": "涂泥嬉戏象征洗去晦气祝福彼此健康，篝火狂欢延续至天明展现边疆族群生命力。",
       "customs": [
@@ -4590,15 +5468,29 @@
       ],
       "foods": [],
       "holiday_info": "",
-      "years": {},
+      "years": {
+        "2026": "2026-05-01",
+        "2027": "2027-05-01",
+        "2028": "2028-05-01",
+        "2029": "2029-05-01",
+        "2030": "2030-05-01",
+        "2031": "2031-05-01",
+        "2032": "2032-05-01",
+        "2033": "2033-05-01",
+        "2034": "2034-05-01",
+        "2035": "2035-05-01"
+      },
       "is_major": false,
       "tags": [
         "狂欢"
       ],
-      "date_strategy": "unknown",
+      "date_strategy": "fixed",
       "confidence": "medium",
       "note": "",
-      "default_subscribed": false
+      "default_subscribed": false,
+      "available": true,
+      "display_mode": "calendar",
+      "source_references": []
     }
   ]
 }

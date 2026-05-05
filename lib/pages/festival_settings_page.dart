@@ -85,29 +85,62 @@ bool _ethnicFestivalMatchesQuery(EthnicFestival f, String ethnicName, String q) 
   return false;
 }
 
+bool _ethnicFestivalHasDetailBody(EthnicFestival item) =>
+    item.description.trim().isNotEmpty ||
+    item.customs.isNotEmpty ||
+    item.foods.isNotEmpty;
+
+bool _religiousFestivalHasDetailBody(ReligiousFestival item) =>
+    item.description.trim().isNotEmpty ||
+    item.customs.isNotEmpty ||
+    item.foods.isNotEmpty;
+
 Widget _ethnicFestivalDetailInkWell(
   BuildContext context,
   EthnicFestival item,
   Widget child,
 ) {
-  final desc = item.description.trim();
-  if (desc.isEmpty) return child;
+  if (!_ethnicFestivalHasDetailBody(item)) return child;
   return InkWell(
     onTap: () {
       showDialog<void>(
         context: context,
-        builder: (ctx) => AlertDialog(
-          title: Text(item.name),
-          content: SingleChildScrollView(
-            child: Text(desc),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('关闭'),
+        builder: (ctx) {
+          final tt = Theme.of(ctx).textTheme;
+          return AlertDialog(
+            title: Text(item.name),
+            content: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (item.description.trim().isNotEmpty)
+                    Text(item.description.trim(), style: tt.bodyMedium),
+                  if (item.customs.isNotEmpty) ...[
+                    if (item.description.trim().isNotEmpty)
+                      const SizedBox(height: 12),
+                    Text('习俗', style: tt.titleSmall),
+                    const SizedBox(height: 4),
+                    Text(item.customs.join('、'), style: tt.bodyMedium),
+                  ],
+                  if (item.foods.isNotEmpty) ...[
+                    if (item.description.trim().isNotEmpty ||
+                        item.customs.isNotEmpty)
+                      const SizedBox(height: 12),
+                    Text('饮食', style: tt.titleSmall),
+                    const SizedBox(height: 4),
+                    Text(item.foods.join('、'), style: tt.bodyMedium),
+                  ],
+                ],
+              ),
             ),
-          ],
-        ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('关闭'),
+              ),
+            ],
+          );
+        },
       );
     },
     child: child,
@@ -119,24 +152,47 @@ Widget _religiousFestivalDetailInkWell(
   ReligiousFestival item,
   Widget child,
 ) {
-  final desc = item.description.trim();
-  if (desc.isEmpty) return child;
+  if (!_religiousFestivalHasDetailBody(item)) return child;
   return InkWell(
     onTap: () {
       showDialog<void>(
         context: context,
-        builder: (ctx) => AlertDialog(
-          title: Text(item.name),
-          content: SingleChildScrollView(
-            child: Text(desc),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('关闭'),
+        builder: (ctx) {
+          final tt = Theme.of(ctx).textTheme;
+          return AlertDialog(
+            title: Text(item.name),
+            content: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (item.description.trim().isNotEmpty)
+                    Text(item.description.trim(), style: tt.bodyMedium),
+                  if (item.customs.isNotEmpty) ...[
+                    if (item.description.trim().isNotEmpty)
+                      const SizedBox(height: 12),
+                    Text('习俗', style: tt.titleSmall),
+                    const SizedBox(height: 4),
+                    Text(item.customs.join('、'), style: tt.bodyMedium),
+                  ],
+                  if (item.foods.isNotEmpty) ...[
+                    if (item.description.trim().isNotEmpty ||
+                        item.customs.isNotEmpty)
+                      const SizedBox(height: 12),
+                    Text('饮食', style: tt.titleSmall),
+                    const SizedBox(height: 4),
+                    Text(item.foods.join('、'), style: tt.bodyMedium),
+                  ],
+                ],
+              ),
             ),
-          ],
-        ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('关闭'),
+              ),
+            ],
+          );
+        },
       );
     },
     child: child,
@@ -210,8 +266,12 @@ class EthnicFestival {
     required this.gregorianDate,
     this.description = '',
     this.tags = const [],
+    this.customs = const [],
+    this.foods = const [],
     this.defaultSubscribed = false,
     required this.isSubscribed,
+    required this.calendarEligible,
+    this.displayMode = 'calendar',
   });
 
   final String id;
@@ -221,8 +281,18 @@ class EthnicFestival {
   final String gregorianDate;
   final String description;
   final List<String> tags;
+  final List<String> customs;
+  final List<String> foods;
   final bool defaultSubscribed;
   bool isSubscribed;
+
+  /// JSON：`available` 且非 `culture_only` / `hidden`；仅此一类可走日历订阅。
+  final bool calendarEligible;
+
+  /// JSON：`calendar` | `culture_only`（hidden 已在加载时剔除）。
+  final String displayMode;
+
+  bool get isCultureOnly => displayMode == 'culture_only';
 }
 
 /// 单条宗教节日（与 [ReligionGroup] 组合展示）。
@@ -236,8 +306,12 @@ class ReligiousFestival {
     required this.gregorianDate,
     this.description = '',
     this.tags = const [],
+    this.customs = const [],
+    this.foods = const [],
     this.defaultSubscribed = false,
     required this.isSubscribed,
+    required this.calendarEligible,
+    this.displayMode = 'calendar',
   });
 
   final String id;
@@ -247,8 +321,14 @@ class ReligiousFestival {
   final String gregorianDate;
   final String description;
   final List<String> tags;
+  final List<String> customs;
+  final List<String> foods;
   final bool defaultSubscribed;
   bool isSubscribed;
+  final bool calendarEligible;
+  final String displayMode;
+
+  bool get isCultureOnly => displayMode == 'culture_only';
 }
 
 /// 一类宗教及其节日列表（二级展开状态 [isExpanded]）。
@@ -525,7 +605,7 @@ class _FestivalSettingsPageState extends State<FestivalSettingsPage> {
   int get _ethnicOnCount {
     var n = 0;
     for (final list in _ethnicFestivalsById.values) {
-      n += list.where((e) => e.isSubscribed).length;
+      n += list.where((e) => e.calendarEligible && e.isSubscribed).length;
     }
     return n;
   }
@@ -533,7 +613,9 @@ class _FestivalSettingsPageState extends State<FestivalSettingsPage> {
   int get _religiousOnCount {
     var n = 0;
     for (final g in _religionGroups) {
-      n += g.festivals.where((e) => e.isSubscribed).length;
+      n += g.festivals
+          .where((e) => e.calendarEligible && e.isSubscribed)
+          .length;
     }
     return n;
   }
@@ -605,8 +687,10 @@ class _FestivalSettingsPageState extends State<FestivalSettingsPage> {
   }
 
   void _onEthnicFestivalSwitch(String ethnicId, int index, bool v) {
+    final row = _ethnicFestivalsById[ethnicId]?[index];
+    if (row == null || !row.calendarEligible) return;
     setState(() {
-      _ethnicFestivalsById[ethnicId]![index].isSubscribed = v;
+      row.isSubscribed = v;
     });
     _saveSubscriptions();
   }
@@ -628,9 +712,12 @@ class _FestivalSettingsPageState extends State<FestivalSettingsPage> {
   }
 
   void _onReligiousFestivalSwitch(String religionId, int index, bool v) {
+    final gIndex = _religionGroups.indexWhere((e) => e.id == religionId);
+    if (gIndex < 0) return;
+    final row = _religionGroups[gIndex].festivals[index];
+    if (!row.calendarEligible) return;
     setState(() {
-      final g = _religionGroups.firstWhere((e) => e.id == religionId);
-      g.festivals[index].isSubscribed = v;
+      row.isSubscribed = v;
     });
     _saveSubscriptions();
   }
@@ -639,7 +726,9 @@ class _FestivalSettingsPageState extends State<FestivalSettingsPage> {
     setState(() {
       final g = _religionGroups.firstWhere((e) => e.id == religionId);
       for (final f in g.festivals) {
-        f.isSubscribed = v;
+        if (f.calendarEligible) {
+          f.isSubscribed = v;
+        }
       }
     });
     _saveSubscriptions();
@@ -661,12 +750,12 @@ class _FestivalSettingsPageState extends State<FestivalSettingsPage> {
     }
     for (final list in _ethnicFestivalsById.values) {
       for (final f in list) {
-        f.isSubscribed = subscribed.contains(f.id);
+        f.isSubscribed = f.calendarEligible && subscribed.contains(f.id);
       }
     }
     for (final g in _religionGroups) {
       for (final f in g.festivals) {
-        f.isSubscribed = subscribed.contains(f.id);
+        f.isSubscribed = f.calendarEligible && subscribed.contains(f.id);
       }
     }
   }
@@ -735,12 +824,12 @@ class _FestivalSettingsPageState extends State<FestivalSettingsPage> {
     }
     for (final list in _ethnicFestivalsById.values) {
       for (final f in list) {
-        if (f.isSubscribed) subscribed.add(f.id);
+        if (f.calendarEligible && f.isSubscribed) subscribed.add(f.id);
       }
     }
     for (final g in _religionGroups) {
       for (final f in g.festivals) {
-        if (f.isSubscribed) subscribed.add(f.id);
+        if (f.calendarEligible && f.isSubscribed) subscribed.add(f.id);
       }
     }
     final list = subscribed.toList()..sort();
@@ -760,12 +849,16 @@ class _FestivalSettingsPageState extends State<FestivalSettingsPage> {
   void _mergeJsonDefaultEthnicReligiousSubscriptions() {
     for (final list in _ethnicFestivalsById.values) {
       for (final f in list) {
-        if (f.defaultSubscribed) f.isSubscribed = true;
+        if (f.calendarEligible && f.defaultSubscribed) {
+          f.isSubscribed = true;
+        }
       }
     }
     for (final g in _religionGroups) {
       for (final f in g.festivals) {
-        if (f.defaultSubscribed) f.isSubscribed = true;
+        if (f.calendarEligible && f.defaultSubscribed) {
+          f.isSubscribed = true;
+        }
       }
     }
   }
@@ -788,26 +881,43 @@ class _FestivalSettingsPageState extends State<FestivalSettingsPage> {
       });
       _ethnicFestivalsById[g.id] = [
         for (final m in rows)
-          if ((FestivalDataLoader.safeString(m, 'id') ?? '').isNotEmpty)
+          if ((FestivalDataLoader.safeString(m, 'id') ?? '').isNotEmpty &&
+              FestivalDataLoader.festivalShowInSettings(m))
             EthnicFestival(
               id: FestivalDataLoader.safeString(m, 'id')!,
               ethnicId: g.id,
               name: FestivalDataLoader.safeString(m, 'name') ?? '未知节日',
-              ethnicCalendar: _ethnicCalendarLabelFromJson(
-                FestivalDataLoader.safeString(m, 'calendar_type'),
-                FestivalDataLoader.safeString(m, 'calendar_date') ?? '',
-              ),
-              gregorianDate: _festivalGregorianDisplayCn(
-                (m['years'] is Map)
-                    ? Map<String, dynamic>.from(m['years'] as Map)
-                    : const {},
-              ),
+              ethnicCalendar:
+                  FestivalDataLoader.safeString(m, 'display_mode') ==
+                          'culture_only'
+                      ? ''
+                      : _ethnicCalendarLabelFromJson(
+                          FestivalDataLoader.safeString(m, 'calendar_type'),
+                          FestivalDataLoader.safeString(m, 'calendar_date') ??
+                              '',
+                        ),
+              gregorianDate:
+                  FestivalDataLoader.safeString(m, 'display_mode') ==
+                          'culture_only'
+                      ? ''
+                      : _festivalGregorianDisplayCn(
+                          (m['years'] is Map)
+                              ? Map<String, dynamic>.from(m['years'] as Map)
+                              : const {},
+                        ),
               description:
                   FestivalDataLoader.safeString(m, 'description') ?? '',
               tags: FestivalDataLoader.safeStringList(m, 'tags'),
+              customs: FestivalDataLoader.safeStringList(m, 'customs'),
+              foods: FestivalDataLoader.safeStringList(m, 'foods'),
               defaultSubscribed:
                   FestivalDataLoader.safeBool(m, 'default_subscribed'),
               isSubscribed: false,
+              calendarEligible:
+                  FestivalDataLoader.festivalCalendarEligible(m),
+              displayMode:
+                  FestivalDataLoader.safeString(m, 'display_mode') ??
+                      'calendar',
             ),
       ];
     }
@@ -848,26 +958,45 @@ class _FestivalSettingsPageState extends State<FestivalSettingsPage> {
           isExpanded: true,
           festivals: [
             for (final m in rows)
-              if ((FestivalDataLoader.safeString(m, 'id') ?? '').isNotEmpty)
+              if ((FestivalDataLoader.safeString(m, 'id') ?? '').isNotEmpty &&
+                  FestivalDataLoader.festivalShowInSettings(m))
                 ReligiousFestival(
                   id: FestivalDataLoader.safeString(m, 'id')!,
                   religionId: id,
                   name: FestivalDataLoader.safeString(m, 'name') ?? '未知节日',
-                  calendarDate: _religiousCalendarLabelFromJson(
-                    FestivalDataLoader.safeString(m, 'calendar_type'),
-                    FestivalDataLoader.safeString(m, 'calendar_date') ?? '',
-                  ),
-                  gregorianDate: _festivalGregorianDisplayCn(
-                    (m['years'] is Map)
-                        ? Map<String, dynamic>.from(m['years'] as Map)
-                        : const {},
-                  ),
+                  calendarDate:
+                      FestivalDataLoader.safeString(m, 'display_mode') ==
+                              'culture_only'
+                          ? ''
+                          : _religiousCalendarLabelFromJson(
+                              FestivalDataLoader.safeString(m, 'calendar_type'),
+                              FestivalDataLoader.safeString(m, 'calendar_date') ??
+                                  '',
+                            ),
+                  gregorianDate:
+                      FestivalDataLoader.safeString(m, 'display_mode') ==
+                              'culture_only'
+                          ? ''
+                          : _festivalGregorianDisplayCn(
+                              (m['years'] is Map)
+                                  ? Map<String, dynamic>.from(
+                                      m['years'] as Map,
+                                    )
+                                  : const {},
+                            ),
                   description:
                       FestivalDataLoader.safeString(m, 'description') ?? '',
                   tags: FestivalDataLoader.safeStringList(m, 'tags'),
+                  customs: FestivalDataLoader.safeStringList(m, 'customs'),
+                  foods: FestivalDataLoader.safeStringList(m, 'foods'),
                   defaultSubscribed:
                       FestivalDataLoader.safeBool(m, 'default_subscribed'),
                   isSubscribed: false,
+                  calendarEligible:
+                      FestivalDataLoader.festivalCalendarEligible(m),
+                  displayMode:
+                      FestivalDataLoader.safeString(m, 'display_mode') ??
+                          'calendar',
                 ),
           ],
         ),
@@ -1431,6 +1560,10 @@ class _GregorianFestivalRow extends StatelessWidget {
 /// 农历日期标签色（设计稿 #EBF5FF / #1E40AF）
 const Color _kLunarTagBackground = Color(0xFFEBF5FF);
 const Color _kLunarTagForeground = Color(0xFF1E40AF);
+
+/// 「文化介绍」条目标签（灰色）
+const Color _kCultureOnlyTagBackground = Color(0xFFE5E7EB);
+const Color _kCultureOnlyTagForeground = Color(0xFF6B7280);
 
 /// 农历展开列表，与外层 [SingleChildScrollView] 统一滚动。
 class _LunarFestivalListBody extends StatelessWidget {
@@ -2160,7 +2293,7 @@ class _EthnicFestivalRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = colorScheme;
     final nameStyle = textTheme.bodyLarge?.copyWith(
-      color: cs.onSurface,
+      color: item.isCultureOnly ? cs.onSurfaceVariant : cs.onSurface,
       fontWeight: FontWeight.w400,
     );
     final cal = item.ethnicCalendar.trim();
@@ -2211,7 +2344,29 @@ class _EthnicFestivalRow extends StatelessWidget {
                           ),
                         ),
                       ],
-                      if (cal.isNotEmpty) ...[
+                      if (item.isCultureOnly) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _kCultureOnlyTagBackground,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Text(
+                            '文化介绍',
+                            style: TextStyle(
+                              color: _kCultureOnlyTagForeground,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              height: 1.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                      if (cal.isNotEmpty && !item.isCultureOnly) ...[
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -2235,7 +2390,7 @@ class _EthnicFestivalRow extends StatelessWidget {
                       ],
                     ],
                   ),
-                  if (item.gregorianDate.isNotEmpty) ...[
+                  if (item.gregorianDate.isNotEmpty && !item.isCultureOnly) ...[
                     const SizedBox(height: 2),
                     Text(
                       item.gregorianDate,
@@ -2251,8 +2406,9 @@ class _EthnicFestivalRow extends StatelessWidget {
             ),
           ),
           Switch.adaptive(
-            value: item.isSubscribed,
-            onChanged: onChanged,
+            value: item.calendarEligible ? item.isSubscribed : false,
+            onChanged:
+                item.calendarEligible ? onChanged : null,
             activeTrackColor: cs.primary,
             activeThumbColor: cs.onPrimary,
           ),
@@ -2344,8 +2500,10 @@ class _ReligionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = colorScheme;
-    final total = group.festivals.length;
-    final onCount = group.festivals.where((e) => e.isSubscribed).length;
+    final eligible =
+        group.festivals.where((e) => e.calendarEligible).toList();
+    final total = eligible.length;
+    final onCount = eligible.where((e) => e.isSubscribed).length;
     final allOn = total > 0 && onCount == total;
     final showList = categoryEnabled && group.isExpanded;
 
@@ -2493,7 +2651,7 @@ class _ReligiousFestivalRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = colorScheme;
     final nameStyle = textTheme.bodyLarge?.copyWith(
-      color: cs.onSurface,
+      color: item.isCultureOnly ? cs.onSurfaceVariant : cs.onSurface,
       fontWeight: FontWeight.w400,
     );
     final cal = item.calendarDate.trim();
@@ -2522,7 +2680,29 @@ class _ReligiousFestivalRow extends StatelessWidget {
                           style: nameStyle,
                         ),
                       ),
-                      if (cal.isNotEmpty) ...[
+                      if (item.isCultureOnly) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _kCultureOnlyTagBackground,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Text(
+                            '文化介绍',
+                            style: TextStyle(
+                              color: _kCultureOnlyTagForeground,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              height: 1.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                      if (cal.isNotEmpty && !item.isCultureOnly) ...[
                         const SizedBox(width: 8),
                         Flexible(
                           child: Container(
@@ -2551,7 +2731,7 @@ class _ReligiousFestivalRow extends StatelessWidget {
                       ],
                     ],
                   ),
-                  if (item.gregorianDate.isNotEmpty) ...[
+                  if (item.gregorianDate.isNotEmpty && !item.isCultureOnly) ...[
                     const SizedBox(height: 2),
                     Text(
                       item.gregorianDate,
@@ -2567,8 +2747,8 @@ class _ReligiousFestivalRow extends StatelessWidget {
             ),
           ),
           Switch.adaptive(
-            value: item.isSubscribed,
-            onChanged: onChanged,
+            value: item.calendarEligible ? item.isSubscribed : false,
+            onChanged: item.calendarEligible ? onChanged : null,
             activeTrackColor: cs.primary,
             activeThumbColor: cs.onPrimary,
           ),
