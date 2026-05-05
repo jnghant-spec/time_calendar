@@ -1,0 +1,5 @@
+# Python 3.9+ — create venv then: pip install -r tool/requirements-festival-dates.txt
+zhdate>=0.1
+hijri-converter>=2.3.1
+caltib>=0.3.2
+ephem>=4.2

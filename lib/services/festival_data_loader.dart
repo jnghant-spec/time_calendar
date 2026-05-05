@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 
 /// 民族 / 宗教节日 JSON 加载与字段安全读取（带内存缓存）。
+///
+/// `years`（2026–2035 公历日期占位）由 `tool/generate_festival_dates.py` 离线批量写入。
 class FestivalDataLoader {
   FestivalDataLoader._();
 
