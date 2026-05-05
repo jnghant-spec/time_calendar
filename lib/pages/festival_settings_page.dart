@@ -6,10 +6,143 @@ import 'package:lpinyin/lpinyin.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:time_calendar/services/festival_service.dart';
+import 'package:time_calendar/services/festival_data_loader.dart';
 import 'package:time_calendar/services/notification_service.dart';
 
 import 'ethnic_festival_data.dart';
-import 'religious_festival_data.dart';
+
+/// 将 JSON `years` 中优先当前年、其次固定锚点的 ISO 日期格式化为「YYYY年M月D日」展示串。
+String _festivalGregorianDisplayCn(Map<String, dynamic> years) {
+  final y = DateTime.now().year;
+  String? pick(String k) {
+    final v = years[k];
+    return v is String && v.isNotEmpty ? v : null;
+  }
+
+  final iso = pick('$y') ?? pick('2027') ?? pick('2026') ?? pick('2028');
+  if (iso == null) {
+    for (final e in years.values) {
+      if (e is String && e.isNotEmpty) {
+        final d = DateTime.tryParse(e);
+        if (d != null) return '${d.year}年${d.month}月${d.day}日';
+        return e;
+      }
+    }
+    return '';
+  }
+  final d = DateTime.tryParse(iso);
+  if (d != null) return '${d.year}年${d.month}月${d.day}日';
+  final parts = iso.split('-');
+  if (parts.length == 3) {
+    try {
+      return '${parts[0]}年${int.parse(parts[1])}月${int.parse(parts[2])}日';
+    } catch (_) {}
+  }
+  return iso;
+}
+
+String _ethnicCalendarLabelFromJson(String? calendarType, String dateRaw) {
+  final cd = dateRaw.trim();
+  if (cd.isEmpty) return '';
+  const prefixes = <String, String>{
+    'tibetan': '藏历',
+    'dai': '傣历',
+    'miao': '苗历',
+    'yi': '彝历',
+    'menggu': '蒙历',
+    'hani': '哈尼历',
+    'lunar': '农历',
+    'solar': '',
+  };
+  final p = prefixes[calendarType ?? ''] ?? '';
+  return p.isEmpty ? cd : '$p $cd';
+}
+
+String _religiousCalendarLabelFromJson(String? calendarType, String dateRaw) {
+  final cd = dateRaw.trim();
+  const prefixes = <String, String>{
+    'lunar': '农历',
+    'gregorian': '公历',
+    'islamic': '伊斯兰历',
+    'computus': '教历',
+    'hindu': '印历',
+  };
+  if (cd.isEmpty) {
+    final p = prefixes[calendarType ?? ''] ?? '';
+    return calendarType == null || calendarType.isEmpty ? '' : p;
+  }
+  final p = prefixes[calendarType ?? ''] ?? '';
+  return p.isEmpty ? cd : '$p $cd';
+}
+
+bool _ethnicFestivalMatchesQuery(EthnicFestival f, String ethnicName, String q) {
+  if (f.name.toLowerCase().contains(q)) return true;
+  if (ethnicName.toLowerCase().contains(q)) return true;
+  if (f.description.toLowerCase().contains(q)) return true;
+  for (final t in f.tags) {
+    if (t.toLowerCase().contains(q)) return true;
+  }
+  return false;
+}
+
+Widget _ethnicFestivalDetailInkWell(
+  BuildContext context,
+  EthnicFestival item,
+  Widget child,
+) {
+  final desc = item.description.trim();
+  if (desc.isEmpty) return child;
+  return InkWell(
+    onTap: () {
+      showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(item.name),
+          content: SingleChildScrollView(
+            child: Text(desc),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('关闭'),
+            ),
+          ],
+        ),
+      );
+    },
+    child: child,
+  );
+}
+
+Widget _religiousFestivalDetailInkWell(
+  BuildContext context,
+  ReligiousFestival item,
+  Widget child,
+) {
+  final desc = item.description.trim();
+  if (desc.isEmpty) return child;
+  return InkWell(
+    onTap: () {
+      showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(item.name),
+          content: SingleChildScrollView(
+            child: Text(desc),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('关闭'),
+            ),
+          ],
+        ),
+      );
+    },
+    child: child,
+  );
+}
+
 
 /// 节日分类——展开状态与子项计数（公历/农历总开关由子项推导，见 [_categoryHeaderSwitchValue]）。
 class FestivalCategory {
@@ -66,8 +199,8 @@ class EthnicGroup {
   bool isSelected;
 }
 
-/// 民族节日子项（[ethnicCalendar] 为标签全文，如 `藏历 木羊年一月初一`；可为空如朝鲜族回甲节）。
-/// [id] 与 [FestivalService] 民族节日 id 一致：`ethnic_${ethnicId}_${index}`。
+/// 民族节日子项（[ethnicCalendar] 为历法标签；可为空）。
+/// [id] 与 [CalendarFestival.id] 及 JSON `id` 一致。
 class EthnicFestival {
   EthnicFestival({
     required this.id,
@@ -75,6 +208,9 @@ class EthnicFestival {
     required this.name,
     required this.ethnicCalendar,
     required this.gregorianDate,
+    this.description = '',
+    this.tags = const [],
+    this.defaultSubscribed = false,
     required this.isSubscribed,
   });
 
@@ -83,11 +219,14 @@ class EthnicFestival {
   final String name;
   final String ethnicCalendar;
   final String gregorianDate;
+  final String description;
+  final List<String> tags;
+  final bool defaultSubscribed;
   bool isSubscribed;
 }
 
 /// 单条宗教节日（与 [ReligionGroup] 组合展示）。
-/// [id] 与 [FestivalService] 一致：`religious_${religionId}_${index}`。
+/// [id] 与 [CalendarFestival.id] 及 JSON `id` 一致。
 class ReligiousFestival {
   ReligiousFestival({
     required this.id,
@@ -95,6 +234,9 @@ class ReligiousFestival {
     required this.name,
     required this.calendarDate,
     required this.gregorianDate,
+    this.description = '',
+    this.tags = const [],
+    this.defaultSubscribed = false,
     required this.isSubscribed,
   });
 
@@ -103,6 +245,9 @@ class ReligiousFestival {
   final String name;
   final String calendarDate;
   final String gregorianDate;
+  final String description;
+  final List<String> tags;
+  final bool defaultSubscribed;
   bool isSubscribed;
 }
 
@@ -340,12 +485,12 @@ class _FestivalSettingsPageState extends State<FestivalSettingsPage> {
       )
       .toList();
 
-  late List<EthnicGroup> _ethnicGroups;
-  late Map<String, List<EthnicFestival>> _ethnicFestivalsById;
-  late Map<String, bool> _ethnicBlockExpanded;
+  List<EthnicGroup> _ethnicGroups = [];
+  Map<String, List<EthnicFestival>> _ethnicFestivalsById = {};
+  Map<String, bool> _ethnicBlockExpanded = {};
   String _ethnicQuery = '';
 
-  late List<ReligionGroup> _religionGroups;
+  List<ReligionGroup> _religionGroups = [];
 
   bool _festivalReminderEnabled = true;
 
@@ -534,6 +679,7 @@ class _FestivalSettingsPageState extends State<FestivalSettingsPage> {
     if (jsonStr == null) {
       setState(() {
         _applySubscriptionSet(FestivalService.kDefaultSubscribedIds);
+        _mergeJsonDefaultEthnicReligiousSubscriptions();
       });
       await _saveSubscriptions();
       return;
@@ -611,59 +757,178 @@ class _FestivalSettingsPageState extends State<FestivalSettingsPage> {
     setState(() => _festivalReminderEnabled = enabled);
   }
 
-  /// 民族/宗教节日条目来自 [kEthnicFestivalsByGroup]、[kReligionFestivalSeeds]；
-  /// 公历月聚合推算见 `FestivalService.getFestivalsForMonth`（`lib/services/festival_service.dart`）。
+  void _mergeJsonDefaultEthnicReligiousSubscriptions() {
+    for (final list in _ethnicFestivalsById.values) {
+      for (final f in list) {
+        if (f.defaultSubscribed) f.isSubscribed = true;
+      }
+    }
+    for (final g in _religionGroups) {
+      for (final f in g.festivals) {
+        if (f.defaultSubscribed) f.isSubscribed = true;
+      }
+    }
+  }
+
+  void _buildEthnicDataFromJson(List<Map<String, dynamic>> jsonList) {
+    final byEthnic = <String, List<Map<String, dynamic>>>{};
+    for (final m in jsonList) {
+      final eid = FestivalDataLoader.safeString(m, 'ethnic_id');
+      if (eid == null || eid.isEmpty) continue;
+      byEthnic.putIfAbsent(eid, () => []).add(m);
+    }
+
+    _ethnicFestivalsById = {};
+    for (final g in _ethnicGroups) {
+      final rows = List<Map<String, dynamic>>.from(byEthnic[g.id] ?? []);
+      rows.sort((a, b) {
+        final na = FestivalDataLoader.safeString(a, 'name') ?? '';
+        final nb = FestivalDataLoader.safeString(b, 'name') ?? '';
+        return na.compareTo(nb);
+      });
+      _ethnicFestivalsById[g.id] = [
+        for (final m in rows)
+          if ((FestivalDataLoader.safeString(m, 'id') ?? '').isNotEmpty)
+            EthnicFestival(
+              id: FestivalDataLoader.safeString(m, 'id')!,
+              ethnicId: g.id,
+              name: FestivalDataLoader.safeString(m, 'name') ?? '未知节日',
+              ethnicCalendar: _ethnicCalendarLabelFromJson(
+                FestivalDataLoader.safeString(m, 'calendar_type'),
+                FestivalDataLoader.safeString(m, 'calendar_date') ?? '',
+              ),
+              gregorianDate: _festivalGregorianDisplayCn(
+                (m['years'] is Map)
+                    ? Map<String, dynamic>.from(m['years'] as Map)
+                    : const {},
+              ),
+              description:
+                  FestivalDataLoader.safeString(m, 'description') ?? '',
+              tags: FestivalDataLoader.safeStringList(m, 'tags'),
+              defaultSubscribed:
+                  FestivalDataLoader.safeBool(m, 'default_subscribed'),
+              isSubscribed: false,
+            ),
+      ];
+    }
+    _ethnicBlockExpanded = {for (final x in _ethnicGroups) x.id: true};
+  }
+
+  void _buildReligiousDataFromJson(List<Map<String, dynamic>> jsonList) {
+    final byReligion = <String, List<Map<String, dynamic>>>{};
+    for (final m in jsonList) {
+      var rid = FestivalDataLoader.safeString(m, 'religion_id');
+      rid ??= FestivalDataLoader.safeString(m, 'religious_type');
+      if (rid == null || rid.isEmpty) rid = 'other';
+      byReligion.putIfAbsent(rid, () => []).add(m);
+    }
+
+    const order = [
+      'buddhism',
+      'christianity',
+      'islam',
+      'taoism',
+      'hinduism',
+    ];
+
+    final groups = <ReligionGroup>[];
+
+    void pushGroup(String id, List<Map<String, dynamic>> rows) {
+      rows.sort((a, b) {
+        final na = FestivalDataLoader.safeString(a, 'name') ?? '';
+        final nb = FestivalDataLoader.safeString(b, 'name') ?? '';
+        return na.compareTo(nb);
+      });
+      final typeName =
+          FestivalDataLoader.safeString(rows.first, 'religious_type') ?? id;
+      groups.add(
+        ReligionGroup(
+          id: id,
+          name: typeName,
+          isExpanded: true,
+          festivals: [
+            for (final m in rows)
+              if ((FestivalDataLoader.safeString(m, 'id') ?? '').isNotEmpty)
+                ReligiousFestival(
+                  id: FestivalDataLoader.safeString(m, 'id')!,
+                  religionId: id,
+                  name: FestivalDataLoader.safeString(m, 'name') ?? '未知节日',
+                  calendarDate: _religiousCalendarLabelFromJson(
+                    FestivalDataLoader.safeString(m, 'calendar_type'),
+                    FestivalDataLoader.safeString(m, 'calendar_date') ?? '',
+                  ),
+                  gregorianDate: _festivalGregorianDisplayCn(
+                    (m['years'] is Map)
+                        ? Map<String, dynamic>.from(m['years'] as Map)
+                        : const {},
+                  ),
+                  description:
+                      FestivalDataLoader.safeString(m, 'description') ?? '',
+                  tags: FestivalDataLoader.safeStringList(m, 'tags'),
+                  defaultSubscribed:
+                      FestivalDataLoader.safeBool(m, 'default_subscribed'),
+                  isSubscribed: false,
+                ),
+          ],
+        ),
+      );
+    }
+
+    for (final id in order) {
+      final rows = byReligion[id];
+      if (rows != null && rows.isNotEmpty) pushGroup(id, rows);
+    }
+
+    for (final entry in byReligion.entries) {
+      if (order.contains(entry.key)) continue;
+      if (entry.value.isEmpty) continue;
+      pushGroup(entry.key, entry.value);
+    }
+
+    _religionGroups = groups;
+  }
+
+  Future<void> _initializeData() async {
+    List<Map<String, dynamic>> ethnicJson;
+    List<Map<String, dynamic>> religiousJson;
+    try {
+      ethnicJson = await FestivalDataLoader.loadEthnicFestivals();
+    } catch (_) {
+      ethnicJson = [];
+    }
+    try {
+      religiousJson = await FestivalDataLoader.loadReligiousFestivals();
+    } catch (_) {
+      religiousJson = [];
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      _ethnicGroups = [
+        for (final r in kEthnicGroupRows)
+          EthnicGroup(
+            id: r.$1,
+            name: r.$2,
+            isSelected: r.$3,
+          ),
+      ];
+      _buildEthnicDataFromJson(ethnicJson);
+      _buildReligiousDataFromJson(religiousJson);
+    });
+
+    await _loadSubscriptions();
+    if (!mounted) return;
+    await _loadReminderEnabled();
+  }
+
+  /// 民族节日来自 assets/data/ethnic_festivals.json；宗教节日来自 religious_festivals.json；
+  /// 公历月推算见 [FestivalService.getFestivalsForMonth]。
   @override
   void initState() {
     super.initState();
-    _ethnicGroups = [
-      for (final r in kEthnicGroupRows)
-        EthnicGroup(
-          id: r.$1,
-          name: r.$2,
-          isSelected: r.$3,
-        ),
-    ];
-    _ethnicFestivalsById = {};
-    for (final g in _ethnicGroups) {
-      final rows = kEthnicFestivalsByGroup[g.id] ?? const [];
-      _ethnicFestivalsById[g.id] = [
-        for (var i = 0; i < rows.length; i++)
-          EthnicFestival(
-            id: 'ethnic_${g.id}_$i',
-            ethnicId: g.id,
-            name: rows[i].$1,
-            ethnicCalendar: rows[i].$2,
-            gregorianDate: rows[i].$3,
-            isSubscribed: rows[i].$4,
-          ),
-      ];
-    }
-    _ethnicBlockExpanded = {for (final g in _ethnicGroups) g.id: true};
-
-    _religionGroups = [
-      for (final s in kReligionFestivalSeeds)
-        ReligionGroup(
-          id: s.$1,
-          name: s.$2,
-          isExpanded: true,
-          festivals: [
-            for (var i = 0; i < s.$3.length; i++)
-              ReligiousFestival(
-                id: 'religious_${s.$1}_$i',
-                religionId: s.$1,
-                name: s.$3[i].$1,
-                calendarDate: s.$3[i].$2,
-                gregorianDate: s.$3[i].$3,
-                isSubscribed: false,
-              ),
-          ],
-        ),
-    ];
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await _loadSubscriptions();
-      if (!mounted) return;
-      await _loadReminderEnabled();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeData();
     });
   }
 
@@ -1576,7 +1841,7 @@ class _EthnicFestivalListBodyState extends State<_EthnicFestivalListBody> {
     final matchedEthnicGroups = widget.ethnicGroups.where((g) {
       if (g.name.toLowerCase().contains(q)) return true;
       final festivals = widget.festivalsById[g.id] ?? const <EthnicFestival>[];
-      return festivals.any((f) => f.name.toLowerCase().contains(q));
+      return festivals.any((f) => _ethnicFestivalMatchesQuery(f, g.name, q));
     }).toList()
       ..sort(_compareEthnicByPinyin);
     _reorderZangAfterZhuang(matchedEthnicGroups);
@@ -1586,10 +1851,9 @@ class _EthnicFestivalListBodyState extends State<_EthnicFestivalListBody> {
       final ethnicId = entry.key;
       final ethnicName =
           _EthnicFestivalListBody.ethnicDisplayName(widget.ethnicGroups, ethnicId);
-      final en = ethnicName.toLowerCase();
       for (var i = 0; i < entry.value.length; i++) {
         final festival = entry.value[i];
-        if (festival.name.toLowerCase().contains(q) || en.contains(q)) {
+        if (_ethnicFestivalMatchesQuery(festival, ethnicName, q)) {
           matchedFestivals.add(
             _EthnicSearchHit(
               ethnicId: ethnicId,
@@ -1906,80 +2170,84 @@ class _EthnicFestivalRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        item.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: nameStyle,
-                      ),
-                    ),
-                    if ((ethnicBadgeName ?? '').trim().isNotEmpty) ...[
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFDBEAFE),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
+            child: _ethnicFestivalDetailInkWell(
+              context,
+              item,
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Flexible(
                         child: Text(
-                          ethnicBadgeName!.trim(),
-                          style: const TextStyle(
-                            color: Color(0xFF1E40AF),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                            height: 1.5,
+                          item.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: nameStyle,
+                        ),
+                      ),
+                      if ((ethnicBadgeName ?? '').trim().isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDBEAFE),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            ethnicBadgeName!.trim(),
+                            style: const TextStyle(
+                              color: Color(0xFF1E40AF),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              height: 1.5,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                    if (cal.isNotEmpty) ...[
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _kLunarTagBackground,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          cal,
-                          style: const TextStyle(
-                            color: _kLunarTagForeground,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w400,
-                            height: 1.5,
+                      ],
+                      if (cal.isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _kLunarTagBackground,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            cal,
+                            style: const TextStyle(
+                              color: _kLunarTagForeground,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w400,
+                              height: 1.5,
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ],
-                  ],
-                ),
-                if (item.gregorianDate.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    item.gregorianDate,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: textTheme.bodySmall?.copyWith(
-                      color: cs.onSurfaceVariant,
-                    ),
                   ),
+                  if (item.gregorianDate.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      item.gregorianDate,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.bodySmall?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
           Switch.adaptive(
@@ -2235,62 +2503,67 @@ class _ReligiousFestivalRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        item.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: nameStyle,
-                      ),
-                    ),
-                    if (cal.isNotEmpty) ...[
-                      const SizedBox(width: 8),
+            child: _religiousFestivalDetailInkWell(
+              context,
+              item,
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
                       Flexible(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: const BoxDecoration(
-                            color: _kLunarTagBackground,
-                            borderRadius: BorderRadius.all(Radius.circular(10)),
-                          ),
-                          child: Text(
-                            cal,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: _kLunarTagForeground,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w400,
-                              height: 1.5,
+                        child: Text(
+                          item.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: nameStyle,
+                        ),
+                      ),
+                      if (cal.isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: const BoxDecoration(
+                              color: _kLunarTagBackground,
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(10)),
+                            ),
+                            child: Text(
+                              cal,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: _kLunarTagForeground,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w400,
+                                height: 1.5,
+                              ),
                             ),
                           ),
                         ),
-                      ),
+                      ],
                     ],
-                  ],
-                ),
-                if (item.gregorianDate.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    item.gregorianDate,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: textTheme.bodySmall?.copyWith(
-                      color: cs.onSurfaceVariant,
-                    ),
                   ),
+                  if (item.gregorianDate.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      item.gregorianDate,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.bodySmall?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
           Switch.adaptive(

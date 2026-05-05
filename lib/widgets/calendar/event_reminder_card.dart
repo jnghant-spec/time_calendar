@@ -82,6 +82,8 @@ class EventReminderCard extends StatelessWidget {
 
   static String festivalTypeTagLabel(EventReminderData event) {
     assert(event.isFestival);
+    final preset = (event.festivalCategory ?? '').trim();
+    if (preset.isNotEmpty) return preset;
     switch (event.festivalCategoryKey) {
       case 'gregorian':
         return '公历节日';

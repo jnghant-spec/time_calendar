@@ -16,6 +16,8 @@ Future<void> main() async {
   tz_data.initializeTimeZones();
   tz.setLocalLocation(tz.getLocation('Asia/Shanghai'));
 
+  await FestivalService.ensureFestivalSeedDataLoaded();
+
   await NotificationService.init();
   await NotificationService.scheduleUpcomingFestivalReminders();
 

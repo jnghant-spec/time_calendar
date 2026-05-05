@@ -1,0 +1,3565 @@
+{
+  "version": "2026.2",
+  "last_updated": "2026-05-04",
+  "source_note": "数据来源于公开资料整理；years 待批量填充；含 date_strategy、confidence、note 元数据。",
+  "festivals": [
+    {
+      "id": "zang_losar",
+      "name": "藏历新年",
+      "ethnic_id": "zang",
+      "ethnic_name": "藏族",
+      "calendar_type": "tibetan",
+      "calendar_date": "1-1",
+      "description": "藏族最隆重的年节，家家洒扫庭除、摆放切玛与青稞苗，除夕夜吃古突面疙瘩谈心祈福，初一抢新水、煨桑诵经；街巷寺院香火鼎盛，歌舞鍋庄彻夜不息，凝聚高原农牧社会对新春、人畜平安与人伦和睦的深切祈愿。",
+      "customs": [
+        "煨桑",
+        "跳锅庄",
+        "抢新水"
+      ],
+      "foods": [
+        "古突",
+        "青稞酒"
+      ],
+      "holiday_info": "依规放假调休",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "新年",
+        "藏历"
+      ],
+      "date_strategy": "algorithm",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": true
+    },
+    {
+      "id": "zang_saga_dawa",
+      "name": "萨噶达瓦节",
+      "ethnic_id": "zang",
+      "ethnic_name": "藏族",
+      "calendar_type": "tibetan",
+      "calendar_date": "4-15",
+      "description": "藏传佛教纪念释迦牟尼诞生、成道与涅槃的殊胜日子，信众沿千佛崖与八廓街转经叩拜，寺院举行法会并素食放生；拉萨等地朝圣人潮如潮，被视为积德修善的紧要福田，体现信仰与高原日常生活的紧密结合。",
+      "customs": [
+        "转经",
+        "放生",
+        "布施"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "佛教",
+        "藏历"
+      ],
+      "date_strategy": "algorithm",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "zang_shoton",
+      "name": "雪顿节",
+      "ethnic_id": "zang",
+      "ethnic_name": "藏族",
+      "calendar_type": "tibetan",
+      "calendar_date": "6-30",
+      "description": "雪顿意为酸奶宴，历史上犒劳僧人下山并晒大佛；如今哲蚌寺巨幅唐卡铺展于半山，罗布林卡藏戏连台，各族民众逛林卡野餐，僧俗共庆夏末秋收在即，展现宗教仪轨与民间文娱相融的节日气象。",
+      "customs": [
+        "展佛",
+        "藏戏",
+        "过林卡"
+      ],
+      "foods": [
+        "酸奶"
+      ],
+      "holiday_info": "多地放假活动",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "藏历"
+      ],
+      "date_strategy": "algorithm",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "zang_burning_lamp",
+      "name": "燃灯节",
+      "ethnic_id": "zang",
+      "ethnic_name": "藏族",
+      "calendar_type": "tibetan",
+      "calendar_date": "10-25",
+      "description": "为纪念格鲁派祖师宗喀巴圆寂，寺院与民居窗台屋顶点亮万千酥油灯彻夜不灭，象征智慧光明驱除无明；僧侣诵经供灯，信众绕行拜佛，冬夜里灯火连绵如星河，肃穆温馨并存。",
+      "customs": [
+        "供灯",
+        "诵经"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "藏传佛教"
+      ],
+      "date_strategy": "algorithm",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "zang_wongkor",
+      "name": "望果节",
+      "ethnic_id": "zang",
+      "ethnic_name": "藏族",
+      "calendar_type": "tibetan",
+      "calendar_date": "7-1",
+      "description": "农区巡游祈愿秋收的节日，村民举着幡旗绕田祝福禾穗饱满，赛马歌舞与敬酒欢聚相接；仪式兼具酬谢土地与凝聚村寨互助的传统功能，各地田间日程略有先后。",
+      "customs": [
+        "绕田",
+        "赛马"
+      ],
+      "foods": [
+        "青稞酒"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "丰收"
+      ],
+      "date_strategy": "algorithm",
+      "confidence": "medium",
+      "note": "田间活动时间依各村安排而异。",
+      "default_subscribed": false
+    },
+    {
+      "id": "menggu_white_month",
+      "name": "白节",
+      "ethnic_id": "menggu",
+      "ethnic_name": "蒙古族",
+      "calendar_type": "lunar",
+      "calendar_date": "1-1",
+      "description": "蒙古族新年庆贺，家家清扫毡房、敬献奶食与手把肉，晚辈向长辈屈膝敬酒拜年；祝酒歌与摔跤赛马交织，篝火通宵象征人畜两旺，禁忌恶语摔碗体现游牧社会对和睦繁衍的重视。",
+      "customs": [
+        "拜年",
+        "祭火"
+      ],
+      "foods": [
+        "奶食",
+        "手把肉"
+      ],
+      "holiday_info": "牧区集会休假",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "新年"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": true
+    },
+    {
+      "id": "menggu_nadam",
+      "name": "那达慕大会",
+      "ethnic_id": "menggu",
+      "ethnic_name": "蒙古族",
+      "calendar_type": "lunar",
+      "calendar_date": "7-1",
+      "description": "以摔跤、赛马、射箭三项竞技为核心，历史上源于出征检阅与部落联盟议事；如今夏秋草场搭起彩色毡帐，商贩集市与歌舞晚宴同台，胜者被授予骏马哈达，彰显草原勇毅尚武与集体荣誉。",
+      "customs": [
+        "摔跤",
+        "赛马",
+        "射箭"
+      ],
+      "foods": [
+        "奶制品"
+      ],
+      "holiday_info": "盛会期间轮休",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "竞技"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "medium",
+      "note": "开幕日期各地浮动，属集会型节庆。",
+      "default_subscribed": false
+    },
+    {
+      "id": "menggu_mare_milk",
+      "name": "马奶节",
+      "ethnic_id": "menggu",
+      "ethnic_name": "蒙古族",
+      "calendar_type": "unknown",
+      "calendar_date": "7-15",
+      "description": "夏秋牲畜膘肥时节牧民汇聚品尝发酵马奶，敬酒祈福牲畜无病；伴随短时赛马或长调民歌，规模因地而异，体现游牧生计与自然节律相契合的庆贺方式。",
+      "customs": [
+        "尝马奶"
+      ],
+      "foods": [
+        "马奶酒"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "游牧"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "low",
+      "note": "命名与时间牧区间差异大。",
+      "default_subscribed": false
+    },
+    {
+      "id": "menggu_lamp_memorial",
+      "name": "燃灯节",
+      "ethnic_id": "menggu",
+      "ethnic_name": "蒙古族",
+      "calendar_type": "tibetan",
+      "calendar_date": "10-25",
+      "description": "受藏传佛教影响，寺院与牧户点亮酥油灯纪念宗师圆寂；牧民彻夜诵经祈福走亲访友，冬季草原上灯火点点如同星河，与藏族燃灯节同源而在礼仪细节上带有草原聚落色彩。",
+      "customs": [
+        "点灯"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "藏传佛教"
+      ],
+      "date_strategy": "algorithm",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "weiwu_gurban",
+      "name": "古尔邦节",
+      "ethnic_id": "weiwu",
+      "ethnic_name": "维吾尔族",
+      "calendar_type": "islamic",
+      "calendar_date": "12-10",
+      "description": "穆斯林宰牲献祭纪念易卜拉欣顺从典范，聚礼后分肉济贫并走亲访友；南疆街巷飘散烤肉抓饭香气，长者为孩子讲述施舍故事，强调信仰仁爱与社会互助。",
+      "customs": [
+        "聚礼",
+        "宰牲"
+      ],
+      "foods": [
+        "抓饭",
+        "烤肉"
+      ],
+      "holiday_info": "依法放假",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "伊斯兰教"
+      ],
+      "date_strategy": "algorithm",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "weiwu_rozah",
+      "name": "肉孜节",
+      "ethnic_id": "weiwu",
+      "ethnic_name": "维吾尔族",
+      "calendar_type": "islamic",
+      "calendar_date": "10-1",
+      "description": "斋月圆满的开斋庆典，清晨沐浴盛装赴清真寺礼拜，施舍糕点糖果给孩子；家宴款待来客互致问候，象征忍耐之后的宽恕与团圆，街巷洋溢着喜庆祥和。",
+      "customs": [
+        "礼拜",
+        "施舍"
+      ],
+      "foods": [
+        "馓子"
+      ],
+      "holiday_info": "依法放假",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "开斋"
+      ],
+      "date_strategy": "algorithm",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "weiwu_nowruz",
+      "name": "诺鲁孜节",
+      "ethnic_id": "weiwu",
+      "ethnic_name": "维吾尔族",
+      "calendar_type": "gregorian",
+      "calendar_date": "3-21",
+      "description": "春分前后庆贺新旧更替，家家户户熬制诺鲁孜饭撒麦粒祈福；广场萨玛舞与叼羊赛马热闹非凡，象征绿洲农耕对春雨与时序的礼赞，亦折射丝路文化交流。",
+      "customs": [
+        "诺鲁孜饭",
+        "歌舞"
+      ],
+      "foods": [
+        "杂粮粥"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "迎春"
+      ],
+      "date_strategy": "fixed",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "hui_gurban",
+      "name": "古尔邦节",
+      "ethnic_id": "hui",
+      "ethnic_name": "回族",
+      "calendar_type": "islamic",
+      "calendar_date": "12-10",
+      "description": "回族坊巷同日宰牲聚礼，阿訇讲经阐明仁爱施舍要义；家族分食牛羊肉探望孤寡，油香馓子馈赠邻里，礼仪兼具伊斯兰教戒律与中原人情社会的待客之道。",
+      "customs": [
+        "聚礼",
+        "宰牲"
+      ],
+      "foods": [
+        "油香"
+      ],
+      "holiday_info": "依法放假",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "伊斯兰教"
+      ],
+      "date_strategy": "algorithm",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "hui_eid_fitr",
+      "name": "开斋节",
+      "ethnic_id": "hui",
+      "ethnic_name": "回族",
+      "calendar_type": "islamic",
+      "calendar_date": "10-1",
+      "description": "斋戒结束清晨盛大礼拜，孩童盛装领取施舍糖果；家家户户炸油香熬八宝粥，走亲访友互道吉祥，强调宽恕和解与社群凝聚力。",
+      "customs": [
+        "礼拜",
+        "走亲"
+      ],
+      "foods": [
+        "油香"
+      ],
+      "holiday_info": "依法放假",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "伊斯兰教"
+      ],
+      "date_strategy": "algorithm",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "hui_mawlid",
+      "name": "圣纪节",
+      "ethnic_id": "hui",
+      "ethnic_name": "回族",
+      "calendar_type": "islamic",
+      "calendar_date": "3-12",
+      "description": "纪念先知诞辰，清真寺诵读圣训讲述圣人生平品德；信众熬粥施舍路人，部分地区悬挂灯饰，凸显慈善教育与社群记忆的传承。",
+      "customs": [
+        "诵经",
+        "施舍"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "伊斯兰教"
+      ],
+      "date_strategy": "algorithm",
+      "confidence": "medium",
+      "note": "各地历日与礼仪略有流派差异。",
+      "default_subscribed": false
+    },
+    {
+      "id": "yi_huoba",
+      "name": "火把节",
+      "ethnic_id": "yi",
+      "ethnic_name": "彝族",
+      "calendar_type": "yi",
+      "calendar_date": "6-24",
+      "description": "彝语称火把驱邪护稼，夜幕下山寨火把连成火龙，斗牛赛马与朵洛荷民歌彻夜不息；姑娘盛装抢银饰，长者念诵祭祖词，象征山地社会对丰收、尊严与族群凝聚的共同祈愿。",
+      "customs": [
+        "点火把",
+        "斗牛"
+      ],
+      "foods": [
+        "坨坨肉"
+      ],
+      "holiday_info": "多地放假旅游旺季",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "火把节"
+      ],
+      "date_strategy": "algorithm",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": true
+    },
+    {
+      "id": "yi_year_yi",
+      "name": "彝族年",
+      "ethnic_id": "yi",
+      "ethnic_name": "彝族",
+      "calendar_type": "yi",
+      "calendar_date": "10-1",
+      "description": "彝历十月为岁首，杀猪祭祖宴请亲友，长者口述谱牒传禁忌；青年左脚舞对歌择偶，村寨轮流坐庄叙事饮酒，体现山地计时体系与家族伦理秩序。",
+      "customs": [
+        "祭祖",
+        "杀猪宴"
+      ],
+      "foods": [
+        "荞粑"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "彝历年"
+      ],
+      "date_strategy": "algorithm",
+      "confidence": "medium",
+      "note": "方言区岁首时段仍有差异。",
+      "default_subscribed": false
+    },
+    {
+      "id": "yi_tiger_leap",
+      "name": "跳虎节",
+      "ethnic_id": "yi",
+      "ethnic_name": "彝族",
+      "calendar_type": "yi",
+      "calendar_date": "2-8",
+      "description": "滇南彝寨遗存虎图腾祭祀，彩绘面具舞者模仿猛虎撵邪护寨；仪式包含撵邪词与模拟狩猎，戏剧张力强烈但流传范围有限，折射山地狩猎文化与巫祭传统的叠合。",
+      "customs": [
+        "面具舞"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "祭祀"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "low",
+      "note": "仅存局部县域口述资料。",
+      "default_subscribed": false
+    },
+    {
+      "id": "yi_flower_day",
+      "name": "插花节",
+      "ethnic_id": "yi",
+      "ethnic_name": "彝族",
+      "calendar_type": "yi",
+      "calendar_date": "3-8",
+      "description": "春暖花开男女头戴山花互赠示好，老人在花树下讲述始祖传说；宴席歌舞直至篝火熄灭，象征生命力与婚恋吉祥，承载山地花卉崇拜与社群联欢。",
+      "customs": [
+        "采花",
+        "对歌"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "迎春"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "dai_water_splashing",
+      "name": "泼水节",
+      "ethnic_id": "dai",
+      "ethnic_name": "傣族",
+      "calendar_type": "dai",
+      "calendar_date": "6-1",
+      "description": "傣历新年盛事，清晨浴佛后以清水互泼祝福，龙舟竞渡与象脚鼓舞倾城；高升焰火祈求雨顺风调，南传佛教仪式与傣寨社群凝聚力相得益彰。",
+      "customs": [
+        "泼水",
+        "龙舟"
+      ],
+      "foods": [
+        "泼水粑粑"
+      ],
+      "holiday_info": "法定假日区域休假",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "傣历"
+      ],
+      "date_strategy": "lookup",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": true
+    },
+    {
+      "id": "dai_closing_door",
+      "name": "关门节",
+      "ethnic_id": "dai",
+      "ethnic_name": "傣族",
+      "calendar_type": "dai",
+      "calendar_date": "9-15",
+      "description": "安居开始前信众集中赕佛听经，暂缓婚庆大兴土木；僧侣严守寺内戒律，农家以糯米饭布施表达对雨季安居制度的敬重。",
+      "customs": [
+        "赕佛"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "安居"
+      ],
+      "date_strategy": "lookup",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "dai_opening_door",
+      "name": "开门节",
+      "ethnic_id": "dai",
+      "ethnic_name": "傣族",
+      "calendar_type": "dai",
+      "calendar_date": "12-15",
+      "description": "安居期满村寨敲响象脚鼓解禁歌舞，佛塔点灯泼水嬉戏重演喜气；僧侣获准远行宣教，标志傣寨社会生活重回欢愉节律。",
+      "customs": [
+        "歌舞"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "傣历"
+      ],
+      "date_strategy": "lookup",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "miao_new_year",
+      "name": "苗年",
+      "ethnic_id": "miao",
+      "ethnic_name": "苗族",
+      "calendar_type": "lunar",
+      "calendar_date": "10-1",
+      "description": "秋收后岁首杀猪祭祖吹芦笙踩堂，牛角酒糯米饭待客；斗牛赛马选拔勇者，青年盛装走亲择偶，重申血缘村寨同盟与自然神灵庇护。",
+      "customs": [
+        "祭祖",
+        "芦笙舞"
+      ],
+      "foods": [
+        "糯米酒"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "苗年"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "medium",
+      "note": "各地月份略有参差。",
+      "default_subscribed": true
+    },
+    {
+      "id": "miao_sisters",
+      "name": "姊妹节",
+      "ethnic_id": "miao",
+      "ethnic_name": "苗族",
+      "calendar_type": "lunar",
+      "calendar_date": "3-15",
+      "description": "黔东南姑娘蒸煮五彩姊妹饭赠心仪后生，江边龙舟对歌择偶；母亲传授刺绣歌谣，节日兼具婚恋媒介与女性非遗展演窗口。",
+      "customs": [
+        "对歌"
+      ],
+      "foods": [
+        "姊妹饭"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "婚恋"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": true
+    },
+    {
+      "id": "miao_april8",
+      "name": "四月八",
+      "ethnic_id": "miao",
+      "ethnic_name": "苗族",
+      "calendar_type": "lunar",
+      "calendar_date": "4-8",
+      "description": "纪念英雄或祭牛王庙会，糯米饭喂耕牛休犁一日；斗牛比武吹笙跳舞，部分地区穿插爬坡习俗，体现山地农耕尚武传统。",
+      "customs": [
+        "祭牛"
+      ],
+      "foods": [
+        "糯米饭"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "农耕"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "miao_lusheng_hui",
+      "name": "芦笙节",
+      "ethnic_id": "miao",
+      "ethnic_name": "苗族",
+      "calendar_type": "lunar",
+      "calendar_date": "9-1",
+      "description": "百堂笙队竞技曲调舞步，胜者被视为村寨荣耀；姑娘百褶盛装围观抛绣球，跨省苗族联谊与非遗展演同场进行。",
+      "customs": [
+        "芦笙赛"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "非遗"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "zhuang_sanyuesan",
+      "name": "三月三歌圩",
+      "ethnic_id": "zhuang",
+      "ethnic_name": "壮族",
+      "calendar_type": "lunar",
+      "calendar_date": "3-3",
+      "description": "传统歌圩倚歌择偶，长者传唱布洛陀史诗；五色糯米饭碰彩蛋象征繁衍，抢花炮与竹竿舞同样热烈，列入国家级非遗名录。",
+      "customs": [
+        "对歌",
+        "抛绣球"
+      ],
+      "foods": [
+        "五色糯米饭"
+      ],
+      "holiday_info": "自治区放假",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "歌圩"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": true
+    },
+    {
+      "id": "zhuang_tuoluo",
+      "name": "陀螺节",
+      "ethnic_id": "zhuang",
+      "ethnic_name": "壮族",
+      "calendar_type": "lunar",
+      "calendar_date": "2-1",
+      "description": "桂西北孩童旋木陀螺比拼耐力技巧，胜者获彩绘陀螺；山歌擂台与百家宴并行，既是农耕间歇娱乐亦锻炼协作。",
+      "customs": [
+        "打陀螺"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "民俗"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "zhuang_tonggu",
+      "name": "铜鼓节",
+      "ethnic_id": "zhuang",
+      "ethnic_name": "壮族",
+      "calendar_type": "lunar",
+      "calendar_date": "7-1",
+      "description": "敲响祖传铜鼓召集祭祖议事，舞蹈模仿耕作狩猎；米酒宴客强化骆越后裔文化认同，广西多地轮流主办联谊。",
+      "customs": [
+        "敲铜鼓"
+      ],
+      "foods": [
+        "米酒"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "铜鼓"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "man_banjin",
+      "name": "颁金节",
+      "ethnic_id": "man",
+      "ethnic_name": "满族",
+      "calendar_type": "lunar",
+      "calendar_date": "10-13",
+      "description": "纪念皇太极定族名满洲，同胞着旗袍马褂祭祖诵读家谱；歌舞滑冰与传统体育同台，强调历史认同与民族团结叙事。",
+      "customs": [
+        "祭祖"
+      ],
+      "foods": [
+        "萨其马"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "满族"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "man_chongwang",
+      "name": "虫王节",
+      "ethnic_id": "man",
+      "ethnic_name": "满族",
+      "calendar_type": "lunar",
+      "calendar_date": "6-6",
+      "description": "祈愿驱除蝗灾保护庄稼，蒸饽饽祭虫王庙暂缓喷洒；萨满说唱讲述驱虫神话，反映东北亚农耕对自然灾害的经验回应。",
+      "customs": [
+        "祭虫王"
+      ],
+      "foods": [
+        "饽饽"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "农耕"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "man_shangyuan",
+      "name": "上元节",
+      "ethnic_id": "man",
+      "ethnic_name": "满族",
+      "calendar_type": "lunar",
+      "calendar_date": "1-15",
+      "description": "满族灯会融入冰灯与火锅宴，姑娘踩高跷走百病；与汉族元宵同源而在食材娱乐上保留旗俗讲究。",
+      "customs": [
+        "灯会"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "元宵"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "medium",
+      "note": "与汉族元宵节深度融合。",
+      "default_subscribed": false
+    },
+    {
+      "id": "chaoxian_wonwoo",
+      "name": "上元节",
+      "ethnic_id": "chaoxian",
+      "ethnic_name": "朝鲜族",
+      "calendar_type": "lunar",
+      "calendar_date": "1-15",
+      "description": "正月十五吃五谷饭坚果防寒，踏桥踹福祈愿康健；农乐队巡演讲述农耕寓言，灯笼教育孩子敬老尚俭。",
+      "customs": [
+        "踏桥"
+      ],
+      "foods": [
+        "五谷饭"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "元宵"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "chaoxian_hanshi",
+      "name": "寒食节",
+      "ethnic_id": "chaoxian",
+      "ethnic_name": "朝鲜族",
+      "calendar_type": "lunar",
+      "calendar_date": "4-3",
+      "description": "艾草年糕祭祖扫墓，家族踏青放风筝；强调孝道顺序与生死观念，粳米粉团礼仪在城市朝鲜族社区延续。",
+      "customs": [
+        "扫墓"
+      ],
+      "foods": [
+        "艾草糕"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "祭祖"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "chaoxian_autumn_eve",
+      "name": "秋夕节",
+      "ethnic_id": "chaoxian",
+      "ethnic_name": "朝鲜族",
+      "calendar_type": "lunar",
+      "calendar_date": "8-15",
+      "description": "秋收祭祖打松饼馈赠邻里，摔跤跳板赛烘托团圆；全家返乡打磨秋千，象征感恩收成与家族纽带。",
+      "customs": [
+        "祭祖",
+        "跳板"
+      ],
+      "foods": [
+        "松饼"
+      ],
+      "holiday_info": "区域休假",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "中秋"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "chaoxian_huijia",
+      "name": "回甲节",
+      "ethnic_id": "chaoxian",
+      "ethnic_name": "朝鲜族",
+      "calendar_type": "unknown",
+      "calendar_date": "",
+      "description": "朝鲜族为长者庆贺六十花甲，子孙献寿宴歌舞跪拜感恩辛劳；红色礼服寿桃面食强调孝道伦理在跨国迁徙社区的延续。",
+      "customs": [
+        "寿宴"
+      ],
+      "foods": [
+        "寿面"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "寿庆"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "low",
+      "note": "具体日以寿星生辰确定。",
+      "default_subscribed": false
+    },
+    {
+      "id": "dong_new_year",
+      "name": "侗年",
+      "ethnic_id": "dong",
+      "ethnic_name": "侗族",
+      "calendar_type": "lunar",
+      "calendar_date": "10-1",
+      "description": "侗寨秋收后过年杀猪祭祖，鼓楼篝火琵琶歌彻夜；百家腌鱼侗酒待客，强化款的同盟与山林资源共享。",
+      "customs": [
+        "祭祖",
+        "琵琶歌"
+      ],
+      "foods": [
+        "腌鱼"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "侗年"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "dong_huapao",
+      "name": "花炮节",
+      "ethnic_id": "dong",
+      "ethnic_name": "侗族",
+      "calendar_type": "lunar",
+      "calendar_date": "3-3",
+      "description": "抢花炮象征村寨吉祥，勇敢青年冲入人群夺取铁环；芦笙踩堂与斗牛同时进行，体现侗族竞技精神与社群荣耀。",
+      "customs": [
+        "抢花炮"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "竞技"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "dong_sama",
+      "name": "萨玛节",
+      "ethnic_id": "dong",
+      "ethnic_name": "侗族",
+      "calendar_type": "lunar",
+      "calendar_date": "2-2",
+      "description": "祭祀侗族祖母神萨玛，黑伞队列静默巡游村寨祈求人畜平安；古老歌谣口述族群迁徙记忆，女性祭司主持礼仪。",
+      "customs": [
+        "祭祀"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "信仰"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "yao_panwang",
+      "name": "盘王节",
+      "ethnic_id": "yao",
+      "ethnic_name": "瑶族",
+      "calendar_type": "lunar",
+      "calendar_date": "10-16",
+      "description": "纪念盘瓠先祖的长鼓舞盛会，师公吟诵经幡祭祖；赛陀螺舂糍粑长桌宴，跨省过山瑶同台重温迁徙史诗。",
+      "customs": [
+        "长鼓舞"
+      ],
+      "foods": [
+        "糍粑"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "祖先"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "yao_danu",
+      "name": "达努节",
+      "ethnic_id": "yao",
+      "ethnic_name": "瑶族",
+      "calendar_type": "lunar",
+      "calendar_date": "5-29",
+      "description": "布努瑶纪念创世女神密洛陀，射弩赛马酿酒比武；铜鼓舞与传说吟诵并举，强调山地耕作与女性创造力的尊崇。",
+      "customs": [
+        "铜鼓舞"
+      ],
+      "foods": [
+        "药酒"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "密洛陀"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "yao_shewang",
+      "name": "社王节",
+      "ethnic_id": "yao",
+      "ethnic_name": "瑶族",
+      "calendar_type": "lunar",
+      "calendar_date": "2-2",
+      "description": "春社祭土地祈愿庄稼无病，糯米饭与鸡血酒供奉社王；随后开山耕作禁忌解除，体现山林农耕与自然神灵契约。",
+      "customs": [
+        "祭社"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "农耕"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "bai_march_street",
+      "name": "三月街",
+      "ethnic_id": "bai",
+      "ethnic_name": "白族",
+      "calendar_type": "lunar",
+      "calendar_date": "3-15",
+      "description": "大理千年庙会商贸与赛马并行，各族商人驮药材茶叶赶集；对歌射箭与白曲展演同台，象征茶马古道多元交汇。",
+      "customs": [
+        "赛马",
+        "赶集"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "集市"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": true
+    },
+    {
+      "id": "bai_raosanling",
+      "name": "绕三灵",
+      "ethnic_id": "bai",
+      "ethnic_name": "白族",
+      "calendar_type": "lunar",
+      "calendar_date": "4-23",
+      "description": "信众盛装巡游苍山洱海神灵居所，执柳祈福歌舞即兴；强调人与自然神圣契约，被誉为活的农耕图腾巡游。",
+      "customs": [
+        "巡游"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "信仰"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "bai_torch_bai",
+      "name": "火把节",
+      "ethnic_id": "bai",
+      "ethnic_name": "白族",
+      "calendar_type": "lunar",
+      "calendar_date": "6-25",
+      "description": "白族山寨火把驱蝗祈愿丰收，扎火把赛马互泼米酒；虽与彝族火把同源却在祭祀辞与白曲唱腔上呈现洱海盆地特色。",
+      "customs": [
+        "火把"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "火把"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "bai_benzhu",
+      "name": "本主节",
+      "ethnic_id": "bai",
+      "ethnic_name": "白族",
+      "calendar_type": "lunar",
+      "calendar_date": "4-1",
+      "description": "各村供奉守护神本主，迎神游船鞭炮宴席；洞经古乐与霸王鞭舞蹈穿插，体现村社自治与民间道教融合的信仰景观。",
+      "customs": [
+        "迎神"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "本主"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "medium",
+      "note": "各村本主诞辰不同。",
+      "default_subscribed": false
+    },
+    {
+      "id": "tujia_ganian",
+      "name": "赶年",
+      "ethnic_id": "tujia",
+      "ethnic_name": "土家族",
+      "calendar_type": "lunar",
+      "calendar_date": "12-29",
+      "description": "比汉族春节提前一天过年，传说源于出征辞岁；户户腊肉糍粑祭祀先祖跳摆手舞，凸显武陵山区军事记忆与家族守望。",
+      "customs": [
+        "摆手舞"
+      ],
+      "foods": [
+        "腊肉"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "新年"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "tujia_sheba",
+      "name": "舍巴日",
+      "ethnic_id": "tujia",
+      "ethnic_name": "土家族",
+      "calendar_type": "lunar",
+      "calendar_date": "3-1",
+      "description": "大型摆手祭仪歌颂八部大神迁徙开荒，梯玛巫师吟唱古老歌谣；昼夜锣鼓不断，凝聚土家族口述历史与社群伦理。",
+      "customs": [
+        "摆手祭"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "祭祀"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "tujia_june6",
+      "name": "六月六",
+      "ethnic_id": "tujia",
+      "ethnic_name": "土家族",
+      "calendar_type": "lunar",
+      "calendar_date": "6-6",
+      "description": "晒衣物书籍防蛀祭祖晒龙袍传说并行；山歌盘唱与打溜子演出活跃村寨，象征梅雨过后的洁净与祈福。",
+      "customs": [
+        "晒衣"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "消暑"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "hani_zhalet",
+      "name": "扎勒特",
+      "ethnic_id": "hani",
+      "ethnic_name": "哈尼族",
+      "calendar_type": "unknown",
+      "calendar_date": "10-1",
+      "description": "哈尼十月年长桌宴连村寨，簸箕盛鸡鸭谷物祭祖告知秋收喜讯；长辈吟唱迁徙史诗分配年轮耕作权，梯田文化与稻作伦理同日重申。",
+      "customs": [
+        "长桌宴"
+      ],
+      "foods": [
+        "染蛋"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "十月年"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "medium",
+      "note": "哈尼历法与公历对照尚待统一算法。",
+      "default_subscribed": true
+    },
+    {
+      "id": "hani_kuzazha",
+      "name": "苦扎扎",
+      "ethnic_id": "hani",
+      "ethnic_name": "哈尼族",
+      "calendar_type": "unknown",
+      "calendar_date": "6-1",
+      "description": "栽秧结束感恩夏日休息，打磨秋千立于村寨广场；男女对唱哈巴叙事插秧苦乐，祭祀田地神灵保佑梯田蓄水。",
+      "customs": [
+        "秋千"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "农耕"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "hani_angmatu",
+      "name": "昂玛突",
+      "ethnic_id": "hani",
+      "ethnic_name": "哈尼族",
+      "calendar_type": "unknown",
+      "calendar_date": "2-1",
+      "description": "祭寨神确立村寨神圣边界，长老主持分配狩猎采集禁忌；仪式后全民清扫巷道修补沟渠，强化山林资源的社群共治。",
+      "customs": [
+        "祭寨神"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "祭祀"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "low",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "kaz_nowruz",
+      "name": "纳吾鲁孜节",
+      "ethnic_id": "kaz",
+      "ethnic_name": "哈萨克族",
+      "calendar_type": "gregorian",
+      "calendar_date": "3-21",
+      "description": "春分庆贺新年，熬制五谷粥抛洒祈福；阿肯弹唱冬不拉赛马叼羊，迁徙史诗在草原上口口相传。",
+      "customs": [
+        "叼羊"
+      ],
+      "foods": [
+        "纳吾粥"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "春分"
+      ],
+      "date_strategy": "fixed",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "kaz_gurban",
+      "name": "古尔邦节",
+      "ethnic_id": "kaz",
+      "ethnic_name": "哈萨克族",
+      "calendar_type": "islamic",
+      "calendar_date": "12-10",
+      "description": "宰牲聚礼分食亲友，毡房飘香的手抓肉体现游牧穆斯林待客礼仪；少年赛马彰显勇毅品格。",
+      "customs": [
+        "聚礼"
+      ],
+      "foods": [
+        "手抓肉"
+      ],
+      "holiday_info": "依法放假",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "伊斯兰教"
+      ],
+      "date_strategy": "algorithm",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "kaz_rozi",
+      "name": "肉孜节",
+      "ethnic_id": "kaz",
+      "ethnic_name": "哈萨克族",
+      "calendar_type": "islamic",
+      "calendar_date": "10-1",
+      "description": "斋月结束开斋礼拜，奶茶油炸面食款待来客；草原牧民借机迁徙草场协调资源共享。",
+      "customs": [
+        "礼拜"
+      ],
+      "foods": [
+        "包尔萨克"
+      ],
+      "holiday_info": "依法放假",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "开斋"
+      ],
+      "date_strategy": "algorithm",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "li_march3",
+      "name": "三月三",
+      "ethnic_id": "li",
+      "ethnic_name": "黎族",
+      "calendar_type": "lunar",
+      "calendar_date": "3-3",
+      "description": "海南黎寨对歌择偶跳竹竿舞，五色饭祭祖娱神；隆闺房习俗与传说爱情故事交织，列入非遗名录。",
+      "customs": [
+        "竹竿舞"
+      ],
+      "foods": [
+        "山栏酒"
+      ],
+      "holiday_info": "法定假日",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "爱情"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "li_love",
+      "name": "爱情节",
+      "ethnic_id": "li",
+      "ethnic_name": "黎族",
+      "calendar_type": "lunar",
+      "calendar_date": "3-3",
+      "description": "与三月三同源侧重婚恋叙事，姑娘赠送腰篓编织信物；傍晚篝火通宵民歌问答考验才情。",
+      "customs": [
+        "对歌"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "婚恋"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "li_shanlan",
+      "name": "山栏节",
+      "ethnic_id": "li",
+      "ethnic_name": "黎族",
+      "calendar_type": "unknown",
+      "calendar_date": "8-1",
+      "description": "庆贺山栏稻收割，酿酒杀猪款待帮工；长老讲述黎锦纹样禁忌，强化山地稻作互助伦理。",
+      "customs": [
+        "收割祭"
+      ],
+      "foods": [
+        "山栏酒"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "稻作"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "low",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "she_third_march",
+      "name": "三月三",
+      "ethnic_id": "she",
+      "ethnic_name": "畲族",
+      "calendar_type": "lunar",
+      "calendar_date": "3-3",
+      "description": "畲族乌饭节蒸乌米饭祭祖，传说纪念英雄斗争；山歌盘唱讲述盘瓠传说，强化迁徙族群的身份认同。",
+      "customs": [
+        "祭祖"
+      ],
+      "foods": [
+        "乌米饭"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "祭祖"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "she_huiqin",
+      "name": "会亲节",
+      "ethnic_id": "she",
+      "ethnic_name": "畲族",
+      "calendar_type": "lunar",
+      "calendar_date": "2-2",
+      "description": "出嫁女携儿女回娘家团聚，娘家备糍粑米酒宴请姻亲；修补亲属网络并传授育儿经验。",
+      "customs": [
+        "走亲"
+      ],
+      "foods": [
+        "糍粑"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "亲属"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "she_fenglong",
+      "name": "封龙节",
+      "ethnic_id": "she",
+      "ethnic_name": "畲族",
+      "calendar_type": "lunar",
+      "calendar_date": "5-5",
+      "description": "立夏前后举行封龙仪式祈愿雨水调匀，师公吟咒巡田；插秧动员与社群互助公约同日宣布。",
+      "customs": [
+        "祭龙"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "农耕"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "low",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "buyi_june6",
+      "name": "六月六",
+      "ethnic_id": "buyi",
+      "ethnic_name": "布依族",
+      "calendar_type": "lunar",
+      "calendar_date": "6-6",
+      "description": "晾晒衣物书籍祭祖祭田神，糯米粽子宴客；山歌对唱讲述稻作起源，象征梅雨结束洁净迎新。",
+      "customs": [
+        "祭田"
+      ],
+      "foods": [
+        "粽子"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "稻作"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "buyi_chabai",
+      "name": "查白歌节",
+      "ethnic_id": "buyi",
+      "ethnic_name": "布依族",
+      "calendar_type": "lunar",
+      "calendar_date": "6-21",
+      "description": "黔西南布依青年山坡对歌择偶，传说源于忠贞爱情故事；木叶吹奏与糠包舞彰显山地浪漫。",
+      "customs": [
+        "对歌"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "婚恋"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "buyi_thirdmar",
+      "name": "三月三",
+      "ethnic_id": "buyi",
+      "ethnic_name": "布依族",
+      "calendar_type": "lunar",
+      "calendar_date": "3-3",
+      "description": "祭山扫墓蒸五色糯米饭，泼水嬉戏祈福风调雨顺；铜鼓敲击节奏贯穿祭仪与歌舞。",
+      "customs": [
+        "祭山"
+      ],
+      "foods": [
+        "五色饭"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "祭祖"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "naxi_sanduo",
+      "name": "三朵节",
+      "ethnic_id": "naxi",
+      "ethnic_name": "纳西族",
+      "calendar_type": "lunar",
+      "calendar_date": "2-8",
+      "description": "祭祀战神三朵保护茶马商旅，玉龙雪山脚下赛马对歌；东巴诵经跳神面展现纳西族巫祭与商贸记忆。",
+      "customs": [
+        "赛马"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "祭神"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": true
+    },
+    {
+      "id": "naxi_bangbang",
+      "name": "棒棒会",
+      "ethnic_id": "naxi",
+      "ethnic_name": "纳西族",
+      "calendar_type": "lunar",
+      "calendar_date": "1-15",
+      "description": "正月十五集市交易农具苗木种籽，纳西人家趁会修缮梯田工具；兼有占卜择偶与民歌交流的早春市集。",
+      "customs": [
+        "集会"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "市集"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "naxi_qiyue",
+      "name": "七月会",
+      "ethnic_id": "naxi",
+      "ethnic_name": "纳西族",
+      "calendar_type": "lunar",
+      "calendar_date": "7-7",
+      "description": "山地物资交流赛马斗牛，姑娘穿戴七星披肩展示刺绣；夜间篝火打跳强化河谷社群联谊。",
+      "customs": [
+        "赛马"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "集会"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "gaoshan_harvest",
+      "name": "丰收节",
+      "ethnic_id": "gaoshan",
+      "ethnic_name": "高山族",
+      "calendar_type": "unknown",
+      "calendar_date": "8-1",
+      "description": "台湾少数民族庆贺小米与芋头收成，头目主持感恩祭分享米酒；歌舞模拟狩猎捕鱼场景，强化部落联盟与资源共享。",
+      "customs": [
+        "感恩祭"
+      ],
+      "foods": [
+        "米酒"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "丰收"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "low",
+      "note": "各族群祭仪名称时间不一。",
+      "default_subscribed": false
+    },
+    {
+      "id": "gaoshan_sowing",
+      "name": "播种节",
+      "ethnic_id": "gaoshan",
+      "ethnic_name": "高山族",
+      "calendar_type": "unknown",
+      "calendar_date": "4-1",
+      "description": "春耕前占卜吉辰撒种祈福，妇女背着藤篓举行唤谷魂仪式；歌舞教导青年辨识节气与作物轮作。",
+      "customs": [
+        "播种祭"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "农耕"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "low",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "lahu_hulu",
+      "name": "葫芦节",
+      "ethnic_id": "lahu",
+      "ethnic_name": "拉祜族",
+      "calendar_type": "unknown",
+      "calendar_date": "4-8",
+      "description": "传说中的葫芦孕育祖先，村寨摆葫芦图腾宴跳芦笙；巫师讲述迁徙史诗并分配山林采摘禁忌。",
+      "customs": [
+        "芦笙舞"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "祖先"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "lahu_kuota",
+      "name": "扩塔节",
+      "ethnic_id": "lahu",
+      "ethnic_name": "拉祜族",
+      "calendar_type": "unknown",
+      "calendar_date": "1-1",
+      "description": "拉祜新年杀猪祭祖荡秋千，夜间火把巡游驱散疫病；青年男女互换烟草荷包订立口头婚约。",
+      "customs": [
+        "祭祖"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "新年"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "shui_duan",
+      "name": "端节",
+      "ethnic_id": "shui",
+      "ethnic_name": "水族",
+      "calendar_type": "unknown",
+      "calendar_date": "9-1",
+      "description": "借端祭祖庆贺稻米鱼类丰收，赛马斗牛通宵饮酒；水书先生择吉日宣读迁徙戒律维持村寨秩序。",
+      "customs": [
+        "赛马"
+      ],
+      "foods": [
+        "鱼包韭菜"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "端节"
+      ],
+      "date_strategy": "lookup",
+      "confidence": "medium",
+      "note": "水历推算依赖端寨历法查表。",
+      "default_subscribed": false
+    },
+    {
+      "id": "shui_mao",
+      "name": "卯节",
+      "ethnic_id": "shui",
+      "ethnic_name": "水族",
+      "calendar_type": "unknown",
+      "calendar_date": "6-1",
+      "description": "青年卯坡对歌择偶，祭祖祈求梯田水产丰盈；仪式结束后方可开镰捕鱼，象征生态节律。",
+      "customs": [
+        "对歌"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "婚恋"
+      ],
+      "date_strategy": "lookup",
+      "confidence": "low",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "dongx_gurban",
+      "name": "古尔邦节",
+      "ethnic_id": "dongx",
+      "ethnic_name": "东乡族",
+      "calendar_type": "islamic",
+      "calendar_date": "12-10",
+      "description": "黄土高原穆斯林宰牲聚礼走亲，油香馓子馈赠邻里；阿訇宣讲仁爱故事强化社群互助。",
+      "customs": [
+        "聚礼"
+      ],
+      "foods": [
+        "油香"
+      ],
+      "holiday_info": "依法放假",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "伊斯兰教"
+      ],
+      "date_strategy": "algorithm",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "dongx_eid",
+      "name": "开斋节",
+      "ethnic_id": "dongx",
+      "ethnic_name": "东乡族",
+      "calendar_type": "islamic",
+      "calendar_date": "10-1",
+      "description": "斋月圆满礼拜施舍，农家蒸花卷宴客；山地梯田耕作节律短暂停歇以利走亲。",
+      "customs": [
+        "礼拜"
+      ],
+      "foods": [],
+      "holiday_info": "依法放假",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "开斋"
+      ],
+      "date_strategy": "algorithm",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "jingp_munao",
+      "name": "目瑙纵歌节",
+      "ethnic_id": "jingp",
+      "ethnic_name": "景颇族",
+      "calendar_type": "unknown",
+      "calendar_date": "1-15",
+      "description": "万人踩着同一个锣鼓点进入迷宫舞步，祭祀天神太阳象征族群团结；犀鸟图腾木雕高举巡游。",
+      "customs": [
+        "集体舞"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "祭典"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "medium",
+      "note": "举办年份轮值村寨而定。",
+      "default_subscribed": false
+    },
+    {
+      "id": "jingp_newrice",
+      "name": "新米节",
+      "ethnic_id": "jingp",
+      "ethnic_name": "景颇族",
+      "calendar_type": "unknown",
+      "calendar_date": "10-1",
+      "description": "尝新米饭祭祖告知秋收喜讯，长者讲述刀耕火种记忆；青年斗牛射箭选拔勇者护卫村寨。",
+      "customs": [
+        "尝新"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "丰收"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "low",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "keq_nowruz",
+      "name": "诺鲁孜节",
+      "ethnic_id": "keq",
+      "ethnic_name": "柯尔克孜族",
+      "calendar_type": "gregorian",
+      "calendar_date": "3-21",
+      "description": "帕米尔高原春分祈丰年，刁羊赛马与库姆孜弹唱同台；家家户户泼清水迎春除尘。",
+      "customs": [
+        "刁羊"
+      ],
+      "foods": [
+        "麦子粥"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "春分"
+      ],
+      "date_strategy": "fixed",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "keq_gurban",
+      "name": "古尔邦节",
+      "ethnic_id": "keq",
+      "ethnic_name": "柯尔克孜族",
+      "calendar_type": "islamic",
+      "calendar_date": "12-10",
+      "description": "毡房宰牲聚礼后骑马访友，奶茶酥油款待远方来客；史诗吟唱延续游牧迁徙记忆。",
+      "customs": [
+        "聚礼"
+      ],
+      "foods": [
+        "奶茶"
+      ],
+      "holiday_info": "依法放假",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "伊斯兰教"
+      ],
+      "date_strategy": "algorithm",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "tuzu_nadun",
+      "name": "纳顿节",
+      "ethnic_id": "tuzu",
+      "ethnic_name": "土族",
+      "calendar_type": "unknown",
+      "calendar_date": "7-1",
+      "description": "河湟谷地庄稼成熟时轮流上演跳於菟面具戏酬谢神灵；长达两个月的村庄祭仪揭示农耕军事屯垦叠合的历史。",
+      "customs": [
+        "面具戏"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "农耕"
+      ],
+      "date_strategy": "lookup",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "tuzu_huaer",
+      "name": "花儿会",
+      "ethnic_id": "tuzu",
+      "ethnic_name": "土族",
+      "calendar_type": "unknown",
+      "calendar_date": "6-6",
+      "description": "山地情歌擂台吸引跨省歌手，绣荷包交换象征情意；花儿曲调承载西北民族交融记忆。",
+      "customs": [
+        "花儿"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "民歌"
+      ],
+      "date_strategy": "lookup",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "tuzu_leitai",
+      "name": "擂台会",
+      "ethnic_id": "tuzu",
+      "ethnic_name": "土族",
+      "calendar_type": "unknown",
+      "calendar_date": "5-1",
+      "description": "传统的比武与商贸结合的庙会，青年摔跤射箭争夺荣誉；商贩借机交流畜种农具。",
+      "customs": [
+        "摔跤"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "竞技"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "low",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "daw_anie",
+      "name": "阿涅",
+      "ethnic_id": "daw",
+      "ethnic_name": "达斡尔族",
+      "calendar_type": "lunar",
+      "calendar_date": "1-1",
+      "description": "达斡尔新年包饺子祭祖敬火，冰雪赛马射箭考验耐寒品格；长辈讲述契丹后裔迁徙黑龙江流域史诗。",
+      "customs": [
+        "敬火"
+      ],
+      "foods": [
+        "饺子"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "新年"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "daw_kumle",
+      "name": "库木勒节",
+      "ethnic_id": "daw",
+      "ethnic_name": "达斡尔族",
+      "calendar_type": "unknown",
+      "calendar_date": "5-1",
+      "description": "采集柳蒿芽共享野蔬宴感恩自然馈赠；歌舞讲述渔猎转型农耕的经验互助。",
+      "customs": [
+        "采野菜"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "迎春"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "low",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "mul_yifan",
+      "name": "依饭节",
+      "ethnic_id": "mul",
+      "ethnic_name": "仫佬族",
+      "calendar_type": "unknown",
+      "calendar_date": "11-1",
+      "description": "三至五年一度的感恩还愿大典，师公戴面具跳神宴请祖宗；族人集资修缮宗族祠堂重申互助公约。",
+      "customs": [
+        "跳神"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "祭祖"
+      ],
+      "date_strategy": "lookup",
+      "confidence": "medium",
+      "note": "具体周期依宗族占卜。",
+      "default_subscribed": false
+    },
+    {
+      "id": "mul_paopo",
+      "name": "走坡节",
+      "ethnic_id": "mul",
+      "ethnic_name": "仫佬族",
+      "calendar_type": "lunar",
+      "calendar_date": "8-15",
+      "description": "青年山坡对歌择偶抛绣球，糯米糍粑象征同心；月下篝火延续至天明。",
+      "customs": [
+        "对歌"
+      ],
+      "foods": [
+        "糍粑"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "婚恋"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "qiang_rmai",
+      "name": "羌历新年",
+      "ethnic_id": "qiang",
+      "ethnic_name": "羌族",
+      "calendar_type": "unknown",
+      "calendar_date": "10-1",
+      "description": "日麦节杀猪敬白石神祈愿人畜平安，莎朗集体歌舞环绕火塘；释比吟唱创世史诗分配来年耕作禁忌。",
+      "customs": [
+        "祭白石"
+      ],
+      "foods": [
+        "咂酒"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "新年"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "qiang_mount",
+      "name": "祭山会",
+      "ethnic_id": "qiang",
+      "ethnic_name": "羌族",
+      "calendar_type": "unknown",
+      "calendar_date": "5-1",
+      "description": "高山村寨祭祀山神禁止砍伐狩猎数日；长老颁布封山育林乡约维护生态。",
+      "customs": [
+        "祭山"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "信仰"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "low",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "blang_hounan",
+      "name": "厚南节",
+      "ethnic_id": "blang",
+      "ethnic_name": "布朗族",
+      "calendar_type": "unknown",
+      "calendar_date": "4-1",
+      "description": "布朗新年泼水祝福清扫村寨，长者背诵迁徙史诗分配茶园采摘权；青年敲鼓绕寨驱邪。",
+      "customs": [
+        "泼水"
+      ],
+      "foods": [
+        "糯米"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "新年"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "blang_shankang",
+      "name": "山康节",
+      "ethnic_id": "blang",
+      "ethnic_name": "布朗族",
+      "calendar_type": "unknown",
+      "calendar_date": "2-1",
+      "description": "祭祀部落祖先与茶祖，仪式后开行茶市互换普洱茶苗；歌舞模拟采茶揉捻工序。",
+      "customs": [
+        "祭茶祖"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "茶"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "low",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "sala_gurban",
+      "name": "古尔邦节",
+      "ethnic_id": "sala",
+      "ethnic_name": "撒拉族",
+      "calendar_type": "islamic",
+      "calendar_date": "12-10",
+      "description": "黄河谷地穆斯林宰牲聚礼分肉济贫，油搅团慰问老人；庭院栽种花草象征洁净信仰。",
+      "customs": [
+        "聚礼"
+      ],
+      "foods": [
+        "油搅团"
+      ],
+      "holiday_info": "依法放假",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "伊斯兰教"
+      ],
+      "date_strategy": "algorithm",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "sala_eid",
+      "name": "开斋节",
+      "ethnic_id": "sala",
+      "ethnic_name": "撒拉族",
+      "calendar_type": "islamic",
+      "calendar_date": "10-1",
+      "description": "开斋礼拜施舍糕点孩童，家族团聚讲述迁徙中亚东渐故事；麦田收割互助公约同日重申。",
+      "customs": [
+        "礼拜"
+      ],
+      "foods": [],
+      "holiday_info": "依法放假",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "开斋"
+      ],
+      "date_strategy": "algorithm",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "sala_mawlid",
+      "name": "圣纪节",
+      "ethnic_id": "sala",
+      "ethnic_name": "撒拉族",
+      "calendar_type": "islamic",
+      "calendar_date": "3-12",
+      "description": "清真寺熬煮粥饭施舍路人讲述圣人生平；绣花花帽展示撒拉族非遗。",
+      "customs": [
+        "诵经"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "圣纪"
+      ],
+      "date_strategy": "algorithm",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "mnan_fenlong",
+      "name": "分龙节",
+      "ethnic_id": "mnan",
+      "ethnic_name": "毛南族",
+      "calendar_type": "lunar",
+      "calendar_date": "5-20",
+      "description": "祈雨仪式分割稻田水源使用权，师公吟咒舞蹈模拟行云布雨；五色糯米饭供奉龙王。",
+      "customs": [
+        "祈雨"
+      ],
+      "foods": [
+        "五色饭"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "农耕"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "mnan_pumpkin",
+      "name": "南瓜节",
+      "ethnic_id": "mnan",
+      "ethnic_name": "毛南族",
+      "calendar_type": "lunar",
+      "calendar_date": "9-9",
+      "description": "感恩山地南瓜丰收制作南瓜宴款待帮工；山歌讲述迁徙落户毛南山乡的艰辛。",
+      "customs": [
+        "宴客"
+      ],
+      "foods": [
+        "南瓜"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "丰收"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "gela_year",
+      "name": "仡佬年",
+      "ethnic_id": "gela",
+      "ethnic_name": "仡佬族",
+      "calendar_type": "lunar",
+      "calendar_date": "10-1",
+      "description": "敬雀节与新年合一，蒸糍粑喂鸟感恩啄虫护稼；祭田仪式分配来年稻种。",
+      "customs": [
+        "喂鸟"
+      ],
+      "foods": [
+        "糍粑"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "新年"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "gela_chixin",
+      "name": "吃新节",
+      "ethnic_id": "gela",
+      "ethnic_name": "仡佬族",
+      "calendar_type": "unknown",
+      "calendar_date": "7-1",
+      "description": "尝新米祭祖告知秋收起始，长老诵读祭谷魂辞；禁忌解除后方可开仓。",
+      "customs": [
+        "尝新"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "稻作"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "low",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "gela_mountgod",
+      "name": "祭山节",
+      "ethnic_id": "gela",
+      "ethnic_name": "仡佬族",
+      "calendar_type": "unknown",
+      "calendar_date": "3-1",
+      "description": "仡佬山寨祭山封刀三日禁止砍伐；芦笙引导队伍巡游界定村寨神圣边界。",
+      "customs": [
+        "祭山"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "信仰"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "low",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "xibo_west_move",
+      "name": "西迁节",
+      "ethnic_id": "xibo",
+      "ethnic_name": "锡伯族",
+      "calendar_type": "lunar",
+      "calendar_date": "4-18",
+      "description": "纪念乾隆年间锡伯军民万里戍边伊犁，庙会射箭比武重演行军阵列；家族供奉家谱讲述屯垦戍边史诗。",
+      "customs": [
+        "射箭"
+      ],
+      "foods": [
+        "发面饼"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "纪念"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "xibo_spring_day",
+      "name": "春节",
+      "ethnic_id": "xibo",
+      "ethnic_name": "锡伯族",
+      "calendar_type": "lunar",
+      "calendar_date": "1-1",
+      "description": "抹黑祈福驱邪与萨满鼓舞并行，冻饺子炖鱼象征耐寒团聚；儿童蹬冰车延续渔猎记忆。",
+      "customs": [
+        "祭祖"
+      ],
+      "foods": [
+        "饺子"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "新年"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "ach_aluwo",
+      "name": "阿露窝罗节",
+      "ethnic_id": "ach",
+      "ethnic_name": "阿昌族",
+      "calendar_type": "unknown",
+      "calendar_date": "3-1",
+      "description": "蹬窝罗螺旋舞步祭祀创世祖先遮帕麻与遮米麻；青龙白象道具巡游讲述天地开辟神话。",
+      "customs": [
+        "蹬窝罗"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "创世"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "ach_huijie",
+      "name": "会街节",
+      "ethnic_id": "ach",
+      "ethnic_name": "阿昌族",
+      "calendar_type": "unknown",
+      "calendar_date": "9-1",
+      "description": "宗教信仰与商贸结合的集会，青龙白象舞沿街巡游并施舍米花；青年借机挑选银饰工匠拜师。",
+      "customs": [
+        "巡游"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "集会"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "low",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "pumi_wuxi",
+      "name": "吾昔节",
+      "ethnic_id": "pumi",
+      "ethnic_name": "普米族",
+      "calendar_type": "unknown",
+      "calendar_date": "7-1",
+      "description": "普米新年杀猪祭祖跳锅庄，韩规巫师主持敬锅庄女神仪式；荞麦粑粑与苏里玛酒象征山地耐寒生计。",
+      "customs": [
+        "锅庄"
+      ],
+      "foods": [
+        "粑粑"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "新年"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "pumi_zhuanshan",
+      "name": "转山节",
+      "ethnic_id": "pumi",
+      "ethnic_name": "普米族",
+      "calendar_type": "unknown",
+      "calendar_date": "7-15",
+      "description": "环绕神山诵经撒五谷祈福，禁止砍伐狩猎七日；青年赛马选拔护卫神山志愿者。",
+      "customs": [
+        "转山"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "信仰"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "low",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "taj_nowruz_tjk",
+      "name": "肖公巴哈尔节",
+      "ethnic_id": "taj",
+      "ethnic_name": "塔吉克族",
+      "calendar_type": "gregorian",
+      "calendar_date": "3-21",
+      "description": "帕米尔迎春清扫房屋泼清水，刁羊赛马与鹰笛共鸣；长辈为孩子佩戴野花祈福茁壮成长。",
+      "customs": [
+        "刁羊"
+      ],
+      "foods": [
+        "麦子面"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "春节"
+      ],
+      "date_strategy": "fixed",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "taj_gurban",
+      "name": "古尔邦节",
+      "ethnic_id": "taj",
+      "ethnic_name": "塔吉克族",
+      "calendar_type": "islamic",
+      "calendar_date": "12-10",
+      "description": "高原穆斯林宰牲聚礼后骑马互访，奶茶砖宴象征游牧社群资源共享。",
+      "customs": [
+        "聚礼"
+      ],
+      "foods": [
+        "奶茶"
+      ],
+      "holiday_info": "依法放假",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "伊斯兰教"
+      ],
+      "date_strategy": "algorithm",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "nu_fairy",
+      "name": "仙女节",
+      "ethnic_id": "nu",
+      "ethnic_name": "怒族",
+      "calendar_type": "unknown",
+      "calendar_date": "3-15",
+      "description": "怒江峡谷采集杜鹃鲜花祭祀仙女岩洞，歌舞通宵祈求村寨免受泥石流之苦；妇女主导仪式凸显性别互助。",
+      "customs": [
+        "献花"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "信仰"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "nu_forest",
+      "name": "祭山林节",
+      "ethnic_id": "nu",
+      "ethnic_name": "怒族",
+      "calendar_type": "unknown",
+      "calendar_date": "2-1",
+      "description": "封山育林祭祀禁止砍伐狩猎若干日；长老宣读资源分配公约调解林地纠纷。",
+      "customs": [
+        "祭林"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "生态"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "low",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "uzb_gurban",
+      "name": "古尔邦节",
+      "ethnic_id": "uzb",
+      "ethnic_name": "乌孜别克族",
+      "calendar_type": "islamic",
+      "calendar_date": "12-10",
+      "description": "西域穆斯林宰牲宴客手抓饭飘香，十二木卡姆乐舞庭院展演；刺绣集市互换纹样技艺。",
+      "customs": [
+        "聚礼"
+      ],
+      "foods": [
+        "抓饭"
+      ],
+      "holiday_info": "依法放假",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "伊斯兰教"
+      ],
+      "date_strategy": "algorithm",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "uzb_eid",
+      "name": "开斋节",
+      "ethnic_id": "uzb",
+      "ethnic_name": "乌孜别克族",
+      "calendar_type": "islamic",
+      "calendar_date": "10-1",
+      "description": "开斋布施甜食孩童，家族合唱民歌讲述丝路商旅记忆。",
+      "customs": [
+        "礼拜"
+      ],
+      "foods": [
+        "甜点"
+      ],
+      "holiday_info": "依法放假",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "开斋"
+      ],
+      "date_strategy": "algorithm",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "uzb_nowruz",
+      "name": "诺鲁孜节",
+      "ethnic_id": "uzb",
+      "ethnic_name": "乌孜别克族",
+      "calendar_type": "gregorian",
+      "calendar_date": "3-21",
+      "description": "春分煮粥祈福歌舞，庭院泼水除尘象征涤荡晦气。",
+      "customs": [
+        "歌舞"
+      ],
+      "foods": [
+        "粥"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "迎春"
+      ],
+      "date_strategy": "fixed",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "elu_easter",
+      "name": "复活节",
+      "ethnic_id": "elu",
+      "ethnic_name": "俄罗斯族",
+      "calendar_type": "gregorian",
+      "calendar_date": "4-1",
+      "description": "东正教复活节彩绘复活蛋象征基督复活，教堂钟声后分享库里奇面包；家庭聚会讲述哈尔滨侨民社区的节庆记忆。",
+      "customs": [
+        "画彩蛋"
+      ],
+      "foods": [
+        "库里奇"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "东正教"
+      ],
+      "date_strategy": "fixed",
+      "confidence": "medium",
+      "note": "教会礼仪年日期因年与教派而异，待算法填充。",
+      "default_subscribed": false
+    },
+    {
+      "id": "elu_christmas",
+      "name": "圣诞节",
+      "ethnic_id": "elu",
+      "ethnic_name": "俄罗斯族",
+      "calendar_type": "gregorian",
+      "calendar_date": "1-7",
+      "description": "东正教圣诞节礼拜唱诗分享蜜粥，雪地马车巡游重现侨居东北时期的节庆景观。",
+      "customs": [
+        "礼拜"
+      ],
+      "foods": [
+        "蜜粥"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "东正教"
+      ],
+      "date_strategy": "fixed",
+      "confidence": "medium",
+      "note": "各地教会礼仪日程不一，占位日期待核对。",
+      "default_subscribed": false
+    },
+    {
+      "id": "ewk_sebin",
+      "name": "瑟宾节",
+      "ethnic_id": "ewk",
+      "ethnic_name": "鄂温克族",
+      "calendar_type": "unknown",
+      "calendar_date": "6-18",
+      "description": "鄂温克猎人欢聚驯鹿营地摔跤射箭，萨满鼓声祈祷山林猎物丰盈；非遗传承人讲述使鹿部落迁徙故事。",
+      "customs": [
+        "驯鹿巡游"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "游牧"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "ewk_mikulu",
+      "name": "米阔鲁节",
+      "ethnic_id": "ewk",
+      "ethnic_name": "鄂温克族",
+      "calendar_type": "unknown",
+      "calendar_date": "5-1",
+      "description": "春季接羔繁育节庆，牧民给羔羊剪耳标记分配草场；宴饮表彰接羔能手。",
+      "customs": [
+        "剪耳标记"
+      ],
+      "foods": [
+        "奶制品"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "畜牧"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "low",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "dea_water",
+      "name": "泼水节",
+      "ethnic_id": "dea",
+      "ethnic_name": "德昂族",
+      "calendar_type": "dai",
+      "calendar_date": "4-1",
+      "description": "德昂山寨浴佛泼水祝福，青年敲响象脚鼓巡游；糯米饭包烤肉体现跨境佛教节庆与山地农耕融合。",
+      "customs": [
+        "泼水"
+      ],
+      "foods": [
+        "糯米饭"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "节庆"
+      ],
+      "date_strategy": "lookup",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "dea_flower_water",
+      "name": "浇花节",
+      "ethnic_id": "dea",
+      "ethnic_name": "德昂族",
+      "calendar_type": "unknown",
+      "calendar_date": "3-1",
+      "description": "青年男女相互浇花表达爱慕，佛寺诵经祈愿茶树丰收；仪式后采摘春茶祭谷魂。",
+      "customs": [
+        "浇花"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "婚恋"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "low",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "dea_open_gate",
+      "name": "开门节",
+      "ethnic_id": "dea",
+      "ethnic_name": "德昂族",
+      "calendar_type": "dai",
+      "calendar_date": "12-1",
+      "description": "安居结束解禁歌舞宴饮，佛塔点灯洒水重演泼水喜气；村寨长老分配来年甘蔗种植地块。",
+      "customs": [
+        "点灯"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "佛教"
+      ],
+      "date_strategy": "lookup",
+      "confidence": "low",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "bao_gurban",
+      "name": "古尔邦节",
+      "ethnic_id": "bao",
+      "ethnic_name": "保安族",
+      "calendar_type": "islamic",
+      "calendar_date": "12-10",
+      "description": "黄土高原穆斯林宰牲聚礼分肉济贫，保安腰刀技艺展示与宴席并行体现信仰与工匠精神。",
+      "customs": [
+        "聚礼"
+      ],
+      "foods": [
+        "油香"
+      ],
+      "holiday_info": "依法放假",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "伊斯兰教"
+      ],
+      "date_strategy": "algorithm",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "bao_eid",
+      "name": "开斋节",
+      "ethnic_id": "bao",
+      "ethnic_name": "保安族",
+      "calendar_type": "islamic",
+      "calendar_date": "10-1",
+      "description": "开斋施舍油炸面食孩童，家族讲述黄河沿岸戍边屯垦故事。",
+      "customs": [
+        "礼拜"
+      ],
+      "foods": [],
+      "holiday_info": "依法放假",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "开斋"
+      ],
+      "date_strategy": "algorithm",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "bao_mawlid",
+      "name": "圣纪节",
+      "ethnic_id": "bao",
+      "ethnic_name": "保安族",
+      "calendar_type": "islamic",
+      "calendar_date": "3-12",
+      "description": "清真寺熬粥讲述圣人生平，刺绣礼拜毯竞赛展现妇女才艺。",
+      "customs": [
+        "诵经"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "圣纪"
+      ],
+      "date_strategy": "algorithm",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "yug_horse_mane",
+      "name": "剪马鬃节",
+      "ethnic_id": "yug",
+      "ethnic_name": "裕固族",
+      "calendar_type": "unknown",
+      "calendar_date": "5-1",
+      "description": "初夏给骏马剪鬃洗浴祈福水草丰美，骑手赛马叼羊展示驯牧技艺；帐篷宴饮传唱史诗。",
+      "customs": [
+        "剪鬃"
+      ],
+      "foods": [
+        "奶茶"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "畜牧"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "low",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "yug_ovoo",
+      "name": "鄂博节",
+      "ethnic_id": "yug",
+      "ethnic_name": "裕固族",
+      "calendar_type": "unknown",
+      "calendar_date": "6-1",
+      "description": "祭祀敖包堆砌石块祈福人畜平安，萨满诵经撒五谷；赛马摔跤选拔部落勇士。",
+      "customs": [
+        "祭敖包"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "信仰"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "yug_fire_offer",
+      "name": "祭火节",
+      "ethnic_id": "yug",
+      "ethnic_name": "裕固族",
+      "calendar_type": "unknown",
+      "calendar_date": "12-1",
+      "description": "冬季祭火塘讲述迁徙河西走廊记忆，羊拐游戏凝聚家族男性同盟。",
+      "customs": [
+        "祭火"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "祭祖"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "low",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "jingr_ha",
+      "name": "哈节",
+      "ethnic_id": "jingr",
+      "ethnic_name": "京族",
+      "calendar_type": "unknown",
+      "calendar_date": "8-10",
+      "description": "京族祭海神唱哈长达数日，独弦琴伴奏叙事诗讲述海上谋生风险；渔民献捕获宴客共享渔汛红利。",
+      "customs": [
+        "唱哈"
+      ],
+      "foods": [
+        "鱼宴"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "海洋"
+      ],
+      "date_strategy": "lookup",
+      "confidence": "medium",
+      "note": "各村哈节日期轮流。",
+      "default_subscribed": false
+    },
+    {
+      "id": "jingr_changha",
+      "name": "唱哈节",
+      "ethnic_id": "jingr",
+      "ethnic_name": "京族",
+      "calendar_type": "unknown",
+      "calendar_date": "8-15",
+      "description": "与哈节同源侧重民歌擂台，姑娘头戴斗笠与渔夫对唱海盐之恋；仪式后修补渔网协作捕鱼。",
+      "customs": [
+        "对唱"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "民歌"
+      ],
+      "date_strategy": "lookup",
+      "confidence": "low",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "tata_gurban",
+      "name": "古尔邦节",
+      "ethnic_id": "tata",
+      "ethnic_name": "塔塔尔族",
+      "calendar_type": "islamic",
+      "calendar_date": "12-10",
+      "description": "塔塔尔穆斯林宰牲宴客古拜底埃糕点飘香；冬不拉弹唱讲述中亚商旅定居伊犁河谷记忆。",
+      "customs": [
+        "聚礼"
+      ],
+      "foods": [
+        "糕点"
+      ],
+      "holiday_info": "依法放假",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "伊斯兰教"
+      ],
+      "date_strategy": "algorithm",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "tata_eid",
+      "name": "开斋节",
+      "ethnic_id": "tata",
+      "ethnic_name": "塔塔尔族",
+      "calendar_type": "islamic",
+      "calendar_date": "10-1",
+      "description": "开斋施舍果酱糖果孩童，庭院栽种花卉象征信仰纯洁。",
+      "customs": [
+        "礼拜"
+      ],
+      "foods": [],
+      "holiday_info": "依法放假",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "开斋"
+      ],
+      "date_strategy": "algorithm",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "tata_saban",
+      "name": "撒班节",
+      "ethnic_id": "tata",
+      "ethnic_name": "塔塔尔族",
+      "calendar_type": "unknown",
+      "calendar_date": "5-1",
+      "description": "春耕结束犁铧宴犒劳耕牛与农人，歌舞模拟犁地播种动作；集市交换良种牲畜。",
+      "customs": [
+        "犁铧宴"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "农耕"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "low",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "dulo_kachewa",
+      "name": "卡雀哇节",
+      "ethnic_id": "dulo",
+      "ethnic_name": "独龙族",
+      "calendar_type": "unknown",
+      "calendar_date": "1-1",
+      "description": "独龙江峡谷新年剽牛祭天祈福人畜无病，长者分发猎物重申血缘互助；牛皮鼓声彻夜不息。",
+      "customs": [
+        "剽牛祭"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "新年"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "low",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "dulo_sky_offer",
+      "name": "剽牛祭天",
+      "ethnic_id": "dulo",
+      "ethnic_name": "独龙族",
+      "calendar_type": "unknown",
+      "calendar_date": "12-1",
+      "description": "大型祭祖仪式杀牛分肉给每户，巫师吟唱创世史诗界定狩猎禁区。",
+      "customs": [
+        "剽牛"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "祭祀"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "low",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "elc_bonfire",
+      "name": "篝火节",
+      "ethnic_id": "elc",
+      "ethnic_name": "鄂伦春族",
+      "calendar_type": "unknown",
+      "calendar_date": "6-18",
+      "description": "森林猎民围着篝火跳兽皮舞讲述熊图腾禁忌；赛马射箭选拔新一代猎手首领。",
+      "customs": [
+        "篝火舞"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "狩猎"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "elc_spring_year",
+      "name": "春节",
+      "ethnic_id": "elc",
+      "ethnic_name": "鄂伦春族",
+      "calendar_type": "lunar",
+      "calendar_date": "1-1",
+      "description": "贴桦树皮剪纸祭祖分享兽肉饺子，滑雪橇比赛模拟冬季狩猎追击。",
+      "customs": [
+        "祭祖"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "新年"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "hez_wurig",
+      "name": "乌日贡节",
+      "ethnic_id": "hez",
+      "ethnic_name": "赫哲族",
+      "calendar_type": "unknown",
+      "calendar_date": "7-1",
+      "description": "乌苏里江流域民族文艺体育盛会，鱼皮画鱼皮衣展演讲述渔猎技艺；鹿棋摔跤选拔村寨代表。",
+      "customs": [
+        "鱼皮工艺"
+      ],
+      "foods": [
+        "鱼肉"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "非遗"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "hez_river_lamp",
+      "name": "河灯节",
+      "ethnic_id": "hez",
+      "ethnic_name": "赫哲族",
+      "calendar_type": "unknown",
+      "calendar_date": "7-15",
+      "description": "放河灯超度溺水亡灵并祈求江水平静渔汛安稳；萨满鼓声引导船队巡游。",
+      "customs": [
+        "放河灯"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "祭祀"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "low",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "menb_new_year",
+      "name": "门巴新年",
+      "ethnic_id": "menb",
+      "ethnic_name": "门巴族",
+      "calendar_type": "unknown",
+      "calendar_date": "1-1",
+      "description": "藏南门巴村寨杀猪酿酒跳锅庄迎新岁，祭祀山神保佑古道商旅平安；传说融合吐蕃与门巴口传史诗。",
+      "customs": [
+        "锅庄"
+      ],
+      "foods": [
+        "青稞酒"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "新年"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "menb_wongkor",
+      "name": "望果节",
+      "ethnic_id": "menb",
+      "ethnic_name": "门巴族",
+      "calendar_type": "tibetan",
+      "calendar_date": "7-1",
+      "description": "门巴农耕区绕田祈福模仿藏族望果仪式并加入门巴情歌；仪式后分配秋收互助劳力。",
+      "customs": [
+        "绕田"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "丰收"
+      ],
+      "date_strategy": "algorithm",
+      "confidence": "medium",
+      "note": "与藏族望果同源而异俗。",
+      "default_subscribed": false
+    },
+    {
+      "id": "luob_xudulong",
+      "name": "旭独龙节",
+      "ethnic_id": "luob",
+      "ethnic_name": "珞巴族",
+      "calendar_type": "unknown",
+      "calendar_date": "2-1",
+      "description": "珞巴新年剽牛共享猎物祭祖，巫师念诵始祖迁徙史诗并颁布狩猎禁忌；藤编器具交换巩固部落联盟。",
+      "customs": [
+        "剽牛"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "新年"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "low",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "luob_dongen",
+      "name": "洞更谷乳木节",
+      "ethnic_id": "luob",
+      "ethnic_name": "珞巴族",
+      "calendar_type": "unknown",
+      "calendar_date": "8-1",
+      "description": "秋收感恩祭祀洞神庇佑谷物无鼠患；青年射箭比赛选拔护卫山林边界勇士。",
+      "customs": [
+        "祭洞神"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "农耕"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "low",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "jino_techmark",
+      "name": "特懋克节",
+      "ethnic_id": "jino",
+      "ethnic_name": "基诺族",
+      "calendar_type": "unknown",
+      "calendar_date": "2-6",
+      "description": "基诺新年打铁祭鼓祈谷魂归来，长老敲响牛皮大鼓带领全村跳卓舞；竹笋宴象征热带雨林生计。",
+      "customs": [
+        "祭鼓"
+      ],
+      "foods": [
+        "竹笋"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "新年"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "jino_new_rice_jino",
+      "name": "新米节",
+      "ethnic_id": "jino",
+      "ethnic_name": "基诺族",
+      "calendar_type": "unknown",
+      "calendar_date": "9-1",
+      "description": "尝新米杀猪祭祖告知秋收喜讯，青年交替敲击竹筒传递喜讯至邻寨。",
+      "customs": [
+        "尝新"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "丰收"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "low",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "lisu_kuoshi",
+      "name": "阔时节",
+      "ethnic_id": "lisu",
+      "ethnic_name": "傈僳族",
+      "calendar_type": "unknown",
+      "calendar_date": "12-1",
+      "description": "傈僳新年跳嘎洒搓澡迎新岁，弩弓射靶比赛选拔猎手；同心酒仪式重申村寨联盟。",
+      "customs": [
+        "搓澡舞"
+      ],
+      "foods": [
+        "杵酒"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "新年"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "lisu_knife_ladder",
+      "name": "刀杆节",
+      "ethnic_id": "lisu",
+      "ethnic_name": "傈僳族",
+      "calendar_type": "unknown",
+      "calendar_date": "2-8",
+      "description": "勇士赤脚踏刀刃爬上高架祈福战胜灾祸；喃咪巫师吟诵史诗安抚亡灵。",
+      "customs": [
+        "上刀杆"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "祭祀"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "lisu_hot_spring",
+      "name": "澡塘会",
+      "ethnic_id": "lisu",
+      "ethnic_name": "傈僳族",
+      "calendar_type": "unknown",
+      "calendar_date": "2-1",
+      "description": "怒江峡谷温泉集聚洗衣歌舞择偶，货物集市互换药材山货。",
+      "customs": [
+        "沐浴"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "社交"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "low",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "wa_new_rice_wa",
+      "name": "新米节",
+      "ethnic_id": "wa",
+      "ethnic_name": "佤族",
+      "calendar_type": "unknown",
+      "calendar_date": "10-1",
+      "description": "全寨品尝新米剽牛告知谷魂归来，木鼓敲击节奏贯穿祭祀与歌舞；禁忌解除后方可开仓。",
+      "customs": [
+        "敲木鼓"
+      ],
+      "foods": [
+        "鸡肉烂饭"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "稻作"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "wa_wood_drum",
+      "name": "木鼓节",
+      "ethnic_id": "wa",
+      "ethnic_name": "佤族",
+      "calendar_type": "unknown",
+      "calendar_date": "5-1",
+      "description": "拉木鼓进山祭祀神明保佑村寨平安，男女裸体彩绘跳舞驱邪；被视为佤族最具标志性的信仰盛典。",
+      "customs": [
+        "拉木鼓"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "祭祀"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "low",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "wa_monihei",
+      "name": "摸你黑狂欢节",
+      "ethnic_id": "wa",
+      "ethnic_name": "佤族",
+      "calendar_type": "unknown",
+      "calendar_date": "5-1",
+      "description": "涂泥嬉戏象征洗去晦气祝福彼此健康，篝火狂欢延续至天明展现边疆族群生命力。",
+      "customs": [
+        "涂泥"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "狂欢"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    }
+  ]
+}

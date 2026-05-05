@@ -1,0 +1,551 @@
+{
+  "version": "2026.2",
+  "last_updated": "2026-05-04",
+  "source_note": "years 待批量填充；含佛教、伊斯兰教、道教、基督教及保留印度教条目。",
+  "festivals": [
+    {
+      "id": "buddhism_buddha_birth",
+      "name": "佛诞节",
+      "religion_id": "buddhism",
+      "religious_type": "佛教",
+      "calendar_type": "lunar",
+      "calendar_date": "4-8",
+      "description": "纪念释迦牟尼诞辰，寺院举行浴佛法会并以香水灌沐太子像；信众放生素食诵经，象征觉悟甘露洗涤无明，汉地俗称浴佛节并与花卉巡游相结合。",
+      "customs": [
+        "浴佛",
+        "放生"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "佛教"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "buddhism_laba",
+      "name": "腊八节",
+      "religion_id": "buddhism",
+      "religious_type": "佛教",
+      "calendar_type": "lunar",
+      "calendar_date": "12-8",
+      "description": "寺院熬制腊八粥施舍信众纪念释迦牟尼成道前夕苦行；民间亦以杂粮粥祭祖御寒，强调施舍忍辱与精进修行的精神内涵。",
+      "customs": [
+        "施粥"
+      ],
+      "foods": [
+        "腊八粥"
+      ],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "佛教"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "buddhism_ulan",
+      "name": "盂兰盆节",
+      "religion_id": "buddhism",
+      "religious_type": "佛教",
+      "calendar_type": "lunar",
+      "calendar_date": "7-15",
+      "description": "佛教盂兰盆法会超度六道父母，寺院举行焰口施食强调孝道与报恩；信众放生点灯寄托对亡亲的思念，体现大乘慈悲思想。",
+      "customs": [
+        "诵经",
+        "施食"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "佛教",
+        "孝道"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "buddhism_nirvana",
+      "name": "涅槃节",
+      "religion_id": "buddhism",
+      "religious_type": "佛教",
+      "calendar_type": "lunar",
+      "calendar_date": "2-15",
+      "description": "纪念佛陀入涅槃，僧侣诵经阐扬无常教法；信众点灯供花忏悔业障，反思生死觉悟之道，寺院气氛庄严肃穆。",
+      "customs": [
+        "诵经",
+        "供灯"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "佛教"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "medium",
+      "note": "汉传与南传纪念日期传说有异。",
+      "default_subscribed": false
+    },
+    {
+      "id": "buddhism_enlightenment",
+      "name": "成道节",
+      "religion_id": "buddhism",
+      "religious_type": "佛教",
+      "calendar_type": "lunar",
+      "calendar_date": "12-8",
+      "description": "亦称腊八成道纪念，强调释迦牟尼睹明星悟道；寺院通宵禅修讲经，提醒信众在日常中观照自心。",
+      "customs": [
+        "禅修",
+        "讲经"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "佛教"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "medium",
+      "note": "与腊八民俗并行，寺院侧重不同。",
+      "default_subscribed": false
+    },
+    {
+      "id": "buddhism_guanyin",
+      "name": "观音诞",
+      "religion_id": "buddhism",
+      "religious_type": "佛教",
+      "calendar_type": "lunar",
+      "calendar_date": "2-19",
+      "description": "观世音菩萨诞辰纪念日，信众赴寺敬香祈福海事平安家庭和睦；放生施舍强调慈悲救度的信仰实践。",
+      "customs": [
+        "进香",
+        "放生"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "佛教"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "islam_eid_fitr",
+      "name": "开斋节",
+      "religion_id": "islam",
+      "religious_type": "伊斯兰教",
+      "calendar_type": "islamic",
+      "calendar_date": "10-1",
+      "description": "斋月结束清晨盛大聚礼，施舍济贫分享甜点；穆斯林更衣访友互致问候，象征忍耐之后的宽恕与社群团结。",
+      "customs": [
+        "聚礼",
+        "施舍"
+      ],
+      "foods": [],
+      "holiday_info": "依法放假",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "伊斯兰教"
+      ],
+      "date_strategy": "algorithm",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "islam_eid_adha",
+      "name": "古尔邦节",
+      "religion_id": "islam",
+      "religious_type": "伊斯兰教",
+      "calendar_type": "islamic",
+      "calendar_date": "12-10",
+      "description": "宰牲纪念易卜拉欣顺从故事，聚礼后分肉慰问孤寡；强调敬畏顺从与慷慨分享的信仰核心价值观。",
+      "customs": [
+        "宰牲",
+        "聚礼"
+      ],
+      "foods": [],
+      "holiday_info": "依法放假",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "伊斯兰教"
+      ],
+      "date_strategy": "algorithm",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "islam_mawlid",
+      "name": "圣纪节",
+      "religion_id": "islam",
+      "religious_type": "伊斯兰教",
+      "calendar_type": "islamic",
+      "calendar_date": "3-12",
+      "description": "诵读赞圣诗文讲述先知生平德行；清真寺施舍粥饭弘扬仁爱宽容精神，社群齐聚缅怀伊斯兰兴起历程。",
+      "customs": [
+        "诵经",
+        "施舍"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "伊斯兰教"
+      ],
+      "date_strategy": "algorithm",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "islam_ashura",
+      "name": "阿舒拉日",
+      "religion_id": "islam",
+      "religious_type": "伊斯兰教",
+      "calendar_type": "islamic",
+      "calendar_date": "1-10",
+      "description": "什叶派纪念侯赛因殉难逊尼派亦斋戒反省；施舍粥饭救济贫民体现坚忍与互助，清真寺讲述正义牺牲叙事。",
+      "customs": [
+        "斋戒",
+        "施舍"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "伊斯兰教"
+      ],
+      "date_strategy": "algorithm",
+      "confidence": "medium",
+      "note": "教法学派对斋戒义务认定不同。",
+      "default_subscribed": false
+    },
+    {
+      "id": "islam_qadr",
+      "name": "盖德尔夜",
+      "religion_id": "islam",
+      "religious_type": "伊斯兰教",
+      "calendar_type": "islamic",
+      "calendar_date": "9-27",
+      "description": "斋月後十日寻觅高贵之夜彻夜诵经施舍；《古兰经》初次降示的象征时刻，穆斯林加倍祈祷忏悔寻求赦宥。",
+      "customs": [
+        "诵经",
+        "施舍"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "伊斯兰教"
+      ],
+      "date_strategy": "algorithm",
+      "confidence": "medium",
+      "note": "具体夜晚依学派在斋月末旬浮动。",
+      "default_subscribed": false
+    },
+    {
+      "id": "taoism_sanqing",
+      "name": "三清节",
+      "religion_id": "taoism",
+      "religious_type": "道教",
+      "calendar_type": "unknown",
+      "calendar_date": "",
+      "description": "崇尚玉清上清太清三清尊神圣诞，宫观举行朝科法会诵经礼忏；信众供奉清香花灯祈求消灾解厄，体现道教神学体系的至高崇拜格局。",
+      "customs": [
+        "法会"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "道教"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "low",
+      "note": "三清圣诞日在不同道派典籍中记载不一。",
+      "default_subscribed": false
+    },
+    {
+      "id": "taoism_shangyuan",
+      "name": "上元节",
+      "religion_id": "taoism",
+      "religious_type": "道教",
+      "calendar_type": "lunar",
+      "calendar_date": "1-15",
+      "description": "天官赐福之日，道观设坛祈福消灾并施舍汤圆；灯会与民俗元宵交融强调天人感应与孝道和睦。",
+      "customs": [
+        "祈福"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "道教"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "taoism_zhongyuan",
+      "name": "中元节",
+      "religion_id": "taoism",
+      "religious_type": "道教",
+      "calendar_type": "lunar",
+      "calendar_date": "7-15",
+      "description": "地官赦罪超度水陆法会普度鬼魂；信众放生烧钱袱表达对先祖与无主孤魂的仁慈关怀。",
+      "customs": [
+        "超度"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "道教"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "taoism_xiayuan",
+      "name": "下元节",
+      "religion_id": "taoism",
+      "religious_type": "道教",
+      "calendar_type": "lunar",
+      "calendar_date": "10-15",
+      "description": "水官解厄祈福江河安澜农田润泽；宫观诵经施舍粥米象征洗涤罪业迎接寒冬。",
+      "customs": [
+        "祈福"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "道教"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "taoism_yuhuang",
+      "name": "玉皇圣诞",
+      "religion_id": "taoism",
+      "religious_type": "道教",
+      "calendar_type": "lunar",
+      "calendar_date": "9-9",
+      "description": "庆贺玉皇大帝诞辰，宫观举行玉皇大表科仪赦罪消灾；信众斋戒朝拜祈求国泰民安风调雨顺。",
+      "customs": [
+        "斋醮"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "道教"
+      ],
+      "date_strategy": "lunar_convert",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "christianity_christmas",
+      "name": "圣诞节",
+      "religion_id": "christianity",
+      "religious_type": "基督教",
+      "calendar_type": "gregorian",
+      "calendar_date": "12-25",
+      "description": "纪念耶稣基督降生，教堂举行子夜弥撒或礼拜朗诵福音；家庭互赠礼物分享爱宴象征上帝对人的普世恩典。",
+      "customs": [
+        "礼拜"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "基督教"
+      ],
+      "date_strategy": "fixed",
+      "confidence": "high",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "christianity_easter",
+      "name": "复活节",
+      "religion_id": "christianity",
+      "religious_type": "基督教",
+      "calendar_type": "computus",
+      "calendar_date": "",
+      "description": "纪念耶稣死里复活的核心教义，教堂烛光礼拜与哈利路亚颂歌交错；彩蛋象征新生盼望，信徒彼此祝贺复活喜讯。",
+      "customs": [
+        "礼拜"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "基督教"
+      ],
+      "date_strategy": "fixed",
+      "confidence": "medium",
+      "note": "日期按复活节算法浮动，待批量填充。",
+      "default_subscribed": false
+    },
+    {
+      "id": "christianity_good_friday",
+      "name": "受难节",
+      "religion_id": "christianity",
+      "religious_type": "基督教",
+      "calendar_type": "computus",
+      "calendar_date": "",
+      "description": "纪念耶稣受难钉十字架，教堂诵读受难剧默想救恩；信徒禁食祷告反省自我与宽恕他人。",
+      "customs": [
+        "礼拜",
+        "禁食"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "基督教"
+      ],
+      "date_strategy": "fixed",
+      "confidence": "medium",
+      "note": "与复活节周相连具体日期待算法填充。",
+      "default_subscribed": false
+    },
+    {
+      "id": "christianity_thanksgiving_x",
+      "name": "感恩节",
+      "religion_id": "christianity",
+      "religious_type": "基督教",
+      "calendar_type": "unknown",
+      "calendar_date": "",
+      "description": "教会层面感恩礼拜歌颂上帝供应与保守，不同于世俗购物狂欢；信徒奉献物资救助弱势群体体现感恩行动。",
+      "customs": [
+        "感恩礼拜",
+        "奉献"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "基督教"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "low",
+      "note": "教会历感恩主日与美洲世俗感恩节不同步。",
+      "default_subscribed": false
+    },
+    {
+      "id": "christianity_epiphany",
+      "name": "主显节",
+      "religion_id": "christianity",
+      "religious_type": "基督教",
+      "calendar_type": "unknown",
+      "calendar_date": "",
+      "description": "纪念东方博士朝拜圣婴与耶稣受洗显现神性；部分地区行了祝福圣水与烛光游行强调启示光照万国。",
+      "customs": [
+        "礼拜"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "基督教"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "medium",
+      "note": "东正教与西方教会日期不一。",
+      "default_subscribed": false
+    },
+    {
+      "id": "hinduism_diwali",
+      "name": "排灯节",
+      "religion_id": "hinduism",
+      "religious_type": "印度教",
+      "calendar_type": "hindu",
+      "calendar_date": "",
+      "description": "光明战胜黑暗的象征节日，点灯祈福洁净家园互赠甜食；寺庙诵读史诗段落家族团聚分享救赎叙事。",
+      "customs": [
+        "点灯"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": true,
+      "tags": [
+        "印度教"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    },
+    {
+      "id": "hinduism_holi",
+      "name": "洒红节",
+      "religion_id": "hinduism",
+      "religious_type": "印度教",
+      "calendar_type": "hindu",
+      "calendar_date": "",
+      "description": "春日色彩的欢庆节日，抛洒植物粉末化解隔阂重建社群和睦；歌舞巡游讲述黑天神传说彰显爱与宽恕。",
+      "customs": [
+        "洒彩"
+      ],
+      "foods": [],
+      "holiday_info": "",
+      "years": {},
+      "is_major": false,
+      "tags": [
+        "印度教"
+      ],
+      "date_strategy": "unknown",
+      "confidence": "medium",
+      "note": "",
+      "default_subscribed": false
+    }
+  ]
+}

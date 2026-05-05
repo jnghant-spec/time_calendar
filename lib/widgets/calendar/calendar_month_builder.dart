@@ -42,22 +42,9 @@ CalendarDayCellData _cell(
 }) {
   final lunar = Lunar.fromDate(d);
   final jq = lunar.getJieQi();
-  var label = '';
-  if (jq.isNotEmpty) {
-    label = jq;
-  } else {
-    final fs = lunar.getFestivals();
-    if (fs.isNotEmpty) {
-      label = fs.first;
-    } else {
-      final ofs = lunar.getOtherFestivals();
-      if (ofs.isNotEmpty) {
-        label = ofs.first;
-      } else {
-        label = lunar.getDayInChinese();
-      }
-    }
-  }
+  // 仅展示节气或农历日：不使用 Lunar.getFestivals/getOtherFestivals，避免「天穿节」等与订阅无关的节日名占据网格。
+  final String label =
+      jq.isNotEmpty ? jq : lunar.getDayInChinese();
   final key = '${d.year}-${d.month}-${d.day}';
   return CalendarDayCellData(
     dayNumber: '${d.day}',

@@ -51,6 +51,7 @@ class EventReminderData {
     this.festivalLunarLine,
     this.festivalEthnicLine,
     this.festivalReligiousLine,
+    this.festivalDescription,
   });
 
   factory EventReminderData.forTimeline(
@@ -102,20 +103,24 @@ class EventReminderData {
       festivalEthnicLine: f.ethnicCalendar,
       festivalReligiousLine: f.religiousCalendar,
       sourceListEvent: null,
-      festivalCategory: _festivalCategoryLabel(f.category),
+      festivalCategory: _festivalTimelineCategoryLabel(f),
+      festivalDescription: f.description,
     );
   }
 
-  static String? _festivalCategoryLabel(String category) {
-    switch (category) {
+  /// 时间线卡片右侧标签文案（民族 / 宗教为具体名称）；详情中公历 / 农历仍用「节日来源」。
+  static String _festivalTimelineCategoryLabel(CalendarFestival f) {
+    switch (f.category) {
       case 'gregorian':
         return '公历节日';
       case 'lunar':
         return '农历节日';
       case 'ethnic':
-        return '民族节日';
+        final s = f.sourceLabel?.trim();
+        return (s != null && s.isNotEmpty) ? s : '民族节日';
       case 'religious':
-        return '宗教节日';
+        final s = f.sourceLabel?.trim();
+        return (s != null && s.isNotEmpty) ? s : '宗教节日';
       default:
         return '节日';
     }
@@ -154,6 +159,9 @@ class EventReminderData {
   final String? festivalLunarLine;
   final String? festivalEthnicLine;
   final String? festivalReligiousLine;
+
+  /// 民族 / 宗教节日 JSON `description`，供详情「节日简介」。
+  final String? festivalDescription;
 
   /// 供详情 Sheet 等与清单页共用 [ListEvent] 语义。
   ListEvent toListEvent() {

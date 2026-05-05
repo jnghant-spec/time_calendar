@@ -412,7 +412,10 @@ class _CalendarPageState extends State<CalendarPage> {
     final solar = CalendarPage._dateOnly(e.eventDate);
     final solarStr =
         '${solar.year}年${solar.month}月${solar.day}日 ${CalendarPage._zhWeekday(solar)}';
-    final description = CalendarPage._festivalDescriptionForReminder(e);
+    final legacyIntro = CalendarPage._festivalDescriptionForReminder(e);
+    final isEthnicOrReligious = e.festivalCategoryKey == 'ethnic' ||
+        e.festivalCategoryKey == 'religious';
+    final jsonIntro = (e.festivalDescription ?? '').trim();
 
     showModalBottomSheet<void>(
       context: context,
@@ -496,13 +499,16 @@ class _CalendarPageState extends State<CalendarPage> {
                           row('民族历', e.festivalEthnicLine!.trim()),
                         if ((e.festivalReligiousLine ?? '').trim().isNotEmpty)
                           row('宗教历', e.festivalReligiousLine!.trim()),
-                        row(
-                          '类别',
-                          (e.festivalCategory ?? '').trim().isNotEmpty
-                              ? e.festivalCategory!.trim()
-                              : categoryLabel(e.festivalCategoryKey),
-                        ),
-                        if (description.isNotEmpty)
+                        if (!isEthnicOrReligious)
+                          row(
+                            '节日来源',
+                            (e.festivalCategory ?? '').trim().isNotEmpty
+                                ? e.festivalCategory!.trim()
+                                : categoryLabel(e.festivalCategoryKey),
+                          ),
+                        if (isEthnicOrReligious && jsonIntro.isNotEmpty)
+                          row('节日简介', jsonIntro),
+                        if (!isEthnicOrReligious && legacyIntro.isNotEmpty)
                           Padding(
                             padding: const EdgeInsets.only(top: 16),
                             child: Column(
@@ -517,7 +523,7 @@ class _CalendarPageState extends State<CalendarPage> {
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  description,
+                                  legacyIntro,
                                   style: const TextStyle(
                                     fontSize: 16,
                                     color: Color(0xFF0F172A),

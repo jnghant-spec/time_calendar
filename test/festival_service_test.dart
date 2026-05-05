@@ -2,6 +2,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:time_calendar/services/festival_service.dart';
 
 void main() {
+  setUpAll(() async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    await FestivalService.ensureFestivalSeedDataLoaded();
+  });
   test('May 2026 includes Labour Day and Mothers Day', () {
     final list = FestivalService.getFestivalsForMonth(2026, 5);
     final names = list.map((e) => e.name).toSet();

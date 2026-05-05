@@ -1,8 +1,7 @@
 import 'package:lunar/lunar.dart';
 
 import 'package:time_calendar/models/calendar_festival.dart';
-import 'package:time_calendar/pages/ethnic_festival_data.dart';
-import 'package:time_calendar/pages/religious_festival_data.dart';
+import 'package:time_calendar/services/festival_data_loader.dart';
 
 /// 与节日设置页 [FestivalSettingsPage] 共用的订阅持久化键。
 class FestivalSubscriptionPrefs {
@@ -14,6 +13,10 @@ class FestivalSubscriptionPrefs {
 /// 节日推算（公历固定、公历浮动、农历、民族历种子、宗教历种子）。
 class FestivalService {
   FestivalService._();
+
+  /// 预加载民族 / 宗教节日 JSON（须在首次调用 [getFestivalsForMonth] 前完成；[main] 内已 await）。
+  static Future<void> ensureFestivalSeedDataLoaded() =>
+      FestivalDataLoader.ensureLoaded();
 
   /// 首次安装推荐订阅（植树节 [arbor_day]、民族、宗教等不在此集合）。
   static const Set<String> kDefaultSubscribedIds = {
@@ -187,54 +190,113 @@ class FestivalService {
     return null;
   }
 
-  static List<CalendarFestival> _parseEthnicFestivals(int year, int month) {
-    final out = <CalendarFestival>[];
-    for (final entry in kEthnicFestivalsByGroup.entries) {
-      final ethnicId = entry.key;
-      final rows = entry.value;
-      for (var i = 0; i < rows.length; i++) {
-        final name = rows[i].$1;
-        final ethnicCal = rows[i].$2;
-        final gregStr = rows[i].$3;
-        final d = parseGregorianSeedToMonthDay(gregStr, year);
-        if (d == null || d.month != month) continue;
-        out.add(
-          CalendarFestival(
-            id: 'ethnic_${ethnicId}_$i',
-            name: name,
-            category: 'ethnic',
-            gregorianDate: d,
-            ethnicCalendar: ethnicCal.trim().isEmpty ? null : ethnicCal,
-          ),
-        );
-      }
-    }
-    return out;
+  static String _jsonEthnicCalendarLine(Map<String, dynamic> f) {
+    final ct = FestivalDataLoader.safeString(f, 'calendar_type');
+    final cd = FestivalDataLoader.safeString(f, 'calendar_date') ?? '';
+    const prefixes = <String, String>{
+      'tibetan': '藏历',
+      'dai': '傣历',
+      'miao': '苗历',
+      'yi': '彝历',
+      'menggu': '蒙历',
+      'hani': '哈尼历',
+      'lunar': '农历',
+      'gregorian': '公历',
+      'islamic': '伊斯兰历',
+      'solar': '',
+    };
+    if (cd.trim().isEmpty) return '';
+    final p = prefixes[ct ?? ''] ?? '';
+    return p.isEmpty ? cd : '$p $cd';
   }
 
-  static List<CalendarFestival> _parseReligiousFestivals(int year, int month) {
-    final out = <CalendarFestival>[];
-    for (final seed in kReligionFestivalSeeds) {
-      final religionId = seed.$1;
-      final festivals = seed.$3;
-      for (var i = 0; i < festivals.length; i++) {
-        final name = festivals[i].$1;
-        final calLabel = festivals[i].$2;
-        final gregStr = festivals[i].$3;
-        final d = parseGregorianSeedToMonthDay(gregStr, year);
-        if (d == null || d.month != month) continue;
-        out.add(
-          CalendarFestival(
-            id: 'religious_${religionId}_$i',
-            name: name,
-            category: 'religious',
-            gregorianDate: d,
-            religiousCalendar: calLabel.trim().isEmpty ? null : calLabel,
-          ),
-        );
-      }
+  static String _jsonReligiousCalendarLine(Map<String, dynamic> f) {
+    final ct = FestivalDataLoader.safeString(f, 'calendar_type');
+    final cd = FestivalDataLoader.safeString(f, 'calendar_date') ?? '';
+    const prefixes = <String, String>{
+      'lunar': '农历',
+      'gregorian': '公历',
+      'islamic': '伊斯兰历',
+      'computus': '教历',
+      'hindu': '印历',
+    };
+    if (cd.trim().isEmpty) {
+      return ct == null ? '' : (prefixes[ct] ?? ct);
     }
-    return out;
+    final p = prefixes[ct ?? ''] ?? '';
+    return p.isEmpty ? cd : '$p $cd';
+  }
+
+  static List<CalendarFestival> _parseEthnicFestivals(
+    int year,
+    int month,
+    Set<String>? subscribedIds,
+  ) {
+    final festivals = FestivalDataLoader.ethnicFestivalsOrEmpty();
+    final results = <CalendarFestival>[];
+    for (final f in festivals) {
+      final id = FestivalDataLoader.safeString(f, 'id');
+      if (id == null || id.isEmpty) continue;
+      if (subscribedIds != null && !subscribedIds.contains(id)) continue;
+
+      final date = FestivalDataLoader.getGregorianDate(f, year);
+      if (date == null || date.month != month) continue;
+
+      final name = FestivalDataLoader.safeString(f, 'name') ?? '未知节日';
+      final calLine = _jsonEthnicCalendarLine(f);
+      final ethnicName = FestivalDataLoader.safeString(f, 'ethnic_name');
+      final descTrim = FestivalDataLoader.safeDescription(f);
+      results.add(
+        CalendarFestival(
+          id: id,
+          name: name,
+          category: 'ethnic',
+          gregorianDate: date,
+          ethnicCalendar: calLine.isEmpty ? null : calLine,
+          sourceLabel:
+              (ethnicName != null && ethnicName.isNotEmpty) ? ethnicName : null,
+          description:
+              (descTrim != null && descTrim.isNotEmpty) ? descTrim : null,
+        ),
+      );
+    }
+    return results;
+  }
+
+  static List<CalendarFestival> _parseReligiousFestivals(
+    int year,
+    int month,
+    Set<String>? subscribedIds,
+  ) {
+    final festivals = FestivalDataLoader.religiousFestivalsOrEmpty();
+    final results = <CalendarFestival>[];
+    for (final f in festivals) {
+      final id = FestivalDataLoader.safeString(f, 'id');
+      if (id == null || id.isEmpty) continue;
+      if (subscribedIds != null && !subscribedIds.contains(id)) continue;
+
+      final date = FestivalDataLoader.getGregorianDate(f, year);
+      if (date == null || date.month != month) continue;
+
+      final name = FestivalDataLoader.safeString(f, 'name') ?? '未知节日';
+      final calLine = _jsonReligiousCalendarLine(f);
+      final relType = FestivalDataLoader.safeString(f, 'religious_type');
+      final descTrim = FestivalDataLoader.safeDescription(f);
+      results.add(
+        CalendarFestival(
+          id: id,
+          name: name,
+          category: 'religious',
+          gregorianDate: date,
+          religiousCalendar: calLine.isEmpty ? null : calLine,
+          sourceLabel:
+              (relType != null && relType.isNotEmpty) ? relType : null,
+          description:
+              (descTrim != null && descTrim.isNotEmpty) ? descTrim : null,
+        ),
+      );
+    }
+    return results;
   }
 
   /// 指定公历年月中出现的节日（含农历转换与民族/宗教种子按月筛选）。
@@ -326,8 +388,8 @@ class FestivalService {
       );
     }
 
-    results.addAll(_parseEthnicFestivals(year, month));
-    results.addAll(_parseReligiousFestivals(year, month));
+    results.addAll(_parseEthnicFestivals(year, month, subscribedIds));
+    results.addAll(_parseReligiousFestivals(year, month, subscribedIds));
 
     results.sort((a, b) => a.gregorianDate.compareTo(b.gregorianDate));
     if (subscribedIds != null) {
