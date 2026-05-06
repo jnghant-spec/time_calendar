@@ -386,7 +386,11 @@ class _ListPageState extends State<ListPage> {
   Future<void> _openCreateSheet() async {
     final result = await Navigator.push<ListEvent>(
       context,
-      MaterialPageRoute(builder: (_) => const EventAddPage()),
+      MaterialPageRoute(
+        builder: (_) => EventAddPage(
+          customReminderCountForNewEvent: _events.length,
+        ),
+      ),
     );
     if (result == null) return;
     setState(() {

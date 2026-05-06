@@ -4,14 +4,17 @@ import 'package:time_calendar/app/user_app_context.dart';
 import 'package:time_calendar/main.dart';
 
 void main() {
-  testWidgets('登录页展示', (WidgetTester tester) async {
+  testWidgets('主 Tab 外壳可见', (WidgetTester tester) async {
     await tester.pumpWidget(
       UserAppContext(
         tier: UserSubscriptionTier.free,
         child: const MyApp(),
       ),
     );
+    await tester.pumpAndSettle();
 
-    expect(find.text('欢迎使用时光日历'), findsOneWidget);
+    expect(find.text('日历'), findsOneWidget);
+    expect(find.text('清单'), findsOneWidget);
+    expect(find.text('我的'), findsOneWidget);
   });
 }

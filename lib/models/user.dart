@@ -37,7 +37,7 @@ class User {
   /// 当前已创建/占用事件条数（与清单、日历条数统计对齐）
   final int eventsUsedCount;
 
-  /// 该等级下允许的最大事件数；为 null 时可用 [eventQuotaForTier] 按 [membershipTier] 推导
+  /// 该等级下允许的最大事件数；为 null 时按 [membershipTier] 使用 [MembershipConfig] 默认档
   final int? eventQuota;
 
   /// 登录会话 Token（清退出登录时置空）
@@ -53,7 +53,8 @@ class User {
   final Map<String, String>? metadata;
 
   /// 事件额度：优先 [eventQuota]，否则使用 PRD 默认档
-  int get effectiveEventQuota => eventQuota ?? eventQuotaForTier(membershipTier);
+  int get effectiveEventQuota =>
+      eventQuota ?? MembershipConfig.benefits[membershipTier]!.reminderQuota;
 
   /// 剩余可创建事件条数（非负）
   int get remainingEventSlots {

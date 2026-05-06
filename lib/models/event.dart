@@ -96,8 +96,9 @@ class Event {
   final bool isShareIncoming;
   final String? sharedFromUserId;
 
-  /// 创建/更新前可与 [eventQuotaForTier] 与 [User.remainingEventSlots] 组合校验
-  static int eventQuotaByTier(MembershipTier tier) => eventQuotaForTier(tier);
+  /// 创建/更新前可与 [MembershipService.canCreateReminder] 组合校验
+  static int eventQuotaByTier(MembershipTier tier) =>
+      MembershipConfig.benefits[tier]!.reminderQuota;
 
   Event copyWith({
     String? id,

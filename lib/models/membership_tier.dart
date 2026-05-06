@@ -1,24 +1,73 @@
-// 会员与配额（与 PRD：免费 / 基础 / 高级 对齐，供 User、AppConfig 共用）
+enum MembershipTier { free, basic, premium }
 
-enum MembershipTier {
-  /// 免费版
-  free,
+class TierBenefits {
+  final String label;
+  final double priceMonthly;
+  final double priceYearly;
+  final int reminderQuota;
+  final int ethnicFestivalQuota;
+  final int religiousFestivalQuota;
+  final bool lunarBirthday;
+  final bool customPhotoUpload;
+  final int photosPerEvent;
+  final bool batchImportContacts;
+  final bool festivalShareCard;
 
-  /// 基础版
-  basic,
-
-  /// 高级版
-  premium,
+  const TierBenefits({
+    required this.label,
+    required this.priceMonthly,
+    required this.priceYearly,
+    required this.reminderQuota,
+    required this.ethnicFestivalQuota,
+    required this.religiousFestivalQuota,
+    required this.lunarBirthday,
+    required this.customPhotoUpload,
+    required this.photosPerEvent,
+    required this.batchImportContacts,
+    required this.festivalShareCard,
+  });
 }
 
-/// 各等级「已创建事件」上限（PRD 占位，可与接口下发值对齐）。
-int eventQuotaForTier(MembershipTier tier) {
-  switch (tier) {
-    case MembershipTier.free:
-      return 8;
-    case MembershipTier.basic:
-      return 20;
-    case MembershipTier.premium:
-      return 50;
-  }
+class MembershipConfig {
+  static const Map<MembershipTier, TierBenefits> benefits = {
+    MembershipTier.free: TierBenefits(
+      label: '免费版',
+      priceMonthly: 0,
+      priceYearly: 0,
+      reminderQuota: 8,
+      ethnicFestivalQuota: 3,
+      religiousFestivalQuota: 3,
+      lunarBirthday: false,
+      customPhotoUpload: false,
+      photosPerEvent: 0,
+      batchImportContacts: false,
+      festivalShareCard: false,
+    ),
+    MembershipTier.basic: TierBenefits(
+      label: '基础版',
+      priceMonthly: 4.99,
+      priceYearly: 39.9,
+      reminderQuota: 20,
+      ethnicFestivalQuota: 8,
+      religiousFestivalQuota: 8,
+      lunarBirthday: true,
+      customPhotoUpload: true,
+      photosPerEvent: 3,
+      batchImportContacts: false,
+      festivalShareCard: false,
+    ),
+    MembershipTier.premium: TierBenefits(
+      label: '高级版',
+      priceMonthly: 9.99,
+      priceYearly: 79.9,
+      reminderQuota: 200,
+      ethnicFestivalQuota: 20,
+      religiousFestivalQuota: -1,
+      lunarBirthday: true,
+      customPhotoUpload: true,
+      photosPerEvent: 10,
+      batchImportContacts: true,
+      festivalShareCard: true,
+    ),
+  };
 }

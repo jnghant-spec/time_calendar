@@ -244,26 +244,41 @@ class _CalendarPageState extends State<CalendarPage> {
     final today = _calendarToday;
     if (_selectedDate != null) {
       return widget.events
-          .where((e) => _isSameDay(effectiveDate(e), _selectedDate!))
+          .where((e) => eventOccursOnGregorianDay(e, _selectedDate!))
           .toList()
         ..sort(CalendarPage._eventSortListEvent);
     }
     return CalendarPage._filteredCalendarEvents(widget.events, today);
   }
 
-  List<EventReminderData> _timelineReminders(List<ListEvent> raw) {
+  List<EventReminderData> _timelineReminders(
+    List<ListEvent> raw, {
+    DateTime? anchorDay,
+  }) {
+    final today = _calendarToday;
     return raw
         .map(
-          (e) => EventReminderData.forTimeline(
-            e,
-            effectiveSolarDate: effectiveDate(e),
-            dateText: CalendarPage._formatEventDateLine(
-              effectiveDate(e),
-              lunar: e.isLunarRecurring,
-            ),
-            daysRemaining: daysUntil(e),
-            accentColor: CalendarPage._accentForCategory(e.category),
-          ),
+          (e) {
+            final DateTime solar;
+            final int dr;
+            if (anchorDay != null) {
+              solar = CalendarPage._dateOnly(anchorDay);
+              dr = solar.difference(today).inDays;
+            } else {
+              solar = effectiveDate(e);
+              dr = daysUntil(e);
+            }
+            return EventReminderData.forTimeline(
+              e,
+              effectiveSolarDate: solar,
+              dateText: CalendarPage._formatEventDateLine(
+                solar,
+                lunar: e.isLunarRecurring,
+              ),
+              daysRemaining: dr,
+              accentColor: CalendarPage._accentForCategory(e.category),
+            );
+          },
         )
         .toList();
   }
@@ -346,7 +361,7 @@ class _CalendarPageState extends State<CalendarPage> {
     final today = _calendarToday;
     if (_selectedDate != null) {
       final raw = _visibleListEventsRaw();
-      final user = _timelineReminders(raw);
+      final user = _timelineReminders(raw, anchorDay: _selectedDate);
       final sel = _selectedDate!;
       final fest = _monthFestivals
           .where((f) => _isSameDay(CalendarPage._dateOnly(f.gregorianDate), sel))
@@ -548,13 +563,13 @@ class _CalendarPageState extends State<CalendarPage> {
   Map<String, List<Color>> _markerByDay() {
     final m = <String, List<Color>>{};
     for (final e in widget.events) {
-      final d = effectiveDate(e);
-      if (d.year != _viewYear || d.month != _viewMonth) continue;
-      final k = '${d.year}-${d.month}-${d.day}';
-      m.putIfAbsent(k, () => []);
-      final accent = CalendarPage._accentForCategory(e.category);
-      if (m[k]!.length < 2 && !m[k]!.contains(accent)) {
-        m[k]!.add(accent);
+      for (final d in occurrenceDatesInGregorianMonth(e, _viewYear, _viewMonth)) {
+        final k = '${d.year}-${d.month}-${d.day}';
+        m.putIfAbsent(k, () => []);
+        final accent = CalendarPage._accentForCategory(e.category);
+        if (m[k]!.length < 2 && !m[k]!.contains(accent)) {
+          m[k]!.add(accent);
+        }
       }
     }
     for (final f in _monthFestivals) {
@@ -592,14 +607,13 @@ class _CalendarPageState extends State<CalendarPage> {
   }
 
   void _onPrevMonth() {
-    if (_viewMonth <= 1) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('已是最早月份'), behavior: SnackBarBehavior.floating),
-      );
-      return;
-    }
     setState(() {
-      _viewMonth--;
+      if (_viewMonth <= 1) {
+        _viewYear--;
+        _viewMonth = 12;
+      } else {
+        _viewMonth--;
+      }
       _selectedDate = null;
       _applyScrollReset();
       _loadMonthFestivals();
@@ -607,14 +621,13 @@ class _CalendarPageState extends State<CalendarPage> {
   }
 
   void _onNextMonth() {
-    if (_viewMonth >= 12) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('已是最晚月份'), behavior: SnackBarBehavior.floating),
-      );
-      return;
-    }
     setState(() {
-      _viewMonth++;
+      if (_viewMonth >= 12) {
+        _viewYear++;
+        _viewMonth = 1;
+      } else {
+        _viewMonth++;
+      }
       _selectedDate = null;
       _applyScrollReset();
       _loadMonthFestivals();
@@ -628,29 +641,14 @@ class _CalendarPageState extends State<CalendarPage> {
       initialMonth: _viewMonth,
     );
     if (!mounted || r == null) return;
-    if (r.year != 2026) {
+    if (r.year < 1900 || r.year > 2050) {
       if (!context.mounted) return;
-      await showDialog<void>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('提示'),
-          content: const Text('该年份数据待补充，请先使用2026年'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('确定'),
-            ),
-          ],
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('请选择 1900-2050 范围内的年份'),
+          behavior: SnackBarBehavior.floating,
         ),
       );
-      if (!mounted) return;
-      setState(() {
-        _viewYear = 2026;
-        _viewMonth = 4;
-        _selectedDate = null;
-        _applyScrollReset();
-        _loadMonthFestivals();
-      });
       return;
     }
     setState(() {
@@ -742,6 +740,13 @@ class _CalendarPageState extends State<CalendarPage> {
               backgroundColor: Colors.transparent,
               barrierColor: Colors.black54,
               builder: (ctx) {
+                final src = reminder.sourceListEvent;
+                if (src != null) {
+                  return EventDetailSheet(
+                    event: src,
+                    displaySolarDate: reminder.eventDate,
+                  );
+                }
                 return EventDetailSheet(event: reminder.toListEvent());
               },
             );

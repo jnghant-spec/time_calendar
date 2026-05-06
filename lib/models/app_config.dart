@@ -59,7 +59,8 @@ class AppConfig {
   }
 
   /// 为默认会员策略提供 PRD 数值（可合并服务端下发的覆盖，存在 User 上）
-  int defaultEventQuotaFor(MembershipTier tier) => eventQuotaForTier(tier);
+  int defaultEventQuotaFor(MembershipTier tier) =>
+      MembershipConfig.benefits[tier]!.reminderQuota;
 
   AppConfig copyWith({
     int? schemaVersion,

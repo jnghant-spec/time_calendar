@@ -36,7 +36,8 @@ class CalendarGrid extends StatelessWidget {
     final cellW = (maxWidth - outerH * 2) / 7.0;
     final cellMain = targetCellMainExtent.clamp(30.0, 38.0);
     final aspect = (cellW / cellMain).clamp(0.48, 1.45);
-    final gridH = rows * cellMain;
+    final actualCellHeight = cellW / aspect;
+    final gridH = rows * actualCellHeight;
 
     const double dayNumSize = 14.0;
     const double lunarSize = 9.0;

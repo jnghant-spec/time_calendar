@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:time_calendar/models/membership_tier.dart';
+import 'package:time_calendar/pages/membership_sheet.dart';
 import 'package:time_calendar/pages/personal_info_page.dart';
 import 'package:time_calendar/pages/festival_settings_page.dart';
 import 'package:time_calendar/pages/preference_settings_page.dart';
 import 'package:time_calendar/pages/share_management_page.dart';
+import 'package:time_calendar/services/event_usage_service.dart';
+import 'package:time_calendar/services/membership_service.dart';
 import 'package:time_calendar/services/user_session.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -15,9 +19,26 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  // 与稿期一致，后续可接会员 / 使用额度服务
-  static const int _usedEvents = 9;
-  static const int _eventCap = 20;
+  MembershipTier _tier = MembershipTier.free;
+
+  @override
+  void initState() {
+    super.initState();
+    _reloadTier();
+  }
+
+  Future<void> _reloadTier() async {
+    final t = await MembershipService.currentTier();
+    if (mounted) setState(() => _tier = t);
+  }
+
+  Future<void> _openMembershipSheet() async {
+    await showMembershipSheet(
+      context,
+      onTierChanged: _reloadTier,
+    );
+    await _reloadTier();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,6 +52,9 @@ class _ProfilePageState extends State<ProfilePage> {
     final session = UserSession.instance;
     final nickname = session.nickname;
     final phone = session.phone;
+    final quota =
+        MembershipService.benefits(_tier).reminderQuota.clamp(1, 999999);
+    final used = EventUsageService.currentCount;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
@@ -54,8 +78,11 @@ class _ProfilePageState extends State<ProfilePage> {
                 colorScheme: cs,
                 nickname: nickname,
                 phone: phone,
-                usedEvents: _usedEvents,
-                eventCap: _eventCap,
+                usedEvents: used,
+                eventCap: quota,
+                membershipTitle:
+                    '${MembershipConfig.benefits[_tier]!.label}会员',
+                onMembershipTap: _openMembershipSheet,
               ),
               Expanded(
                 child: SingleChildScrollView(
@@ -84,6 +111,46 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                 ),
               ),
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  hPad.clamp(16.0, 24.0),
+                  6,
+                  hPad.clamp(16.0, 24.0),
+                  10,
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(16),
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(
+                    onTap: _openMembershipSheet,
+                    borderRadius: BorderRadius.circular(16),
+                    child: Ink(
+                      height: 50,
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [
+                            Color(0xFF1A73E8),
+                            Color(0xFF60A5FA),
+                          ],
+                        ),
+                      ),
+                      child: const Center(
+                        child: Text(
+                          '升级会员，解锁全部功能',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -103,6 +170,8 @@ class _ProfileHeader extends StatelessWidget {
     required this.phone,
     required this.usedEvents,
     required this.eventCap,
+    required this.membershipTitle,
+    required this.onMembershipTap,
   });
 
   final double hPad;
@@ -114,6 +183,8 @@ class _ProfileHeader extends StatelessWidget {
   final String phone;
   final int usedEvents;
   final int eventCap;
+  final String membershipTitle;
+  final VoidCallback onMembershipTap;
 
   @override
   Widget build(BuildContext context) {
@@ -199,9 +270,7 @@ class _ProfileHeader extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             clipBehavior: Clip.antiAlias,
             child: InkWell(
-              onTap: () {
-                // 预留：跳转会员
-              },
+              onTap: onMembershipTap,
               borderRadius: BorderRadius.circular(12),
               splashColor: cs.onPrimary.withValues(alpha: 0.1),
               highlightColor: cs.onPrimary.withValues(alpha: 0.06),
@@ -235,7 +304,7 @@ class _ProfileHeader extends StatelessWidget {
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
-                            '基础版会员',
+                            membershipTitle,
                             style: textTheme.bodyLarge?.copyWith(
                               color: cs.onPrimary,
                               fontWeight: FontWeight.w600,

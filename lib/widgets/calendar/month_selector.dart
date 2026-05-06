@@ -33,7 +33,7 @@ class MonthSelector extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(g, vTop, g, vBot),
       child: Row(
         children: [
-          Flexible(
+          Expanded(
             child: Material(
               type: MaterialType.transparency,
               child: InkWell(
@@ -72,7 +72,6 @@ class MonthSelector extends StatelessWidget {
               ),
             ),
           ),
-          const Spacer(),
           IconButton(
             onPressed: onPreviousMonth,
             icon: Icon(Icons.chevron_left_rounded, size: SizeConfig.sp(context, compact ? 24 : 28)),

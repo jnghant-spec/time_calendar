@@ -5,9 +5,16 @@ import 'package:time_calendar/models/list_event.dart';
 
 /// 日历页半屏事件详情（底部 Modal）。
 class EventDetailSheet extends StatelessWidget {
-  const EventDetailSheet({super.key, required this.event});
+  const EventDetailSheet({
+    super.key,
+    required this.event,
+    this.displaySolarDate,
+  });
 
   final ListEvent event;
+
+  /// 本次在日历上展示的公历发生日（循环事件）；为 null 则用 [event.baseDate]。
+  final DateTime? displaySolarDate;
 
   static const Color _titleColor = Color(0xFF0F172A);
   static const Color _muted = Color(0xFF64748B);
@@ -125,14 +132,25 @@ class EventDetailSheet extends StatelessWidget {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final accent = _categoryAccent(event.category);
-    final d = DateTime(event.baseDate.year, event.baseDate.month, event.baseDate.day);
+  static String _formatSolarLine(DateTime d) {
     final y = d.year.toString().padLeft(4, '0');
     final m = d.month.toString().padLeft(2, '0');
     final day = d.day.toString().padLeft(2, '0');
-    final solarLine = '$y-$m-$day 周${_weekdayZh(d.weekday)}';
+    return '$y-$m-$day 周${_weekdayZh(d.weekday)}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = _categoryAccent(event.category);
+    final baseD = DateTime(event.baseDate.year, event.baseDate.month, event.baseDate.day);
+    final d = displaySolarDate != null
+        ? DateTime(
+            displaySolarDate!.year,
+            displaySolarDate!.month,
+            displaySolarDate!.day,
+          )
+        : baseD;
+    final solarLine = _formatSolarLine(d);
 
     final lunar = Lunar.fromDate(d);
     final lunarPillText = '农历 ${lunar.getMonthInChinese()}月${lunar.getDayInChinese()}';
@@ -250,6 +268,14 @@ class EventDetailSheet extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 16),
+                      if (displaySolarDate != null &&
+                          (event.repeatRule != EventRepeatRule.none || event.isLunarRecurring) &&
+                          (d.year != baseD.year ||
+                              d.month != baseD.month ||
+                              d.day != baseD.day)) ...[
+                        _summaryRow('循环起始', _summaryText(_formatSolarLine(baseD))),
+                        const SizedBox(height: 12),
+                      ],
                       _summaryRow('重复', _summaryText(_repeatLabel(event.repeatRule))),
                       const SizedBox(height: 12),
                       _summaryRow('提醒', _summaryText(_reminderLabel(event.reminderType))),

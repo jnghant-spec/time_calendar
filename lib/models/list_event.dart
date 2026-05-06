@@ -56,6 +56,7 @@ class ListEvent {
 
   final String id;
   final String title;
+  /// 事件日历日；一次性事件为唯一发生日，循环事件同时为 **循环起始锚点**（编辑起始日即更新本字段）。
   final DateTime baseDate;
   final ListCategory category;
   final bool isPinned;
@@ -74,6 +75,9 @@ class ListEvent {
   final String? photoUrl;
   /// FAB 添加成功后是否立刻打开分享 Sheet（由 ListPage 消费后应还原为 false）。
   final bool pendingShareAfterAdd;
+
+  /// 循环起始日（与 [baseDate] 同日，仅保留年月日语义）。
+  DateTime get anchorDate => DateTime(baseDate.year, baseDate.month, baseDate.day);
 
   ListEvent copyWith({
     String? id,

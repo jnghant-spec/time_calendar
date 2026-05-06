@@ -4,6 +4,9 @@ import 'package:flutter/services.dart';
 import 'package:lunar/lunar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:time_calendar/models/list_event.dart';
+import 'package:time_calendar/models/membership_tier.dart';
+import 'package:time_calendar/pages/membership_sheet.dart';
+import 'package:time_calendar/services/membership_service.dart';
 
 // --- Design tokens（与任务规范一致） ---
 const Color _kThemeBlue = Color(0xFF1A73E8);
@@ -946,11 +949,14 @@ class EventAddPage extends StatefulWidget {
   const EventAddPage({
     super.key,
     this.initialEvent,
+    this.customReminderCountForNewEvent,
     this.onGalleryTap,
     this.onCameraTap,
   });
 
   final ListEvent? initialEvent;
+  /// 创建新事件时已有的自定义提醒条数（与清单中非节日事件总数对齐）。
+  final int? customReminderCountForNewEvent;
   final VoidCallback? onGalleryTap;
   final VoidCallback? onCameraTap;
 
@@ -979,6 +985,8 @@ class _EventAddPageState extends State<EventAddPage> {
   TimeOfDay _sameDayTime = const TimeOfDay(hour: 9, minute: 0);
 
   bool _shareEnabled = false;
+
+  MembershipTier _membershipTier = MembershipTier.free;
 
   bool get _isEditMode => widget.initialEvent != null;
 
@@ -1023,6 +1031,9 @@ class _EventAddPageState extends State<EventAddPage> {
       _lunarDay = lunar.getDay();
     }
     _titleCtrl.addListener(() => setState(() {}));
+    MembershipService.currentTier().then((t) {
+      if (mounted) setState(() => _membershipTier = t);
+    });
   }
 
   @override
@@ -1207,8 +1218,69 @@ class _EventAddPageState extends State<EventAddPage> {
     );
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (!_titleOk) return;
+    final tier = await MembershipService.currentTier();
+    if (!mounted) return;
+
+    if (!MembershipService.canUseLunarBirthday(tier) && !_solarMode) {
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          content: const Text('农历生日与农历循环提醒为基础版及以上可用，请切换到公历或升级会员。'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('知道了'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                showMembershipSheet(ctx);
+              },
+              child: const Text('升级'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    if (!_isEditMode) {
+      final count = widget.customReminderCountForNewEvent ?? 0;
+      if (!MembershipService.canCreateReminder(tier, count)) {
+        final qFree =
+            MembershipConfig.benefits[MembershipTier.free]!.reminderQuota;
+        final qBasic =
+            MembershipConfig.benefits[MembershipTier.basic]!.reminderQuota;
+        final upgrade = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            content: Text(
+              '免费版最多可创建 $qFree 个提醒事项，升级基础版可创建 $qBasic 个',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('暂不需要'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('升级'),
+              ),
+            ],
+          ),
+        );
+        if (!mounted) return;
+        if (upgrade == true) {
+          await showMembershipSheet(context, onTierChanged: () {
+            if (mounted) setState(() {});
+          });
+        }
+        return;
+      }
+    }
+
     final nav = Navigator.of(context);
     final navCtx = nav.context;
     final base = _effectiveGregorian();
@@ -1388,10 +1460,24 @@ class _EventAddPageState extends State<EventAddPage> {
                           child: _CalendarModePill(
                             label: '农历',
                             selected: !_solarMode,
-                            onTap: () => setState(() {
-                              _solarMode = false;
-                              _syncLunarFromSolar(_solarDate);
-                            }),
+                            onTap: () {
+                              if (!MembershipService.canUseLunarBirthday(
+                                  _membershipTier)) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      '农历生日与农历循环提醒为基础版及以上可用',
+                                    ),
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                                return;
+                              }
+                              setState(() {
+                                _solarMode = false;
+                                _syncLunarFromSolar(_solarDate);
+                              });
+                            },
                           ),
                         ),
                       ],
@@ -1528,25 +1614,36 @@ class _EventAddPageState extends State<EventAddPage> {
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: _kTitleColor),
                     ),
                     const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _PhotoSlot(
-                            icon: Icons.photo_library_outlined,
-                            label: '手机相册',
-                            onTap: widget.onGalleryTap,
-                          ),
+                    if (MembershipService.benefits(_membershipTier).photosPerEvent ==
+                        0)
+                      Text(
+                        '当前版本不支持事件照片，升级基础版及以上可上传。',
+                        style: TextStyle(
+                          fontSize: 14,
+                          height: 1.35,
+                          color: Colors.grey.shade600,
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _PhotoSlot(
-                            icon: Icons.photo_camera_outlined,
-                            label: '拍照',
-                            onTap: widget.onCameraTap,
+                      )
+                    else
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _PhotoSlot(
+                              icon: Icons.photo_library_outlined,
+                              label: '手机相册',
+                              onTap: widget.onGalleryTap,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _PhotoSlot(
+                              icon: Icons.photo_camera_outlined,
+                              label: '拍照',
+                              onTap: widget.onCameraTap,
+                            ),
+                          ),
+                        ],
+                      ),
                     const SizedBox(height: 16),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -1594,7 +1691,7 @@ class _EventAddPageState extends State<EventAddPage> {
                       disabledBackgroundColor: _kThemeBlue.withValues(alpha: 0.5),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),
-                    onPressed: _titleOk ? _submit : null,
+                    onPressed: _titleOk ? () => _submit() : null,
                     child: Text(
                       _isEditMode
                           ? '保存修改'
