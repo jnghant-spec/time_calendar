@@ -5,8 +5,8 @@ import 'package:lunar/lunar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:time_calendar/models/list_event.dart';
 import 'package:time_calendar/models/membership_tier.dart';
-import 'package:time_calendar/pages/membership_sheet.dart';
 import 'package:time_calendar/services/membership_service.dart';
+import 'package:time_calendar/widgets/membership_soft_paywall.dart';
 
 // --- Design tokens（与任务规范一致） ---
 const Color _kThemeBlue = Color(0xFF1A73E8);
@@ -1036,6 +1036,11 @@ class _EventAddPageState extends State<EventAddPage> {
     });
   }
 
+  Future<void> _reloadMembershipTier() async {
+    final t = await MembershipService.currentTier();
+    if (mounted) setState(() => _membershipTier = t);
+  }
+
   @override
   void dispose() {
     _titleCtrl.dispose();
@@ -1224,24 +1229,13 @@ class _EventAddPageState extends State<EventAddPage> {
     if (!mounted) return;
 
     if (!MembershipService.canUseLunarBirthday(tier) && !_solarMode) {
-      await showDialog<void>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          content: const Text('农历生日与农历循环提醒为基础版及以上可用，请切换到公历或升级会员。'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('知道了'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(ctx);
-                showMembershipSheet(ctx);
-              },
-              child: const Text('升级'),
-            ),
-          ],
-        ),
+      if (!mounted) return;
+      await showMembershipSoftPaywall(
+        context,
+        title: '农历提醒',
+        message: '农历生日提醒是基础版功能，升级即可使用',
+        primaryLabel: '升级会员',
+        onTierChanged: _reloadMembershipTier,
       );
       return;
     }
@@ -1249,34 +1243,11 @@ class _EventAddPageState extends State<EventAddPage> {
     if (!_isEditMode) {
       final count = widget.customReminderCountForNewEvent ?? 0;
       if (!MembershipService.canCreateReminder(tier, count)) {
-        final qFree =
-            MembershipConfig.benefits[MembershipTier.free]!.reminderQuota;
-        final qBasic =
-            MembershipConfig.benefits[MembershipTier.basic]!.reminderQuota;
-        final upgrade = await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            content: Text(
-              '免费版最多可创建 $qFree 个提醒事项，升级基础版可创建 $qBasic 个',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('暂不需要'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('升级'),
-              ),
-            ],
-          ),
-        );
         if (!mounted) return;
-        if (upgrade == true) {
-          await showMembershipSheet(context, onTierChanged: () {
-            if (mounted) setState(() {});
-          });
-        }
+        await showReminderQuotaPaywall(
+          context,
+          onTierChanged: _reloadMembershipTier,
+        );
         return;
       }
     }
@@ -1460,16 +1431,17 @@ class _EventAddPageState extends State<EventAddPage> {
                           child: _CalendarModePill(
                             label: '农历',
                             selected: !_solarMode,
-                            onTap: () {
+                            onTap: () async {
                               if (!MembershipService.canUseLunarBirthday(
-                                  _membershipTier)) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      '农历生日与农历循环提醒为基础版及以上可用',
-                                    ),
-                                    behavior: SnackBarBehavior.floating,
-                                  ),
+                                _membershipTier,
+                              )) {
+                                await showMembershipSoftPaywall(
+                                  context,
+                                  title: '农历提醒',
+                                  message:
+                                      '农历生日提醒是基础版功能，升级即可使用',
+                                  primaryLabel: '升级会员',
+                                  onTierChanged: _reloadMembershipTier,
                                 );
                                 return;
                               }
@@ -1616,13 +1588,38 @@ class _EventAddPageState extends State<EventAddPage> {
                     const SizedBox(height: 10),
                     if (MembershipService.benefits(_membershipTier).photosPerEvent ==
                         0)
-                      Text(
-                        '当前版本不支持事件照片，升级基础版及以上可上传。',
-                        style: TextStyle(
-                          fontSize: 14,
-                          height: 1.35,
-                          color: Colors.grey.shade600,
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _PhotoSlot(
+                              icon: Icons.photo_library_outlined,
+                              label: '手机相册',
+                              onTap: () => showMembershipSoftPaywall(
+                                context,
+                                title: '上传照片',
+                                message:
+                                    '照片上传是会员功能，升级基础版即可使用',
+                                primaryLabel: '升级会员',
+                                onTierChanged: _reloadMembershipTier,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _PhotoSlot(
+                              icon: Icons.photo_camera_outlined,
+                              label: '拍照',
+                              onTap: () => showMembershipSoftPaywall(
+                                context,
+                                title: '上传照片',
+                                message:
+                                    '照片上传是会员功能，升级基础版即可使用',
+                                primaryLabel: '升级会员',
+                                onTierChanged: _reloadMembershipTier,
+                              ),
+                            ),
+                          ),
+                        ],
                       )
                     else
                       Row(

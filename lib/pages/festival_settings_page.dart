@@ -10,6 +10,7 @@ import 'package:time_calendar/services/festival_service.dart';
 import 'package:time_calendar/services/festival_data_loader.dart';
 import 'package:time_calendar/services/membership_service.dart';
 import 'package:time_calendar/services/notification_service.dart';
+import 'package:time_calendar/widgets/membership_soft_paywall.dart';
 
 import 'ethnic_festival_data.dart';
 
@@ -364,6 +365,9 @@ class _FestivalSettingsPageState extends State<FestivalSettingsPage> {
 
   MembershipTier _membershipTier = MembershipTier.free;
 
+  /// 降级后静默保留的民族/宗教节日（仍参与日历绘制，不参与推送）。
+  Set<String> _hiddenFestivalIds = {};
+
   /// 公历：按日期顺序 12 项（母亲节/父亲节为浮动周日）；与设计稿 1–12 一致。
   static final List<FestivalItem> _gregorianSeed = [
     FestivalItem(
@@ -614,16 +618,6 @@ class _FestivalSettingsPageState extends State<FestivalSettingsPage> {
     return n;
   }
 
-  void _showMembershipSnack(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
   void _enforceFreeTierEthnicReligiousSubscriptions() {
     if (_membershipTier != MembershipTier.free) return;
     for (final list in _ethnicFestivalsById.values) {
@@ -689,6 +683,32 @@ class _FestivalSettingsPageState extends State<FestivalSettingsPage> {
     }
   }
 
+  String _ethnicPaywallMessage() {
+    final basic = MembershipConfig.benefits[MembershipTier.basic]!;
+    final prem = MembershipConfig.benefits[MembershipTier.premium]!;
+    switch (_membershipTier) {
+      case MembershipTier.free:
+        return '免费版可订阅 3 个民族节日，升级基础版可订阅 8 个 ¥${basic.priceMonthly}/月';
+      case MembershipTier.basic:
+        return '基础版可订阅 8 个民族节日，升级高级版可订阅 20 个 ¥${prem.priceMonthly}/月';
+      case MembershipTier.premium:
+        return '民族节日订阅已达上限';
+    }
+  }
+
+  String _religiousPaywallMessage() {
+    final basic = MembershipConfig.benefits[MembershipTier.basic]!;
+    final prem = MembershipConfig.benefits[MembershipTier.premium]!;
+    switch (_membershipTier) {
+      case MembershipTier.free:
+        return '免费版可订阅 3 个宗教节日，升级基础版可订阅 8 个 ¥${basic.priceMonthly}/月';
+      case MembershipTier.basic:
+        return '基础版可订阅 8 个宗教节日，升级高级版不限名额 ¥${prem.priceMonthly}/月';
+      case MembershipTier.premium:
+        return '宗教节日订阅已达上限';
+    }
+  }
+
   void _onCategorySwitchChanged(FestivalCategory c, bool v) {
     setState(() {
       if (c.id == 'gregorian') {
@@ -722,12 +742,20 @@ class _FestivalSettingsPageState extends State<FestivalSettingsPage> {
     final row = _ethnicFestivalsById[ethnicId]?[index];
     if (row == null || !row.calendarEligible) return;
 
+    if (_hiddenFestivalIds.contains(row.id)) {
+      return;
+    }
+
     if (_membershipTier == MembershipTier.free) {
       if (MembershipRecommendedFestivals.ethnicIds.contains(row.id)) {
         return;
       }
       if (v) {
-        _showMembershipSnack('升级基础版可自选更多民族节日');
+        showMembershipSoftPaywall(
+          context,
+          title: '民族节日',
+          message: _ethnicPaywallMessage(),
+        );
       }
       return;
     }
@@ -745,7 +773,11 @@ class _FestivalSettingsPageState extends State<FestivalSettingsPage> {
       final excludingCur =
           _ethnicOnCount - (row.isSubscribed ? 1 : 0);
       if (MembershipService.remainingEthnicQuota(_membershipTier, excludingCur) <= 0) {
-        _showMembershipSnack('民族节日订阅已达上限');
+        showMembershipSoftPaywall(
+          context,
+          title: '民族节日',
+          message: _ethnicPaywallMessage(),
+        );
         return;
       }
     }
@@ -778,12 +810,20 @@ class _FestivalSettingsPageState extends State<FestivalSettingsPage> {
     final row = _religionGroups[gIndex].festivals[index];
     if (!row.calendarEligible) return;
 
+    if (_hiddenFestivalIds.contains(row.id)) {
+      return;
+    }
+
     if (_membershipTier == MembershipTier.free) {
       if (MembershipRecommendedFestivals.religiousIds.contains(row.id)) {
         return;
       }
       if (v) {
-        _showMembershipSnack('升级基础版可自选更多宗教节日');
+        showMembershipSoftPaywall(
+          context,
+          title: '宗教节日',
+          message: _religiousPaywallMessage(),
+        );
       }
       return;
     }
@@ -806,7 +846,11 @@ class _FestivalSettingsPageState extends State<FestivalSettingsPage> {
             excludingCur,
           ) <=
           0) {
-        _showMembershipSnack('宗教节日订阅已达上限');
+        showMembershipSoftPaywall(
+          context,
+          title: '宗教节日',
+          message: _religiousPaywallMessage(),
+        );
         return;
       }
     }
@@ -824,7 +868,11 @@ class _FestivalSettingsPageState extends State<FestivalSettingsPage> {
 
     if (_membershipTier == MembershipTier.free) {
       if (v) {
-        _showMembershipSnack('升级基础版可自选更多宗教节日');
+        showMembershipSoftPaywall(
+          context,
+          title: '宗教节日',
+          message: _religiousPaywallMessage(),
+        );
       }
       return;
     }
@@ -832,7 +880,7 @@ class _FestivalSettingsPageState extends State<FestivalSettingsPage> {
     setState(() {
       if (!v) {
         for (final f in g.festivals) {
-          if (f.calendarEligible) {
+          if (f.calendarEligible && !_hiddenFestivalIds.contains(f.id)) {
             f.isSubscribed = false;
           }
         }
@@ -843,6 +891,7 @@ class _FestivalSettingsPageState extends State<FestivalSettingsPage> {
           MembershipService.benefits(_membershipTier).religiousFestivalQuota;
       for (final f in g.festivals) {
         if (!f.calendarEligible) continue;
+        if (_hiddenFestivalIds.contains(f.id)) continue;
         if (f.isSubscribed) continue;
         if (quota != -1) {
           if (MembershipService.remainingReligiousQuota(
@@ -888,7 +937,12 @@ class _FestivalSettingsPageState extends State<FestivalSettingsPage> {
   Future<void> _loadSubscriptions() async {
     final prefs = await SharedPreferences.getInstance();
     final jsonStr = prefs.getString(_kFestivalSubscriptionsKey);
+    final hidden = await MembershipService.loadHiddenFestivalIds();
     if (!mounted) return;
+
+    setState(() {
+      _hiddenFestivalIds = hidden;
+    });
 
     if (jsonStr == null) {
       setState(() {
@@ -900,17 +954,56 @@ class _FestivalSettingsPageState extends State<FestivalSettingsPage> {
     }
 
     try {
-      final subscribed =
+      final activeOnly =
           (jsonDecode(jsonStr) as List).cast<String>().toSet();
+      if (!mounted) return;
       setState(() {
-        _applySubscriptionSet(subscribed);
+        _applySubscriptionSet({...activeOnly, ...hidden});
+        if (_membershipTier == MembershipTier.free) {
+          _enforceFreeTierEthnicReligiousSubscriptions();
+        }
       });
     } catch (_) {
+      if (!mounted) return;
       setState(() {
         _applySubscriptionSet(FestivalService.kDefaultSubscribedIds);
       });
     }
-    await _saveSubscriptions();
+  }
+
+  Future<void> _saveSubscriptions() async {
+    if (_membershipTier == MembershipTier.free) {
+      _enforceFreeTierEthnicReligiousSubscriptions();
+    }
+    final subscribed = <String>{};
+    for (final f in _gregorianItems) {
+      if (f.isSubscribed) subscribed.add(f.id);
+    }
+    for (final f in _lunarItems) {
+      if (f.isSubscribed) subscribed.add(f.id);
+    }
+    for (final list in _ethnicFestivalsById.values) {
+      for (final f in list) {
+        if (f.calendarEligible && f.isSubscribed) subscribed.add(f.id);
+      }
+    }
+    for (final g in _religionGroups) {
+      for (final f in g.festivals) {
+        if (f.calendarEligible && f.isSubscribed) subscribed.add(f.id);
+      }
+    }
+    await MembershipService.persistFestivalsFromFullUserIntent(subscribed);
+    final hidden = await MembershipService.loadHiddenFestivalIds();
+    if (!mounted) return;
+    setState(() {
+      _hiddenFestivalIds = hidden;
+      if (_membershipTier == MembershipTier.free) {
+        _enforceFreeTierEthnicReligiousSubscriptions();
+      }
+    });
+    if (_festivalReminderEnabled) {
+      await NotificationService.scheduleUpcomingFestivalReminders();
+    }
   }
 
   Future<void> _onRestoreDefaultSubscriptions() async {
@@ -937,38 +1030,6 @@ class _FestivalSettingsPageState extends State<FestivalSettingsPage> {
       _applySubscriptionSet(FestivalService.kDefaultSubscribedIds);
     });
     await _saveSubscriptions();
-  }
-
-  Future<void> _saveSubscriptions() async {
-    if (_membershipTier == MembershipTier.free) {
-      _enforceFreeTierEthnicReligiousSubscriptions();
-    }
-    final subscribed = <String>{};
-    for (final f in _gregorianItems) {
-      if (f.isSubscribed) subscribed.add(f.id);
-    }
-    for (final f in _lunarItems) {
-      if (f.isSubscribed) subscribed.add(f.id);
-    }
-    for (final list in _ethnicFestivalsById.values) {
-      for (final f in list) {
-        if (f.calendarEligible && f.isSubscribed) subscribed.add(f.id);
-      }
-    }
-    for (final g in _religionGroups) {
-      for (final f in g.festivals) {
-        if (f.calendarEligible && f.isSubscribed) subscribed.add(f.id);
-      }
-    }
-    final list = subscribed.toList()..sort();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kFestivalSubscriptionsKey, jsonEncode(list));
-    if (_membershipTier == MembershipTier.free && mounted) {
-      setState(() {});
-    }
-    if (_festivalReminderEnabled) {
-      await NotificationService.scheduleUpcomingFestivalReminders();
-    }
   }
 
   Future<void> _loadReminderEnabled() async {
@@ -1343,6 +1404,7 @@ class _FestivalSettingsPageState extends State<FestivalSettingsPage> {
                               : e.value.id == 'ethnic'
                               ? _EthnicFestivalListBody(
                                   membershipTier: _membershipTier,
+                                  hiddenSilentIds: _hiddenFestivalIds,
                                   colorScheme: cs,
                                   textTheme: textTheme,
                                   searchQuery: _ethnicQuery,
@@ -1361,6 +1423,7 @@ class _FestivalSettingsPageState extends State<FestivalSettingsPage> {
                               : e.value.id == 'religious'
                               ? _ReligiousFestivalListBody(
                                   membershipTier: _membershipTier,
+                                  hiddenSilentIds: _hiddenFestivalIds,
                                   categoryEnabled: true,
                                   colorScheme: cs,
                                   textTheme: textTheme,
@@ -1918,6 +1981,7 @@ void _reorderZangAfterZhuang(List<EthnicGroup> list) {
 class _EthnicFestivalListBody extends StatefulWidget {
   const _EthnicFestivalListBody({
     required this.membershipTier,
+    required this.hiddenSilentIds,
     required this.colorScheme,
     required this.textTheme,
     required this.searchQuery,
@@ -1931,6 +1995,7 @@ class _EthnicFestivalListBody extends StatefulWidget {
   });
 
   final MembershipTier membershipTier;
+  final Set<String> hiddenSilentIds;
   final ColorScheme colorScheme;
   final TextTheme textTheme;
   final String searchQuery;
@@ -2093,6 +2158,7 @@ class _EthnicFestivalListBodyState extends State<_EthnicFestivalListBody> {
                 for (final g in selectedEthnic)
                   _EthnicGroupFestivalBlock(
                     membershipTier: widget.membershipTier,
+                    hiddenSilentIds: widget.hiddenSilentIds,
                     group: g,
                     festivals: widget.festivalsById[g.id] ?? const [],
                     expanded: widget.blockExpanded[g.id] ?? true,
@@ -2277,21 +2343,23 @@ class _EthnicFestivalListBodyState extends State<_EthnicFestivalListBody> {
                               ethnicBadgeName: displayFestivals[hi].ethnicName,
                               colorScheme: cs,
                               textTheme: tt,
-                              showRecommendedTag:
-                                  MembershipRecommendedFestivals.ethnicIds
-                                      .contains(displayFestivals[hi].festival.id),
-                              onChanged: widget.membershipTier ==
+                              silentRetained: widget.hiddenSilentIds
+                                  .contains(displayFestivals[hi].festival.id),
+                              freeRecommendedLocked:
+                                  widget.membershipTier ==
                                           MembershipTier.free &&
                                       MembershipRecommendedFestivals.ethnicIds
                                           .contains(displayFestivals[hi]
                                               .festival
-                                              .id)
-                                  ? null
-                                  : (v) => widget.onFestivalSwitch(
-                                        displayFestivals[hi].ethnicId,
-                                        displayFestivals[hi].festivalIndex,
-                                        v,
-                                      ),
+                                              .id),
+                              showRecommendedTag:
+                                  MembershipRecommendedFestivals.ethnicIds
+                                      .contains(displayFestivals[hi].festival.id),
+                              onChanged: (v) => widget.onFestivalSwitch(
+                                displayFestivals[hi].ethnicId,
+                                displayFestivals[hi].festivalIndex,
+                                v,
+                              ),
                             ),
                           ),
                         ],
@@ -2310,6 +2378,7 @@ class _EthnicFestivalListBodyState extends State<_EthnicFestivalListBody> {
 class _EthnicGroupFestivalBlock extends StatelessWidget {
   const _EthnicGroupFestivalBlock({
     required this.membershipTier,
+    required this.hiddenSilentIds,
     required this.group,
     required this.festivals,
     required this.expanded,
@@ -2320,6 +2389,7 @@ class _EthnicGroupFestivalBlock extends StatelessWidget {
   });
 
   final MembershipTier membershipTier;
+  final Set<String> hiddenSilentIds;
   final EthnicGroup group;
   final List<EthnicFestival> festivals;
   final bool expanded;
@@ -2408,16 +2478,17 @@ class _EthnicGroupFestivalBlock extends StatelessWidget {
                                 item: festivals[i],
                                 colorScheme: cs,
                                 textTheme: textTheme,
+                                silentRetained:
+                                    hiddenSilentIds.contains(festivals[i].id),
+                                freeRecommendedLocked:
+                                    membershipTier == MembershipTier.free &&
+                                        MembershipRecommendedFestivals
+                                            .ethnicIds
+                                            .contains(festivals[i].id),
                                 showRecommendedTag:
                                     MembershipRecommendedFestivals.ethnicIds
                                         .contains(festivals[i].id),
-                                onChanged: membershipTier ==
-                                            MembershipTier.free &&
-                                        MembershipRecommendedFestivals
-                                            .ethnicIds
-                                            .contains(festivals[i].id)
-                                    ? null
-                                    : (v) => onFestivalSwitch(i, v),
+                                onChanged: (v) => onFestivalSwitch(i, v),
                               ),
                             ),
                           ],
@@ -2439,6 +2510,8 @@ class _EthnicFestivalRow extends StatelessWidget {
     required this.textTheme,
     this.ethnicBadgeName,
     this.showRecommendedTag = false,
+    this.silentRetained = false,
+    this.freeRecommendedLocked = false,
     this.onChanged,
   });
 
@@ -2448,6 +2521,8 @@ class _EthnicFestivalRow extends StatelessWidget {
   /// 搜索结果模式下显示民族小标签（如「藏族」）。
   final String? ethnicBadgeName;
   final bool showRecommendedTag;
+  final bool silentRetained;
+  final bool freeRecommendedLocked;
   final ValueChanged<bool>? onChanged;
 
   @override
@@ -2457,9 +2532,23 @@ class _EthnicFestivalRow extends StatelessWidget {
       color: item.isCultureOnly ? cs.onSurfaceVariant : cs.onSurface,
       fontWeight: FontWeight.w400,
     );
+    final effectiveNameStyle =
+        (silentRetained || freeRecommendedLocked) && !item.isCultureOnly
+            ? textTheme.bodyLarge?.copyWith(
+                color: const Color(0xFF94A3B8),
+                fontWeight: FontWeight.w400,
+              )
+            : nameStyle;
     final cal = item.ethnicCalendar.trim();
-    return SizedBox(
-      height: 64,
+    final lockedInteraction = silentRetained || freeRecommendedLocked;
+
+    ValueChanged<bool>? effectiveOnChanged;
+    if (item.calendarEligible) {
+      effectiveOnChanged = lockedInteraction ? null : onChanged;
+    }
+
+    Widget inner = Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -2480,7 +2569,7 @@ class _EthnicFestivalRow extends StatelessWidget {
                           item.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: nameStyle,
+                          style: effectiveNameStyle,
                         ),
                       ),
                       if ((ethnicBadgeName ?? '').trim().isNotEmpty) ...[
@@ -2580,7 +2669,19 @@ class _EthnicFestivalRow extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: textTheme.bodySmall?.copyWith(
-                        color: cs.onSurfaceVariant,
+                        color: silentRetained
+                            ? const Color(0xFF94A3B8)
+                            : cs.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                  if (silentRetained) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      '升级后可恢复提醒',
+                      style: textTheme.bodySmall?.copyWith(
+                        fontSize: 12,
+                        color: const Color(0xFF94A3B8),
                       ),
                     ),
                   ],
@@ -2590,13 +2691,28 @@ class _EthnicFestivalRow extends StatelessWidget {
           ),
           Switch.adaptive(
             value: item.calendarEligible ? item.isSubscribed : false,
-            onChanged:
-                item.calendarEligible ? onChanged : null,
+            onChanged: effectiveOnChanged,
             activeTrackColor: cs.primary,
             activeThumbColor: cs.onPrimary,
           ),
         ],
       ),
+    );
+
+    if (silentRetained || freeRecommendedLocked) {
+      inner = Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: inner,
+      );
+    }
+
+    return Opacity(
+      opacity: silentRetained ? 0.6 : 1,
+      child: inner,
     );
   }
 }
@@ -2608,6 +2724,7 @@ const Color _kReligionTitleBlue = Color(0xFF1E40AF);
 class _ReligiousFestivalListBody extends StatelessWidget {
   const _ReligiousFestivalListBody({
     required this.membershipTier,
+    required this.hiddenSilentIds,
     required this.categoryEnabled,
     required this.colorScheme,
     required this.textTheme,
@@ -2618,6 +2735,7 @@ class _ReligiousFestivalListBody extends StatelessWidget {
   });
 
   final MembershipTier membershipTier;
+  final Set<String> hiddenSilentIds;
   final bool categoryEnabled;
   final ColorScheme colorScheme;
   final TextTheme textTheme;
@@ -2646,6 +2764,7 @@ class _ReligiousFestivalListBody extends StatelessWidget {
                   _ReligionCard(
                     group: religionGroups[i],
                     membershipTier: membershipTier,
+                    hiddenSilentIds: hiddenSilentIds,
                     categoryEnabled: categoryEnabled,
                     colorScheme: cs,
                     textTheme: textTheme,
@@ -2668,6 +2787,7 @@ class _ReligionCard extends StatelessWidget {
   const _ReligionCard({
     required this.group,
     required this.membershipTier,
+    required this.hiddenSilentIds,
     required this.categoryEnabled,
     required this.colorScheme,
     required this.textTheme,
@@ -2678,6 +2798,7 @@ class _ReligionCard extends StatelessWidget {
 
   final ReligionGroup group;
   final MembershipTier membershipTier;
+  final Set<String> hiddenSilentIds;
   final bool categoryEnabled;
   final ColorScheme colorScheme;
   final TextTheme textTheme;
@@ -2807,19 +2928,22 @@ class _ReligionCard extends StatelessWidget {
                                     item: group.festivals[i],
                                     colorScheme: cs,
                                     textTheme: textTheme,
+                                    silentRetained: hiddenSilentIds
+                                        .contains(group.festivals[i].id),
+                                    freeRecommendedLocked:
+                                        membershipTier == MembershipTier.free &&
+                                            MembershipRecommendedFestivals
+                                                .religiousIds
+                                                .contains(
+                                                  group.festivals[i].id,
+                                                ),
                                     showRecommendedTag:
                                         MembershipRecommendedFestivals
                                             .religiousIds
                                             .contains(
                                               group.festivals[i].id,
                                             ),
-                                    onChanged: categoryEnabled &&
-                                            !(membershipTier ==
-                                                    MembershipTier.free &&
-                                                MembershipRecommendedFestivals
-                                                    .religiousIds
-                                                    .contains(
-                                                      group.festivals[i].id))
+                                    onChanged: categoryEnabled
                                         ? (v) => onFestivalSwitch(i, v)
                                         : null,
                                   ),
@@ -2842,6 +2966,8 @@ class _ReligiousFestivalRow extends StatelessWidget {
     required this.colorScheme,
     required this.textTheme,
     this.showRecommendedTag = false,
+    this.silentRetained = false,
+    this.freeRecommendedLocked = false,
     this.onChanged,
   });
 
@@ -2849,6 +2975,8 @@ class _ReligiousFestivalRow extends StatelessWidget {
   final ColorScheme colorScheme;
   final TextTheme textTheme;
   final bool showRecommendedTag;
+  final bool silentRetained;
+  final bool freeRecommendedLocked;
   final ValueChanged<bool>? onChanged;
 
   @override
@@ -2858,9 +2986,23 @@ class _ReligiousFestivalRow extends StatelessWidget {
       color: item.isCultureOnly ? cs.onSurfaceVariant : cs.onSurface,
       fontWeight: FontWeight.w400,
     );
+    final effectiveNameStyle =
+        (silentRetained || freeRecommendedLocked) && !item.isCultureOnly
+            ? textTheme.bodyLarge?.copyWith(
+                color: const Color(0xFF94A3B8),
+                fontWeight: FontWeight.w400,
+              )
+            : nameStyle;
     final cal = item.calendarDate.trim();
-    return SizedBox(
-      height: 64,
+    final lockedInteraction = silentRetained || freeRecommendedLocked;
+
+    ValueChanged<bool>? effectiveOnChanged;
+    if (item.calendarEligible) {
+      effectiveOnChanged = lockedInteraction ? null : onChanged;
+    }
+
+    Widget inner = Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -2881,7 +3023,7 @@ class _ReligiousFestivalRow extends StatelessWidget {
                           item.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: nameStyle,
+                          style: effectiveNameStyle,
                         ),
                       ),
                       if (showRecommendedTag) ...[
@@ -2964,7 +3106,19 @@ class _ReligiousFestivalRow extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: textTheme.bodySmall?.copyWith(
-                        color: cs.onSurfaceVariant,
+                        color: silentRetained
+                            ? const Color(0xFF94A3B8)
+                            : cs.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                  if (silentRetained) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      '升级后可恢复提醒',
+                      style: textTheme.bodySmall?.copyWith(
+                        fontSize: 12,
+                        color: const Color(0xFF94A3B8),
                       ),
                     ),
                   ],
@@ -2974,12 +3128,28 @@ class _ReligiousFestivalRow extends StatelessWidget {
           ),
           Switch.adaptive(
             value: item.calendarEligible ? item.isSubscribed : false,
-            onChanged: item.calendarEligible ? onChanged : null,
+            onChanged: effectiveOnChanged,
             activeTrackColor: cs.primary,
             activeThumbColor: cs.onPrimary,
           ),
         ],
       ),
+    );
+
+    if (silentRetained || freeRecommendedLocked) {
+      inner = Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: inner,
+      );
+    }
+
+    return Opacity(
+      opacity: silentRetained ? 0.6 : 1,
+      child: inner,
     );
   }
 }

@@ -8,6 +8,8 @@ class FestivalSubscriptionPrefs {
   FestivalSubscriptionPrefs._();
 
   static const String storageKey = 'festival_subscriptions';
+  /// 降级后超出档位名额、仍显示在日历但**不推节日提醒**的节日 id。
+  static const String hiddenSilentKey = 'festival_hidden_silent_ids';
 }
 
 /// 节日推算（公历固定、公历浮动、农历、民族历种子、宗教历种子）。

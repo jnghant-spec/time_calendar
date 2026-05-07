@@ -1,11 +1,14 @@
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 import 'package:time_calendar/models/calendar_festival.dart';
+import 'package:time_calendar/pages/membership_sheet.dart';
 import 'package:time_calendar/services/festival_service.dart';
+import 'package:time_calendar/services/membership_service.dart';
 
 class NotificationService {
   NotificationService._();
@@ -13,9 +16,15 @@ class NotificationService {
   static final FlutterLocalNotificationsPlugin _notifications =
       FlutterLocalNotificationsPlugin();
 
+  static GlobalKey<NavigatorState>? _navigatorKey;
+
   static const String _kFestivalReminderKey = 'festival_reminder_enabled';
 
-  static Future<void> init() async {
+  static const int _trialReminderNotifId = 920001;
+
+  static Future<void> init({GlobalKey<NavigatorState>? navigatorKey}) async {
+    _navigatorKey = navigatorKey;
+
     const androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosSettings = DarwinInitializationSettings(
@@ -27,7 +36,10 @@ class NotificationService {
       android: androidSettings,
       iOS: iosSettings,
     );
-    await _notifications.initialize(initSettings);
+    await _notifications.initialize(
+      initSettings,
+      onDidReceiveNotificationResponse: _onNotificationResponse,
+    );
 
     final platform = _notifications
         .resolvePlatformSpecificImplementation<
@@ -44,6 +56,14 @@ class NotificationService {
         badge: true,
         sound: true,
       );
+    }
+  }
+
+  static void _onNotificationResponse(NotificationResponse response) {
+    if (response.payload != 'trial_end_reminder') return;
+    final ctx = _navigatorKey?.currentContext;
+    if (ctx != null && ctx.mounted) {
+      showMembershipSheet(ctx);
     }
   }
 
@@ -124,6 +144,8 @@ class NotificationService {
       }
     }
 
+    await schedulePremiumTrialEndingReminder();
+
     // ignore: avoid_print
     print('推送调度完成，共 ${unique.length} 个节日');
     for (final f in unique) {
@@ -137,6 +159,48 @@ class NotificationService {
       // ignore: avoid_print
       print('节日: ${f.name}, 计划推送时间: $trigger');
     }
+  }
+
+  /// 体验结束前 48 小时提醒（第 5 天结束时触发，约在结束前整 48 小时）。
+  static Future<void> schedulePremiumTrialEndingReminder() async {
+    if (!await isReminderEnabled()) return;
+    await _notifications.cancel(_trialReminderNotifId);
+
+    final endMs = await MembershipService.trialEndMillis();
+    if (endMs == null) return;
+    if (!await MembershipService.isPremiumTrialActive()) return;
+
+    final endDt = DateTime.fromMillisecondsSinceEpoch(endMs);
+    final fireAt = endDt.subtract(const Duration(hours: 48));
+    final now = DateTime.now();
+    if (!fireAt.isAfter(now)) return;
+
+    final scheduled = tz.TZDateTime.from(fireAt, tz.local);
+    await _notifications.zonedSchedule(
+      _trialReminderNotifId,
+      '时光日历',
+      '你的高级体验将在 2 天后结束，订阅基础版 ¥4.99/月 即可保留全部功能',
+      scheduled,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'trial_channel',
+          '会员体验',
+          channelDescription: '高级体验即将结束提醒',
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      ),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      payload: 'trial_end_reminder',
+    );
+    await MembershipService.setTrialPushScheduled(true);
   }
 
   static Future<void> _scheduleNotification({

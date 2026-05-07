@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:time_calendar/models/list_event.dart';
 import 'package:time_calendar/models/membership_tier.dart';
+import 'package:time_calendar/pages/contact_import_page.dart';
 import 'package:time_calendar/pages/membership_sheet.dart';
 import 'package:time_calendar/pages/personal_info_page.dart';
 import 'package:time_calendar/pages/festival_settings_page.dart';
@@ -12,7 +14,16 @@ import 'package:time_calendar/services/membership_service.dart';
 import 'package:time_calendar/services/user_session.dart';
 
 class ProfilePage extends StatefulWidget {
-  const ProfilePage({super.key});
+  const ProfilePage({
+    super.key,
+    this.onMembershipTierChanged,
+    this.existingEvents = const [],
+    this.onBirthdaysImported,
+  });
+
+  final VoidCallback? onMembershipTierChanged;
+  final List<ListEvent> existingEvents;
+  final ValueChanged<List<ListEvent>>? onBirthdaysImported;
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -20,22 +31,36 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   MembershipTier _tier = MembershipTier.free;
+  bool _trialActive = false;
+  int? _trialDays;
 
   @override
   void initState() {
     super.initState();
     _reloadTier();
+    // `maybeOfferNewUserPremiumTrial` 在首帧后异步写入 prefs，再读一次避免短暂显示非体验状态。
+    WidgetsBinding.instance.addPostFrameCallback((_) => _reloadTier());
   }
 
   Future<void> _reloadTier() async {
     final t = await MembershipService.currentTier();
-    if (mounted) setState(() => _tier = t);
+    final trialOn = await MembershipService.isPremiumTrialActive();
+    final days = await MembershipService.trialRemainingWholeDays();
+    if (!mounted) return;
+    setState(() {
+      _tier = t;
+      _trialActive = trialOn;
+      _trialDays = trialOn ? days : null;
+    });
   }
 
   Future<void> _openMembershipSheet() async {
     await showMembershipSheet(
       context,
-      onTierChanged: _reloadTier,
+      onTierChanged: () {
+        widget.onMembershipTierChanged?.call();
+        _reloadTier();
+      },
     );
     await _reloadTier();
   }
@@ -82,6 +107,9 @@ class _ProfilePageState extends State<ProfilePage> {
                 eventCap: quota,
                 membershipTitle:
                     '${MembershipConfig.benefits[_tier]!.label}会员',
+                trialBadgeText: _trialActive && _trialDays != null
+                    ? '高级体验还剩 $_trialDays 天'
+                    : null,
                 onMembershipTap: _openMembershipSheet,
               ),
               Expanded(
@@ -106,6 +134,8 @@ class _ProfilePageState extends State<ProfilePage> {
                       _FeatureMenu(
                         colorScheme: cs,
                         textTheme: textTheme,
+                        existingEvents: widget.existingEvents,
+                        onBirthdaysImported: widget.onBirthdaysImported,
                       ),
                     ],
                   ),
@@ -171,6 +201,7 @@ class _ProfileHeader extends StatelessWidget {
     required this.usedEvents,
     required this.eventCap,
     required this.membershipTitle,
+    this.trialBadgeText,
     required this.onMembershipTap,
   });
 
@@ -184,6 +215,7 @@ class _ProfileHeader extends StatelessWidget {
   final int usedEvents;
   final int eventCap;
   final String membershipTitle;
+  final String? trialBadgeText;
   final VoidCallback onMembershipTap;
 
   @override
@@ -311,6 +343,27 @@ class _ProfileHeader extends StatelessWidget {
                             ),
                           ),
                         ),
+                        if ((trialBadgeText ?? '').isNotEmpty) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFFBEB),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              trialBadgeText!,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF92400E),
+                              ),
+                            ),
+                          ),
+                        ],
                         Icon(
                           Icons.chevron_right,
                           size: 18,
@@ -380,10 +433,14 @@ class _FeatureMenu extends StatelessWidget {
   const _FeatureMenu({
     required this.colorScheme,
     required this.textTheme,
+    required this.existingEvents,
+    this.onBirthdaysImported,
   });
 
   final ColorScheme colorScheme;
   final TextTheme textTheme;
+  final List<ListEvent> existingEvents;
+  final ValueChanged<List<ListEvent>>? onBirthdaysImported;
 
   @override
   Widget build(BuildContext context) {
@@ -392,6 +449,11 @@ class _FeatureMenu extends StatelessWidget {
         asset: 'assets/images/ic_personal.svg',
         title: '个人信息',
         subtitle: '头像、昵称设置',
+      ),
+      _MenuItemData(
+        asset: 'assets/images/ic_contacts.svg',
+        title: '从通讯录导入生日',
+        subtitle: '批量创建每年循环生日（高级版）',
       ),
       _MenuItemData(
         asset: 'assets/images/ic_share.svg',
@@ -425,6 +487,19 @@ class _FeatureMenu extends StatelessWidget {
                     builder: (context) => const PersonalInfoPage(),
                   ),
                 );
+              } else if (items[i].title == '从通讯录导入生日') {
+                Navigator.of(context)
+                    .push<List<ListEvent>>(
+                  MaterialPageRoute<List<ListEvent>>(
+                    builder: (context) => ContactImportPage(
+                      existingEvents: existingEvents,
+                    ),
+                  ),
+                )
+                    .then((added) {
+                  if (added == null || added.isEmpty) return;
+                  onBirthdaysImported?.call(added);
+                });
               } else if (items[i].title == '共享管理') {
                 Navigator.of(context).push<void>(
                   MaterialPageRoute<void>(

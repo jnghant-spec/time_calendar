@@ -3,7 +3,10 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:time_calendar/models/list_event.dart';
 import 'package:time_calendar/pages/calendar_page.dart';
 import 'package:time_calendar/pages/list_page.dart';
+import 'package:time_calendar/pages/membership_sheet.dart';
 import 'package:time_calendar/pages/profile_page.dart';
+import 'package:time_calendar/services/event_usage_service.dart';
+import 'package:time_calendar/services/membership_service.dart';
 
 class MainNavigationPage extends StatefulWidget {
   const MainNavigationPage({super.key, this.initialIndex = 0})
@@ -181,6 +184,44 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
     super.initState();
     _currentIndex = widget.initialIndex;
     _globalEvents = _initialGlobalMockEvents();
+    EventUsageService.updateCount(_globalEvents.length);
+    MembershipService.syncArchivedEventsForTier(_globalEvents);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowTrialEndedSnack());
+  }
+
+  Future<void> _maybeShowTrialEndedSnack() async {
+    if (!mounted) return;
+    if (!await MembershipService.consumeTrialEndedBannerFlag()) return;
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text(
+          '高级体验已结束，已为你保留全部订阅设置，升级即可恢复提醒',
+        ),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 5),
+        action: SnackBarAction(
+          label: '查看会员',
+          textColor: const Color(0xFF60A5FA),
+          onPressed: () {
+            showMembershipSheet(context);
+          },
+        ),
+      ),
+    );
+  }
+
+  void _onEventsChanged(List<ListEvent> updated) {
+    setState(() => _globalEvents = updated);
+    MembershipService.syncArchivedEventsForTier(updated);
+    EventUsageService.updateCount(updated.length);
+  }
+
+  void _onMembershipTierChanged() {
+    MembershipService.syncArchivedEventsForTier(_globalEvents);
+    MembershipService.reconcileFestivalSubscriptions();
+    if (!mounted) return;
+    setState(() {});
   }
 
   final List<String> _labels = const ['日历', '清单', '我的'];
@@ -198,10 +239,16 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
       case 1:
         return ListPage(
           initialEvents: _globalEvents,
-          onEventsChanged: (updated) => setState(() => _globalEvents = updated),
+          onEventsChanged: _onEventsChanged,
         );
       case 2:
-        return const ProfilePage();
+        return ProfilePage(
+          existingEvents: _globalEvents,
+          onBirthdaysImported: (imported) {
+            _onEventsChanged([..._globalEvents, ...imported]);
+          },
+          onMembershipTierChanged: _onMembershipTierChanged,
+        );
       default:
         return const SizedBox.shrink();
     }

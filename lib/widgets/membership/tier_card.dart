@@ -14,6 +14,7 @@ class MembershipTierCard extends StatelessWidget {
     required this.onTap,
     this.badgeLabel,
     this.badgeStyle,
+    this.savingsLine,
   });
 
   final MembershipTier tier;
@@ -24,6 +25,8 @@ class MembershipTierCard extends StatelessWidget {
   final VoidCallback onTap;
   final String? badgeLabel;
   final MembershipTierBadgeStyle? badgeStyle;
+  /// 年付时在主价格下展示的节省文案（绿色强调）。
+  final String? savingsLine;
 
   bool get _premiumSelectedFill =>
       tier == MembershipTier.premium && selected;
@@ -103,6 +106,19 @@ class MembershipTierCard extends StatelessWidget {
                         : const Color(0xFF0F172A),
                   ),
                 ),
+                if ((savingsLine ?? '').trim().isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    savingsLine!.trim(),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF15803D),
+                      height: 1.2,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 4),
                 Text(
                   subPriceLabel,

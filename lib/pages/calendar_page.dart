@@ -4,7 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:time_calendar/models/calendar_festival.dart';
 import 'package:time_calendar/models/list_event.dart';
+import 'package:time_calendar/models/membership_tier.dart';
 import 'package:time_calendar/services/festival_service.dart';
+import 'package:time_calendar/services/membership_service.dart';
+import 'package:time_calendar/services/share_service.dart';
 import 'package:time_calendar/utils/event_date_utils.dart';
 import 'package:time_calendar/utils/size_config.dart';
 import 'package:time_calendar/widgets/event_detail_sheet.dart';
@@ -54,9 +57,13 @@ class CalendarPage extends StatefulWidget {
 
   static List<ListEvent> _filteredCalendarEvents(
     Iterable<ListEvent> source,
-    DateTime today,
-  ) {
-    final list = source.where((e) => _isVisibleOnCalendarTimeline(e, today)).toList()
+    DateTime today, {
+    Set<String> archivedIds = const {},
+  }) {
+    final list = source.where((e) {
+      if (archivedIds.contains(e.id)) return false;
+      return _isVisibleOnCalendarTimeline(e, today);
+    }).toList()
       ..sort(_eventSortListEvent);
     return list;
   }
@@ -145,8 +152,11 @@ class _CalendarPageState extends State<CalendarPage> {
   /// 已订阅节日 id；无持久化时用 [FestivalService.kDefaultSubscribedIds]。
   Set<String> _subscribedIds = {};
 
-  /// 避免重复 setState：与上次读取的 JSON 相同时跳过。
+  /// 避免重复 setState：节日 prefs + 归档 id 快照一致时跳过。
   String? _cachedFestivalSubsJson;
+  String _cachedArchiveKey = '';
+
+  Set<String> _archivedEventIds = {};
 
   static const double _kScrollToCompress = 500;
   static const double _kCellExtentHi = 38;
@@ -244,11 +254,19 @@ class _CalendarPageState extends State<CalendarPage> {
     final today = _calendarToday;
     if (_selectedDate != null) {
       return widget.events
-          .where((e) => eventOccursOnGregorianDay(e, _selectedDate!))
+          .where(
+            (e) =>
+                !_archivedEventIds.contains(e.id) &&
+                eventOccursOnGregorianDay(e, _selectedDate!),
+          )
           .toList()
         ..sort(CalendarPage._eventSortListEvent);
     }
-    return CalendarPage._filteredCalendarEvents(widget.events, today);
+    return CalendarPage._filteredCalendarEvents(
+      widget.events,
+      today,
+      archivedIds: _archivedEventIds,
+    );
   }
 
   List<EventReminderData> _timelineReminders(
@@ -286,22 +304,40 @@ class _CalendarPageState extends State<CalendarPage> {
   Future<void> _loadSubscriptions() async {
     final prefs = await SharedPreferences.getInstance();
     final jsonStr = prefs.getString(FestivalSubscriptionPrefs.storageKey);
+    final hiddenStr = prefs.getString(FestivalSubscriptionPrefs.hiddenSilentKey);
+    final archiveSnap =
+        await MembershipService.loadArchivedEventIds();
+    final archiveKey = (archiveSnap.toList()..sort()).join('|');
+    final festivalCacheKey = '$jsonStr|$hiddenStr';
     if (!mounted) return;
-    if (jsonStr == _cachedFestivalSubsJson) return;
-    _cachedFestivalSubsJson = jsonStr;
-    setState(() {
-      if (jsonStr != null) {
-        try {
-          _subscribedIds =
-              (jsonDecode(jsonStr) as List<dynamic>).cast<String>().toSet();
-        } catch (_) {
-          _subscribedIds =
-              Set<String>.from(FestivalService.kDefaultSubscribedIds);
-        }
-      } else {
-        _subscribedIds =
+    if (festivalCacheKey == _cachedFestivalSubsJson &&
+        archiveKey == _cachedArchiveKey) {
+      return;
+    }
+    _cachedFestivalSubsJson = festivalCacheKey;
+    _cachedArchiveKey = archiveKey;
+
+    Set<String> activeOnly;
+    if (jsonStr != null) {
+      try {
+        activeOnly =
+            (jsonDecode(jsonStr) as List<dynamic>).cast<String>().toSet();
+      } catch (_) {
+        activeOnly =
             Set<String>.from(FestivalService.kDefaultSubscribedIds);
       }
+    } else {
+      activeOnly =
+          Set<String>.from(FestivalService.kDefaultSubscribedIds);
+    }
+
+    final merged =
+        await MembershipService.calendarMergedFestivalIds(activeOnly);
+
+    if (!mounted) return;
+    setState(() {
+      _subscribedIds = merged;
+      _archivedEventIds = archiveSnap;
       _loadMonthFestivals();
     });
   }
@@ -371,7 +407,11 @@ class _CalendarPageState extends State<CalendarPage> {
       return merged;
     }
     final user = _timelineReminders(
-      CalendarPage._filteredCalendarEvents(widget.events, today),
+      CalendarPage._filteredCalendarEvents(
+        widget.events,
+        today,
+        archivedIds: _archivedEventIds,
+      ),
     );
     final end = today.add(const Duration(days: 15));
     final fest =
@@ -548,6 +588,55 @@ class _CalendarPageState extends State<CalendarPage> {
                               ],
                             ),
                           ),
+                        FutureBuilder<MembershipTier>(
+                          future: MembershipService.currentTier(),
+                          builder: (context, snapshot) {
+                            final tier = snapshot.data ?? MembershipTier.free;
+                            if (!MembershipService.benefits(tier)
+                                .festivalShareCard) {
+                              return const SizedBox.shrink();
+                            }
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 16),
+                              child: SizedBox(
+                                width: double.infinity,
+                                height: 48,
+                                child: FilledButton.icon(
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: const Color(0xFF1A73E8),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                  ),
+                                  onPressed: () async {
+                                    final navCtx = context;
+                                    Navigator.pop(ctx);
+                                    await Future<void>.delayed(
+                                      const Duration(milliseconds: 120),
+                                    );
+                                    if (!navCtx.mounted) return;
+                                    await ShareService.shareFestivalReminder(
+                                      navCtx,
+                                      e,
+                                      solarStr,
+                                    );
+                                  },
+                                  icon: const Icon(
+                                    Icons.share_outlined,
+                                    color: Colors.white,
+                                  ),
+                                  label: const Text(
+                                    '分享节日卡片',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                       ],
                     ),
                   ),
@@ -563,6 +652,7 @@ class _CalendarPageState extends State<CalendarPage> {
   Map<String, List<Color>> _markerByDay() {
     final m = <String, List<Color>>{};
     for (final e in widget.events) {
+      if (_archivedEventIds.contains(e.id)) continue;
       for (final d in occurrenceDatesInGregorianMonth(e, _viewYear, _viewMonth)) {
         final k = '${d.year}-${d.month}-${d.day}';
         m.putIfAbsent(k, () => []);

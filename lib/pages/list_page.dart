@@ -8,8 +8,10 @@ import 'package:lunar/lunar.dart';
 import 'package:time_calendar/models/list_event.dart';
 import 'package:time_calendar/pages/event_add_page.dart';
 import 'package:time_calendar/services/event_usage_service.dart';
+import 'package:time_calendar/services/membership_service.dart';
 import 'package:time_calendar/theme/app_theme.dart';
 import 'package:time_calendar/utils/event_date_utils.dart';
+import 'package:time_calendar/widgets/membership_soft_paywall.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 与日历节日类 accent（0xFF10B981）一致时「今天」用绿色，否则用事件自身 accent。
@@ -85,6 +87,13 @@ class _ListPageState extends State<ListPage> {
   Timer? _deleteSnackDismissTimer;
   int _deleteSnackSeq = 0;
 
+  Set<String> _archivedIds = {};
+
+  Future<void> _reloadArchivedIds() async {
+    final s = await MembershipService.loadArchivedEventIds();
+    if (mounted) setState(() => _archivedIds = s);
+  }
+
   @override
   void dispose() {
     _deleteSnackDismissTimer?.cancel();
@@ -99,7 +108,9 @@ class _ListPageState extends State<ListPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       widget.onEventsChanged(_events);
+      _reloadArchivedIds();
     });
+    _reloadArchivedIds();
   }
 
   @override
@@ -108,6 +119,7 @@ class _ListPageState extends State<ListPage> {
     if (!identical(widget.initialEvents, oldWidget.initialEvents)) {
       _events = List.from(widget.initialEvents);
       EventUsageService.updateCount(_events.length);
+      _reloadArchivedIds();
     }
   }
 
@@ -384,6 +396,22 @@ class _ListPageState extends State<ListPage> {
   }
 
   Future<void> _openCreateSheet() async {
+    final tier = await MembershipService.currentTier();
+    if (!mounted) return;
+    if (!MembershipService.canCreateReminder(tier, _events.length)) {
+      await showReminderQuotaPaywall(
+        context,
+        onTierChanged: () {
+          if (!mounted) return;
+          EventUsageService.updateCount(_events.length);
+          setState(() {});
+        },
+      );
+      if (!mounted) return;
+      EventUsageService.updateCount(_events.length);
+      setState(() {});
+      return;
+    }
     final result = await Navigator.push<ListEvent>(
       context,
       MaterialPageRoute(
@@ -544,6 +572,7 @@ class _ListPageState extends State<ListPage> {
                         displayDate: displayDate,
                         daysDiff: diff,
                         expiredVisual: expired,
+                        archivedDowngrade: _archivedIds.contains(event.id),
                         weekdayTextBuilder: _weekdayZh,
                         lunarLine: event.isLunarRecurring ? _lunarLine(displayDate) : null,
                         cardShadows: _cardShadows,
@@ -999,6 +1028,7 @@ class _ListEventCard extends StatelessWidget {
     required this.displayDate,
     required this.daysDiff,
     required this.expiredVisual,
+    required this.archivedDowngrade,
     required this.weekdayTextBuilder,
     required this.lunarLine,
     required this.cardShadows,
@@ -1013,6 +1043,7 @@ class _ListEventCard extends StatelessWidget {
   final DateTime displayDate;
   final int daysDiff;
   final bool expiredVisual;
+  final bool archivedDowngrade;
   final String Function(int weekday) weekdayTextBuilder;
   final String? lunarLine;
   final List<BoxShadow> cardShadows;
@@ -1024,19 +1055,22 @@ class _ListEventCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final mutedArchived = archivedDowngrade;
     final titleStyle = TextStyle(
       fontSize: 16,
       fontWeight: FontWeight.w700,
-      color: expiredVisual ? _kExpiredGrey : const Color(0xFF0F172A),
+      color: expiredVisual || mutedArchived ? _kExpiredGrey : const Color(0xFF0F172A),
       height: 1.25,
       letterSpacing: -0.31,
     );
     final dateStyle = TextStyle(
       fontSize: 14,
       fontWeight: FontWeight.w400,
-      color: expiredVisual ? _kExpiredGrey : const Color(0xFF64748B),
+      color: expiredVisual || mutedArchived ? _kExpiredGrey : const Color(0xFF64748B),
       height: 1.2,
     );
+
+    final opacityFactor = mutedArchived ? 0.6 : (expiredVisual ? 0.38 : 1.0);
 
     return Slidable(
       key: ValueKey(event.id),
@@ -1060,7 +1094,7 @@ class _ListEventCard extends StatelessWidget {
             ),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Opacity(
-              opacity: expiredVisual ? 0.38 : 1,
+              opacity: opacityFactor,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -1072,7 +1106,11 @@ class _ListEventCard extends StatelessWidget {
                       shape: BoxShape.circle,
                     ),
                     alignment: Alignment.center,
-                    child: _categoryLeadingIcon(event.category, accent, expiredVisual),
+                    child: _categoryLeadingIcon(
+                      event.category,
+                      accent,
+                      expiredVisual || mutedArchived,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -1095,7 +1133,9 @@ class _ListEventCard extends StatelessWidget {
                               Icon(
                                 Icons.star,
                                 size: 16,
-                                color: expiredVisual ? _kExpiredGrey : _kListStarColor,
+                                color: expiredVisual || mutedArchived
+                                    ? _kExpiredGrey
+                                    : _kListStarColor,
                               ),
                             ],
                           ],
@@ -1117,7 +1157,9 @@ class _ListEventCard extends StatelessWidget {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: expiredVisual ? Colors.grey.shade100 : _kLunarTagBg,
+                                  color: expiredVisual || mutedArchived
+                                      ? Colors.grey.shade100
+                                      : _kLunarTagBg,
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
@@ -1125,7 +1167,9 @@ class _ListEventCard extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w500,
-                                    color: expiredVisual ? _kExpiredGrey : _kLunarTagFg,
+                                    color: expiredVisual || mutedArchived
+                                        ? _kExpiredGrey
+                                        : _kLunarTagFg,
                                     height: 1.2,
                                   ),
                                 ),
@@ -1133,6 +1177,19 @@ class _ListEventCard extends StatelessWidget {
                             ],
                           ],
                         ),
+                        if (mutedArchived) ...[
+                          const SizedBox(height: 6),
+                          const Text(
+                            '已归档 · 当前档位仅显示部分活跃提醒，升级后可恢复',
+                            style: TextStyle(
+                              fontSize: 12,
+                              height: 1.35,
+                              color: Color(0xFF94A3B8),
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ],
                     ),
                   ),

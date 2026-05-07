@@ -37,13 +37,18 @@ class _MembershipSheetState extends State<MembershipSheet> {
   @override
   void initState() {
     super.initState();
-    MembershipService.currentTier().then((t) {
-      if (!mounted) return;
-      setState(() {
-        _actualTier = t;
-        _selectedTier = t;
-        _loaded = true;
-      });
+    _loadSheetState();
+  }
+
+  Future<void> _loadSheetState() async {
+    final t = await MembershipService.currentTier();
+    final bp = await MembershipService.billingPeriod();
+    if (!mounted) return;
+    setState(() {
+      _actualTier = t;
+      _selectedTier = t;
+      _yearly = bp == 'yearly';
+      _loaded = true;
     });
   }
 
@@ -67,6 +72,15 @@ class _MembershipSheetState extends State<MembershipSheet> {
     }
     final perMonth = (b.priceYearly / 12).toStringAsFixed(2);
     return '约合 ¥$perMonth/月';
+  }
+
+  String? _yearlySavingsLine(MembershipTier t) {
+    if (!_yearly || t == MembershipTier.free) return null;
+    final b = MembershipConfig.benefits[t]!;
+    final rawSave = b.priceMonthly * 12 - b.priceYearly;
+    if (rawSave <= 0) return null;
+    final rounded = (rawSave * 10).round() / 10;
+    return '省 ¥$rounded/年';
   }
 
   Future<void> _confirmTierChange() async {
@@ -295,6 +309,8 @@ class _MembershipSheetState extends State<MembershipSheet> {
                                           _priceMain(MembershipTier.basic),
                                       subPriceLabel:
                                           _priceSub(MembershipTier.basic),
+                                      savingsLine:
+                                          _yearlySavingsLine(MembershipTier.basic),
                                       badgeLabel: '推荐',
                                       badgeStyle: const MembershipTierBadgeStyle(
                                         backgroundColor: Color(0xFF1A73E8),
@@ -316,6 +332,8 @@ class _MembershipSheetState extends State<MembershipSheet> {
                                           _priceMain(MembershipTier.premium),
                                       subPriceLabel:
                                           _priceSub(MembershipTier.premium),
+                                      savingsLine:
+                                          _yearlySavingsLine(MembershipTier.premium),
                                       badgeLabel: 'VIP',
                                       badgeStyle: const MembershipTierBadgeStyle(
                                         backgroundColor: Color(0xFFFCD34D),
@@ -345,8 +363,12 @@ class _MembershipSheetState extends State<MembershipSheet> {
                                     value: _yearly,
                                     activeTrackColor: const Color(0xFF1A73E8),
                                     thumbColor: WidgetStateProperty.all(Colors.white),
-                                    onChanged: (v) =>
-                                        setState(() => _yearly = v),
+                                    onChanged: (v) async {
+                                      setState(() => _yearly = v);
+                                      await MembershipService.setBillingPeriod(
+                                        v ? 'yearly' : 'monthly',
+                                      );
+                                    },
                                   ),
                                 ],
                               ),
@@ -409,7 +431,7 @@ class _MembershipSheetState extends State<MembershipSheet> {
                                 ),
                                 const SizedBox(height: 10),
                                 const Text(
-                                  '当前权益持续至下个订阅周期，已添加内容保留但超额提醒将暂停通知',
+                                  '降级后数据不删除：超额节日静默保留在日历上但不推送；超额自定义提醒归档且不再提醒；照片文件保留但展示受限。升级即可恢复。',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     fontSize: 12,

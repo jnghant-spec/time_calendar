@@ -8,7 +8,7 @@ void main() {
     await tester.pumpWidget(
       UserAppContext(
         tier: UserSubscriptionTier.free,
-        child: const MyApp(),
+        child: MyApp(navigatorKey: appNavigatorKey),
       ),
     );
     await tester.pumpAndSettle();
