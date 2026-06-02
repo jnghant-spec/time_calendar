@@ -8,6 +8,7 @@ import 'package:time_calendar/pages/membership_sheet.dart';
 import 'package:time_calendar/pages/profile_page.dart';
 import 'package:time_calendar/services/event_usage_service.dart';
 import 'package:time_calendar/services/membership_service.dart';
+import 'package:time_calendar/services/tag_service.dart';
 
 class MainNavigationPage extends StatefulWidget {
   const MainNavigationPage({super.key, this.initialIndex = 0})
@@ -187,6 +188,19 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
     _globalEvents = _initialGlobalMockEvents();
     EventUsageService.updateCount(_globalEvents.length);
     MembershipService.syncArchivedEventsForTier(_globalEvents);
+    TagService.reminderCountForTag =
+        (tagId) => _globalEvents.where((e) => e.tagId == tagId).length;
+    TagService.unlinkRemindersForTag = (tagId) async {
+      _onEventsChanged(
+        _globalEvents
+            .map(
+              (e) => e.tagId == tagId
+                  ? e.copyWith(tagId: TagService.uncategorizedTagId)
+                  : e,
+            )
+            .toList(),
+      );
+    };
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => _maybeShowTrialEndedSnack(),
     );
@@ -233,7 +247,10 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
   Widget _pageAt(int index) {
     switch (index) {
       case 0:
-        return CalendarPage(events: _globalEvents);
+        return CalendarPage(
+          events: _globalEvents,
+          onEventsChanged: _onEventsChanged,
+        );
       case 1:
         return ListPage(
           initialEvents: _globalEvents,

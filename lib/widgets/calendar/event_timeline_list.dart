@@ -275,84 +275,6 @@ class _FestivalTimelineCard extends StatelessWidget {
     const dateSize = 14.0;
     const green = EventTimelineList._festivalGreen;
 
-    Widget countdownTrailing() {
-      const w = 80.0;
-      Widget band(Widget child) {
-        return SizedBox(width: w, child: child);
-      }
-
-      if (daysUntil == 0) {
-        return band(
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                '今天',
-                textAlign: TextAlign.right,
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: green,
-                  height: 1.0,
-                ),
-              ),
-            ],
-          ),
-        );
-      }
-      if (daysUntil < 0) {
-        return band(
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                '已过去',
-                textAlign: TextAlign.right,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.grey.shade600,
-                  height: 1.0,
-                ),
-              ),
-            ],
-          ),
-        );
-      }
-      return band(
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              '$daysUntil',
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
-                color: green,
-                height: 1.0,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              '天后',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w400,
-                color: Color(0xFF94A3B8),
-                height: 1.0,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
     return Semantics(
       label: event.title,
       hint: daysUntil == 0
@@ -430,7 +352,7 @@ class _FestivalTimelineCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        countdownTrailing(),
+                        EventReminderCard.countdownTrailing(event),
                       ],
                     ),
                   ),

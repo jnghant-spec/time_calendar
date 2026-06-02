@@ -16,6 +16,8 @@ import 'package:time_calendar/services/tag_service.dart';
 import 'package:time_calendar/widgets/event_photo_paths_preview.dart';
 import 'package:time_calendar/widgets/common_date_picker.dart';
 import 'package:time_calendar/widgets/membership_soft_paywall.dart';
+import 'package:time_calendar/widgets/tag_circle_widget.dart';
+import 'package:time_calendar/widgets/tag_editor_sheet.dart';
 
 // --- Design tokens（与任务规范一致） ---
 const Color _kThemeBlue = Color(0xFF1A73E8);
@@ -518,8 +520,9 @@ class EventAddPage extends StatefulWidget {
 
 class _EventAddPageState extends State<EventAddPage> {
   final TextEditingController _titleCtrl = TextEditingController();
+  final TextEditingController _noteCtrl = TextEditingController();
 
-  String _selectedTagId = 'birthday';
+  String _selectedTagId = '';
   List<ReminderTag> _availableTags = [];
   bool _pinned = false;
   bool _solarMode = true;
@@ -933,7 +936,7 @@ class _EventAddPageState extends State<EventAddPage> {
       _shareEnabled = initial.pendingShareAfterAdd;
       _existingPhotoPaths = List<String>.from(initial.photoPaths);
     } else {
-      _selectedTagId = widget.initialTagId ?? 'birthday';
+      _selectedTagId = widget.initialTagId ?? '';
       final lunar = Lunar.fromDate(_solarDate);
       _lunarYear = lunar.getYear();
       _lunarMonthSigned = lunar.getMonth();
@@ -956,7 +959,7 @@ class _EventAddPageState extends State<EventAddPage> {
         if (widget.initialEvent != null) {
           final tid = widget.initialEvent!.tagId;
           _selectedTagId =
-              tags.any((t) => t.id == tid) ? tid : (tags.isNotEmpty ? tags.first.id : 'birthday');
+              tags.any((t) => t.id == tid) ? tid : (tags.isNotEmpty ? tags.first.id : '');
         } else {
           final sheetTagId = widget.initialTagId;
           if (sheetTagId != null && tags.any((t) => t.id == sheetTagId)) {
@@ -964,9 +967,11 @@ class _EventAddPageState extends State<EventAddPage> {
           } else if (tags.isNotEmpty) {
             _selectedTagId = tags.first.id;
           } else {
-            _selectedTagId = 'birthday';
+            _selectedTagId = '';
           }
-          _applyTypeDefaults(_selectedTagId);
+          if (_selectedTagId.isNotEmpty) {
+            _applyTypeDefaults(_selectedTagId);
+          }
         }
       });
     });
@@ -985,10 +990,59 @@ class _EventAddPageState extends State<EventAddPage> {
   @override
   void dispose() {
     _titleCtrl.dispose();
+    _noteCtrl.dispose();
     super.dispose();
   }
 
   bool get _titleOk => _titleCtrl.text.trim().isNotEmpty;
+
+  bool get _tagOk =>
+      _selectedTagId.trim().isNotEmpty &&
+      _availableTags.any((t) => t.id == _selectedTagId);
+
+  bool get _canSave => _titleOk && _tagOk;
+
+  Future<void> _reloadTags() async {
+    final tags = await TagService.loadTags();
+    if (!mounted) return;
+    setState(() {
+      _availableTags = tags;
+      if (!tags.any((t) => t.id == _selectedTagId)) {
+        _selectedTagId = tags.isNotEmpty ? tags.first.id : '';
+      }
+    });
+  }
+
+  Future<void> _openAddTagSheet() async {
+    if (_availableTags.length >= TagService.maxTagCount) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('最多可创建 10 个标签')),
+      );
+      return;
+    }
+    final created = await showTagEditorSheet(
+      context,
+      nextSortOrder: _availableTags.length,
+    );
+    if (created == null || !mounted) return;
+    await _reloadTags();
+    setState(() {
+      _selectedTagId = created.id;
+      _applyTypeDefaults(created.id);
+    });
+  }
+
+  Future<void> _openEditTagSheet(ReminderTag tag) async {
+    final updated = await showTagEditorSheet(context, initial: tag);
+    if (!mounted) return;
+    await _reloadTags();
+    if (updated != null) {
+      setState(() {
+        _selectedTagId = updated.id;
+        _applyTypeDefaults(updated.id);
+      });
+    }
+  }
 
   void _applyTypeDefaults(String tagId) {
     if (tagId == 'birthday' || tagId == 'partner') {
@@ -1135,6 +1189,12 @@ class _EventAddPageState extends State<EventAddPage> {
 
   Future<void> _submit() async {
     if (!_titleOk) return;
+    if (!_tagOk) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请为事件选择一个标签')),
+      );
+      return;
+    }
     final tier = await MembershipService.currentTier();
     if (!mounted) return;
 
@@ -1216,6 +1276,55 @@ class _EventAddPageState extends State<EventAddPage> {
   bool get _showSameDay =>
       _reminder == EventReminderType.advanceAndSameDay || _reminder == EventReminderType.sameDayOnly;
 
+  Widget _labeledInputRow({
+    required String label,
+    required TextEditingController controller,
+    required String hintText,
+    required Color borderColor,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        SizedBox(
+          width: 60,
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF1F2937),
+            ),
+          ),
+        ),
+        Expanded(
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: borderColor),
+              boxShadow: _kInputShadow,
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            alignment: Alignment.center,
+            child: TextField(
+              controller: controller,
+              maxLines: 1,
+              textAlignVertical: TextAlignVertical.center,
+              style: const TextStyle(fontSize: 16, height: 1.25, color: _kTitleColor),
+              decoration: InputDecoration(
+                isDense: true,
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.zero,
+                hintText: hintText,
+                hintStyle: const TextStyle(color: _kHint, fontSize: 16),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final titleBorderColor = _titleOk ? _kBorderInput : _kError;
@@ -1256,49 +1365,56 @@ class _EventAddPageState extends State<EventAddPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: [
-                          for (final tag in _availableTags) ...[
-                            _TypeChip(
-                              label: tag.name,
-                              selected: _selectedTagId == tag.id,
-                              color: tag.accentColor,
-                              onTap: () {
-                                setState(() {
-                                  _selectedTagId = tag.id;
-                                  _applyTypeDefaults(tag.id);
-                                });
-                              },
+                    SizedBox(
+                      height: TagCircleWidget.barHeight,
+                      child: SingleChildScrollView(
+                        clipBehavior: Clip.none,
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            for (final tag in _availableTags) ...[
+                              GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _selectedTagId = tag.id;
+                                    _applyTypeDefaults(tag.id);
+                                  });
+                                },
+                                onLongPress: () => _openEditTagSheet(tag),
+                                behavior: HitTestBehavior.opaque,
+                                child: TagCircleWidget(
+                                  tag: tag,
+                                  isSelected: _selectedTagId == tag.id,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                            ],
+                            TagCircleWidget.scrollActionPill(
+                              label: '新建',
+                              onTap: _availableTags.length <
+                                      TagService.maxTagCount
+                                  ? _openAddTagSheet
+                                  : null,
                             ),
-                            const SizedBox(width: 8),
                           ],
-                        ],
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: titleBorderColor),
-                        boxShadow: _kInputShadow,
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      alignment: Alignment.center,
-                      child: TextField(
-                        controller: _titleCtrl,
-                        textAlignVertical: TextAlignVertical.center,
-                        style: const TextStyle(fontSize: 16, height: 1.25, color: _kTitleColor),
-                        decoration: const InputDecoration(
-                          isDense: true,
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.zero,
-                          hintText: '输入事件标题...',
-                          hintStyle: TextStyle(color: _kHint, fontSize: 16),
-                        ),
-                      ),
+                    _labeledInputRow(
+                      label: '标题',
+                      controller: _titleCtrl,
+                      hintText: '输入事件标题…',
+                      borderColor: titleBorderColor,
+                    ),
+                    const SizedBox(height: 16),
+                    _labeledInputRow(
+                      label: '备注',
+                      controller: _noteCtrl,
+                      hintText: '添加备注…',
+                      borderColor: _kBorderInput,
                     ),
                     const SizedBox(height: 12),
                     Container(
@@ -1540,17 +1656,17 @@ class _EventAddPageState extends State<EventAddPage> {
             Padding(
               padding: EdgeInsets.fromLTRB(20, 0, 20, 16 + MediaQuery.paddingOf(context).bottom),
               child: Opacity(
-                opacity: _titleOk ? 1 : 0.5,
+                opacity: _canSave ? 1 : 0.5,
                 child: SizedBox(
                   width: double.infinity,
                   height: 52,
                   child: FilledButton(
                     style: FilledButton.styleFrom(
                       backgroundColor: _kThemeBlue,
-                      disabledBackgroundColor: _kThemeBlue.withValues(alpha: 0.5),
+                      disabledBackgroundColor: _kHint,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),
-                    onPressed: _titleOk ? () => _submit() : null,
+                    onPressed: _canSave ? () => _submit() : null,
                     child: Text(
                       _isEditMode
                           ? '保存修改'
@@ -1566,53 +1682,6 @@ class _EventAddPageState extends State<EventAddPage> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TypeChip extends StatelessWidget {
-  const _TypeChip({
-    required this.label,
-    required this.selected,
-    required this.color,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final Color color;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        height: 36,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: selected ? color : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: selected ? null : Border.all(color: const Color(0xFFE2E8F0)),
-          boxShadow: selected
-              ? const [
-                  BoxShadow(color: Color(0x19000000), blurRadius: 4, offset: Offset(0, 2), spreadRadius: -2),
-                  BoxShadow(color: Color(0x19000000), blurRadius: 6, offset: Offset(0, 4), spreadRadius: -1),
-                ]
-              : null,
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: selected ? Colors.white : Colors.black,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
         ),
       ),
     );

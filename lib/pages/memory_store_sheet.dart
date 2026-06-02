@@ -15,8 +15,16 @@ Future<void> showMemoryStoreSheet(
     context: context,
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
-    builder: (ctx) =>
-        MemoryStoreSheet(outerContext: context, listEvent: listEvent),
+    builder: (ctx) {
+      final height = MediaQuery.sizeOf(ctx).height;
+      return Padding(
+        padding: EdgeInsets.only(top: height * 0.08),
+        child: SizedBox(
+          height: height * 0.92,
+          child: MemoryStoreSheet(outerContext: context, listEvent: listEvent),
+        ),
+      );
+    },
   );
 }
 
@@ -64,8 +72,8 @@ class _MemoryStoreSheetState extends State<MemoryStoreSheet> {
   Future<void> _save() async {
     final id = _selectedId;
     if (id == null || id.isEmpty) return;
-    final ev = MemoryService.cloneFromListEvent(widget.listEvent, id);
-    await MemoryService.addEvent(ev);
+    final ev = MemoryService.cloneFromListEvent(widget.listEvent);
+    await MemoryService.addEventToCollection(ev, id);
     if (!mounted) return;
     Navigator.of(context).pop();
     final outer = widget.outerContext;
@@ -206,13 +214,10 @@ class _MemoryStoreSheetState extends State<MemoryStoreSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final h = MediaQuery.sizeOf(context).height * 0.55;
     final bottom = MediaQuery.paddingOf(context).bottom;
     final canSave = _selectedId != null && _selectedId!.isNotEmpty;
 
-    return SizedBox(
-      height: h,
-      child: ClipRRect(
+    return ClipRRect(
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         child: Material(
           color: Colors.white,
@@ -301,7 +306,6 @@ class _MemoryStoreSheetState extends State<MemoryStoreSheet> {
             ],
           ),
         ),
-      ),
     );
   }
 }

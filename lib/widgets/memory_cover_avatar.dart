@@ -3,8 +3,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:time_calendar/models/memory_collection.dart';
 import 'package:time_calendar/services/tag_service.dart';
+import 'package:time_calendar/widgets/tag_circle_widget.dart';
 
-/// 时光集封面圆：有路径则照片，否则标签色底 + [TagIconHelper]。
+/// 时光集封面圆：合集封面优先，否则统一标签圆形图标。
 class MemoryCoverAvatar extends StatelessWidget {
   const MemoryCoverAvatar({
     super.key,
@@ -46,16 +47,16 @@ class MemoryCoverAvatar extends StatelessWidget {
         ),
       );
     }
+    final tag = TagService.getTagById(collection.tagId);
+    if (tag != null) {
+      return TagCircleWidget(tag: tag, size: diameter, showLabel: false);
+    }
     return Container(
       width: diameter,
       height: diameter,
       decoration: BoxDecoration(color: tagIconBg, shape: BoxShape.circle),
       alignment: Alignment.center,
-      child: TagIconHelper.build(
-        tagId: collection.tagId,
-        color: tagAccent,
-        size: diameter * 0.5,
-      ),
+      child: Icon(Icons.label, color: tagAccent, size: diameter * 0.5),
     );
   }
 }

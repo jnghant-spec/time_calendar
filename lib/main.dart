@@ -9,6 +9,7 @@ import 'package:time_calendar/app/user_app_context.dart';
 import 'package:time_calendar/pages/main_navigation_page.dart';
 import 'package:time_calendar/services/festival_service.dart';
 import 'package:time_calendar/services/membership_service.dart';
+import 'package:time_calendar/services/memory_service.dart';
 import 'package:time_calendar/services/notification_service.dart';
 import 'package:time_calendar/services/user_session.dart';
 import 'package:time_calendar/theme/app_theme.dart';
@@ -22,6 +23,8 @@ Future<void> main() async {
   tz.setLocalLocation(tz.getLocation('Asia/Shanghai'));
 
   await FestivalService.ensureFestivalSeedDataLoaded();
+
+  await MemoryService.ensureDemoSeedIfEmpty();
 
   await NotificationService.init(navigatorKey: appNavigatorKey);
 

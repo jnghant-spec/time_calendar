@@ -11,18 +11,21 @@ import 'package:time_calendar/services/membership_service.dart';
 import 'package:time_calendar/services/share_service.dart';
 import 'package:time_calendar/utils/event_date_utils.dart';
 import 'package:time_calendar/utils/size_config.dart';
-import 'package:time_calendar/widgets/event_detail_sheet.dart';
+import 'package:time_calendar/pages/event_detail_sheet.dart';
 import 'package:time_calendar/widgets/calendar/calendar_grid.dart';
 import 'package:time_calendar/widgets/calendar/calendar_models.dart';
 import 'package:time_calendar/widgets/calendar/calendar_month_builder.dart';
+import 'package:time_calendar/pages/event_add_page.dart';
 import 'package:time_calendar/widgets/calendar/event_timeline_list.dart';
-import 'package:time_calendar/widgets/calendar/month_selector.dart';
 import 'package:time_calendar/widgets/calendar/year_month_picker_sheet.dart';
+import 'package:time_calendar/widgets/calendar_day_cell.dart';
+import 'package:time_calendar/widgets/week_event_card.dart';
 
 class CalendarPage extends StatefulWidget {
-  const CalendarPage({super.key, required this.events});
+  const CalendarPage({super.key, required this.events, this.onEventsChanged});
 
   final List<ListEvent> events;
+  final ValueChanged<List<ListEvent>>? onEventsChanged;
 
   static const List<String> _weekDays = ['日', '一', '二', '三', '四', '五', '六'];
 
@@ -129,7 +132,27 @@ class CalendarPage extends StatefulWidget {
   State<CalendarPage> createState() => _CalendarPageState();
 }
 
+class _CalendarWeekItem {
+  _CalendarWeekItem.user(this.event, this.occurrenceDate) : festival = null;
+
+  _CalendarWeekItem.festival(this.festival, this.occurrenceDate) : event = null;
+
+  final ListEvent? event;
+  final CalendarFestival? festival;
+  final DateTime occurrenceDate;
+
+  bool get isPinned => event?.isPinned ?? false;
+  String get id =>
+      event?.id ??
+      'festival_${festival!.id}_${occurrenceDate.year}_${occurrenceDate.month}_${occurrenceDate.day}';
+}
+
 class _CalendarPageState extends State<CalendarPage> {
+  bool _isMonthView = true;
+
+  /// 周视图列表：`false` 本周焦点，`true` 当日焦点。
+  bool _weekListDayMode = false;
+
   DateTime? _selectedDate;
 
   late int _viewYear;
@@ -230,7 +253,43 @@ class _CalendarPageState extends State<CalendarPage> {
     _compressT = 0;
   }
 
-  String get _monthLabel => '$_viewYear年$_viewMonth月';
+  static const Color _kWeekLabelFg = Color(0xFF1F2937);
+  static const Color _kWeekdayLabelFg = Color(0xFF94A3B8);
+  static const Color _kWeekBorderCard = Color(0xFFF1F5F9);
+
+  String get _monthLabel {
+    if (_isMonthView) return '$_viewYear年$_viewMonth月';
+    final d = _selectedDate ?? _calendarToday;
+    return '${d.year}年${d.month}月';
+  }
+
+  DateTime get _weekSelectedDate => _selectedDate ?? _calendarToday;
+
+  DateTime _weekStartSunday(DateTime day) {
+    final d = CalendarPage._dateOnly(day);
+    return d.subtract(Duration(days: d.weekday % 7));
+  }
+
+  DateTime get _weekStart => _weekStartSunday(_weekSelectedDate);
+
+  DateTime get _weekEnd => _weekStart.add(const Duration(days: 6));
+
+  bool get _isDisplayingTodayWeek =>
+      CalendarPage._dateOnly(_weekStart) ==
+      CalendarPage._dateOnly(_weekStartSunday(_calendarToday));
+
+  bool get _isDisplayingTodayMonth =>
+      _viewYear == _calendarToday.year && _viewMonth == _calendarToday.month;
+
+  bool get _isTodayDateSelected =>
+      _selectedDate != null && _isSameDay(_selectedDate!, _calendarToday);
+
+  bool get _todayBtnEnabled {
+    if (_isMonthView) {
+      return !(_isDisplayingTodayMonth && _isTodayDateSelected);
+    }
+    return !_isDisplayingTodayWeek;
+  }
 
   static bool _isSameDay(DateTime a, DateTime b) {
     return a.year == b.year && a.month == b.month && a.day == b.day;
@@ -640,38 +699,14 @@ class _CalendarPageState extends State<CalendarPage> {
     );
   }
 
-  Map<String, List<Color>> _markerByDay() {
-    final m = <String, List<Color>>{};
-    for (final e in widget.events) {
-      if (_archivedEventIds.contains(e.id)) continue;
-      for (final d in occurrenceDatesInGregorianMonth(e, _viewYear, _viewMonth)) {
-        final k = '${d.year}-${d.month}-${d.day}';
-        m.putIfAbsent(k, () => []);
-        final accent = TagService.accentForDisplay(e.tagId);
-        if (m[k]!.length < 2 && !m[k]!.contains(accent)) {
-          m[k]!.add(accent);
-        }
-      }
-    }
-    for (final f in _monthFestivals) {
-      final d = f.gregorianDate;
-      if (d.year != _viewYear || d.month != _viewMonth) continue;
-      final k = '${d.year}-${d.month}-${d.day}';
-      m.putIfAbsent(k, () => []);
-      if (m[k]!.length < 2 && !m[k]!.contains(f.color)) {
-        m[k]!.add(f.color);
-      }
-    }
-    return m;
-  }
-
   List<CalendarDayCellData> _buildDayCells() {
     return buildCalendarMonthGrid(
       year: _viewYear,
       month: _viewMonth,
       selectedDate: _selectedDate,
       today: _calendarToday,
-      markerByDay: _markerByDay(),
+      eventsByDay: _eventsByDayForMonth(),
+      festivalsByDay: _festivalsByDayForMonth(),
     );
   }
 
@@ -715,6 +750,465 @@ class _CalendarPageState extends State<CalendarPage> {
     });
   }
 
+  void _shiftWeek(int deltaDays) {
+    setState(() {
+      final next = _weekSelectedDate.add(Duration(days: deltaDays));
+      _selectedDate = CalendarPage._dateOnly(next);
+      _viewYear = _selectedDate!.year;
+      _viewMonth = _selectedDate!.month;
+      _applyScrollReset();
+    });
+  }
+
+  void _onPrevPeriod() {
+    if (_isMonthView) {
+      _onPrevMonth();
+    } else {
+      _shiftWeek(-7);
+    }
+  }
+
+  void _onNextPeriod() {
+    if (_isMonthView) {
+      _onNextMonth();
+    } else {
+      _shiftWeek(7);
+    }
+  }
+
+  static String _dayKey(DateTime d) => '${d.year}-${d.month}-${d.day}';
+
+  Map<String, List<ListEvent>> _eventsByDayForMonth() {
+    final bounds = monthGridGregorianBounds(
+      year: _viewYear,
+      month: _viewMonth,
+    );
+    final m = <String, List<ListEvent>>{};
+    for (final e in widget.events) {
+      if (_archivedEventIds.contains(e.id)) continue;
+      var d = bounds.start;
+      while (!d.isAfter(bounds.end)) {
+        if (eventOccursOnGregorianDay(e, d)) {
+          final k = _dayKey(d);
+          m.putIfAbsent(k, () => []).add(e);
+        }
+        d = d.add(const Duration(days: 1));
+      }
+    }
+    return m;
+  }
+
+  Map<String, List<CalendarFestival>> _festivalsByDayForMonth() {
+    final bounds = monthGridGregorianBounds(
+      year: _viewYear,
+      month: _viewMonth,
+    );
+    final m = <String, List<CalendarFestival>>{};
+    for (final f in _festivalsBetweenInclusive(bounds.start, bounds.end)) {
+      final k = _dayKey(CalendarPage._dateOnly(f.gregorianDate));
+      m.putIfAbsent(k, () => []).add(f);
+    }
+    return m;
+  }
+
+  List<ListEvent> _eventsOnGregorianDay(DateTime day) {
+    final list = <ListEvent>[];
+    for (final e in widget.events) {
+      if (_archivedEventIds.contains(e.id)) continue;
+      if (eventOccursOnGregorianDay(e, day)) list.add(e);
+    }
+    return list;
+  }
+
+  List<CalendarFestival> _festivalsOnGregorianDay(DateTime day) {
+    final target = CalendarPage._dateOnly(day);
+    if (_isMonthView) {
+      return _monthFestivals
+          .where((f) => CalendarPage._dateOnly(f.gregorianDate) == target)
+          .toList();
+    }
+    return _festivalsInWeek()
+        .where((f) => CalendarPage._dateOnly(f.gregorianDate) == target)
+        .toList();
+  }
+
+  List<CalendarFestival> _festivalsInWeek() {
+    final out = <CalendarFestival>[];
+    final seen = <String>{};
+    var y = _weekStart.year;
+    var m = _weekStart.month;
+    final endYm = DateTime(_weekEnd.year, _weekEnd.month, 1);
+    while (true) {
+      final ym = DateTime(y, m, 1);
+      if (ym.isAfter(endYm)) break;
+      for (final f in FestivalService.getFestivalsForMonth(
+        y,
+        m,
+        subscribedIds: _subscribedIds,
+      )) {
+        final d = CalendarPage._dateOnly(f.gregorianDate);
+        if (!d.isBefore(_weekStart) && !d.isAfter(_weekEnd)) {
+          final key = '${f.id}_${d.year}_${d.month}_${d.day}';
+          if (seen.add(key)) out.add(f);
+        }
+      }
+      if (m == 12) {
+        y++;
+        m = 1;
+      } else {
+        m++;
+      }
+    }
+    out.sort((a, b) => a.gregorianDate.compareTo(b.gregorianDate));
+    return out;
+  }
+
+  /// 周视图「当日焦点」：未过期置顶→未过期非置顶（均升序）；已过期置底（降序，最近在前）。
+  int _compareWeekItem(_CalendarWeekItem a, _CalendarWeekItem b) {
+    final today = _calendarToday;
+    final aDay = CalendarPage._dateOnly(a.occurrenceDate);
+    final bDay = CalendarPage._dateOnly(b.occurrenceDate);
+    final aExpired = aDay.isBefore(today);
+    final bExpired = bDay.isBefore(today);
+
+    if (aExpired != bExpired) return aExpired ? 1 : -1;
+
+    if (aExpired) {
+      final c = bDay.compareTo(aDay);
+      if (c != 0) return c;
+      return a.id.compareTo(b.id);
+    }
+
+    if (a.isPinned != b.isPinned) return a.isPinned ? -1 : 1;
+    final c = aDay.compareTo(bDay);
+    if (c != 0) return c;
+    return a.id.compareTo(b.id);
+  }
+
+  List<_CalendarWeekItem> _weekDayItems() {
+    final focus = CalendarPage._dateOnly(_weekSelectedDate);
+    final items = <_CalendarWeekItem>[];
+    for (final e in widget.events) {
+      if (_archivedEventIds.contains(e.id)) continue;
+      if (eventOccursOnGregorianDay(e, focus)) {
+        items.add(_CalendarWeekItem.user(e, focus));
+      }
+    }
+    for (final f in _festivalsOnGregorianDay(focus)) {
+      items.add(_CalendarWeekItem.festival(f, focus));
+    }
+    items.sort(_compareWeekItem);
+    return items;
+  }
+
+  List<_CalendarWeekItem> _weekAllItems() {
+    final items = <_CalendarWeekItem>[];
+    for (final e in widget.events) {
+      if (_archivedEventIds.contains(e.id)) continue;
+      for (var i = 0; i < 7; i++) {
+        final d = CalendarPage._dateOnly(_weekStart.add(Duration(days: i)));
+        if (eventOccursOnGregorianDay(e, d)) {
+          items.add(_CalendarWeekItem.user(e, d));
+        }
+      }
+    }
+    for (final f in _festivalsInWeek()) {
+      items.add(
+        _CalendarWeekItem.festival(
+          f,
+          CalendarPage._dateOnly(f.gregorianDate),
+        ),
+      );
+    }
+    items.sort(_compareWeekItem);
+    return items;
+  }
+
+  List<_CalendarWeekItem> _weekListItems() =>
+      _weekListDayMode ? _weekDayItems() : _weekAllItems();
+
+  void _goToToday() {
+    setState(() {
+      _selectedDate = _calendarToday;
+      _viewYear = _calendarToday.year;
+      _viewMonth = _calendarToday.month;
+      _applyScrollReset();
+      _loadMonthFestivals();
+    });
+  }
+
+  void _notifyEventsChanged(List<ListEvent> updated) {
+    widget.onEventsChanged?.call(updated);
+  }
+
+  Future<void> _openWeekEventEdit(ListEvent event) async {
+    final result = await Navigator.push<ListEvent>(
+      context,
+      MaterialPageRoute(builder: (_) => EventAddPage(initialEvent: event)),
+    );
+    if (result == null || !mounted) return;
+    final list = List<ListEvent>.from(widget.events);
+    final i = list.indexWhere((e) => e.id == result.id);
+    if (i >= 0) {
+      list[i] = result;
+      _notifyEventsChanged(list);
+    }
+  }
+
+  Future<void> _confirmDeleteWeekEvent(ListEvent event) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('删除提醒'),
+        content: Text('确定删除「${event.title}」？'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('删除')),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    final list = List<ListEvent>.from(widget.events)..removeWhere((e) => e.id == event.id);
+    _notifyEventsChanged(list);
+  }
+
+  Widget _monthWeekPill() {
+    const themeBlue = Color(0xFF1A73E8);
+    const unselectedBg = Color(0xFFF1F5F9);
+    const unselectedFg = Color(0xFF64748B);
+
+    Widget segment(String label, {required bool selected, required VoidCallback onTap}) {
+      return Expanded(
+        child: GestureDetector(
+          onTap: onTap,
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: selected ? themeBlue : Colors.transparent,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: selected ? Colors.white : unselectedFg,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return SizedBox(
+      width: 64,
+      height: 32,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: unselectedBg,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            segment(
+              '月',
+              selected: _isMonthView,
+              onTap: () {
+                if (_isMonthView) return;
+                setState(() {
+                  _isMonthView = true;
+                  if (_selectedDate != null) {
+                    _viewYear = _selectedDate!.year;
+                    _viewMonth = _selectedDate!.month;
+                    _loadMonthFestivals();
+                  }
+                  _applyScrollReset();
+                });
+              },
+            ),
+            segment(
+              '周',
+              selected: !_isMonthView,
+              onTap: () {
+                if (!_isMonthView) return;
+                setState(() {
+                  _isMonthView = false;
+                  _weekListDayMode = false;
+                  _selectedDate ??= _calendarToday;
+                  _viewYear = _weekSelectedDate.year;
+                  _viewMonth = _weekSelectedDate.month;
+                  _applyScrollReset();
+                });
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _headerNavChevron({
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.all(2),
+        child: Icon(icon, size: 24, color: const Color(0xFF64748B)),
+      ),
+    );
+  }
+
+  Widget _weekScopePill() {
+    const themeBlue = Color(0xFF1A73E8);
+    const unselectedBg = Color(0xFFF1F5F9);
+    const unselectedFg = Color(0xFF64748B);
+
+    Widget segment(String label, {required bool selected, required VoidCallback onTap}) {
+      return Expanded(
+        child: GestureDetector(
+          onTap: onTap,
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: selected ? themeBlue : Colors.transparent,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: selected ? Colors.white : unselectedFg,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return SizedBox(
+      width: 80,
+      height: 28,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: unselectedBg,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: [
+            segment(
+              '当日',
+              selected: _weekListDayMode,
+              onTap: () {
+                if (_weekListDayMode) return;
+                setState(() => _weekListDayMode = true);
+              },
+            ),
+            segment(
+              '本周',
+              selected: !_weekListDayMode,
+              onTap: () {
+                if (!_weekListDayMode) return;
+                setState(() => _weekListDayMode = false);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _calendarMonthHeader(BuildContext context) {
+    const themeBlue = Color(0xFF1A73E8);
+    final g = SizeConfig.contentGutter(context);
+    final primary = Theme.of(context).colorScheme.primary;
+    final titleSize = SizeConfig.sp(context, 20);
+    final todayBtnEnabled = _todayBtnEnabled;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(g, 8, g, 3),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Flexible(
+            child: Material(
+              type: MaterialType.transparency,
+              child: InkWell(
+                onTap: _onTitleTap,
+                borderRadius: BorderRadius.circular(8),
+                splashColor: primary.withValues(alpha: 0.12),
+                highlightColor: primary.withValues(alpha: 0.08),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          _monthLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: titleSize,
+                            fontWeight: FontWeight.w700,
+                            color: primary,
+                            height: 1.4,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(
+                        Icons.keyboard_arrow_down,
+                        size: 16,
+                        color: Color(0xFF9CA3AF),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          _monthWeekPill(),
+          const SizedBox(width: 24),
+          _headerNavChevron(
+            icon: Icons.chevron_left_rounded,
+            onTap: _onPrevPeriod,
+          ),
+          const SizedBox(width: 8),
+          _headerNavChevron(
+            icon: Icons.chevron_right_rounded,
+            onTap: _onNextPeriod,
+          ),
+          const SizedBox(width: 12),
+          InkWell(
+            onTap: todayBtnEnabled ? _goToToday : null,
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+              child: Text(
+                '今天',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: todayBtnEnabled
+                      ? themeBlue
+                      : const Color(0xFF94A3B8),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _onTitleTap() async {
     final r = await showYearMonthPicker(
       context,
@@ -735,10 +1229,191 @@ class _CalendarPageState extends State<CalendarPage> {
     setState(() {
       _viewYear = r.year;
       _viewMonth = r.month;
-      _selectedDate = null;
+      if (_isMonthView) {
+        _selectedDate = null;
+      } else {
+        _selectedDate = DateTime(r.year, r.month, 1);
+      }
       _applyScrollReset();
       _loadMonthFestivals();
     });
+  }
+
+  Widget _weekCalendarStrip(BuildContext context) {
+    final g = SizeConfig.contentGutter(context);
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(g, 8, g, 0),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: _kWeekBorderCard, width: 0.75),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x19000000),
+              blurRadius: 2,
+              offset: Offset(0, 1),
+              spreadRadius: -1,
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+        child: Column(
+          children: [
+            Row(
+              children: CalendarPage._weekDays
+                  .map(
+                    (label) => Expanded(
+                      child: Center(
+                        child: Text(
+                          label,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w400,
+                            color: _kWeekdayLabelFg,
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: List.generate(7, (i) {
+                final d = CalendarPage._dateOnly(_weekStart.add(Duration(days: i)));
+                return Expanded(
+                  child: CalendarDayCell(
+                    date: d,
+                    selectedDate: _selectedDate,
+                    today: _calendarToday,
+                    events: _eventsOnGregorianDay(d),
+                    festivals: _festivalsOnGregorianDay(d),
+                    isInCurrentMonth: true,
+                    onTap: () => setState(() {
+                      _selectedDate = d;
+                      _weekListDayMode = true;
+                    }),
+                    selectedBackgroundColor: const Color(0xFF93C5FD),
+                    selectedTextColor: const Color(0xFF1A73E8),
+                    todayBackgroundColor: const Color(0xFFE8F0FE),
+                    todayTextColor: const Color(0xFF1A73E8),
+                    highlightLunarOnFestival: true,
+                    lunarTextStyle: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w400,
+                      color: Color(0xFF94A3B8),
+                    ),
+                    cellPadding: 4,
+                    dayFontSize: 16,
+                  ),
+                );
+              }),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWeekBody(BuildContext context) {
+    final dayMode = _weekListDayMode;
+    final items = _weekListItems();
+    final pinnedCount = items.where((i) => i.isPinned).length;
+    final bottomPad = MediaQuery.paddingOf(context).bottom;
+    final listBottom = bottomPad + 100 > 160 ? bottomPad + 100 : 160.0;
+    final listDataCount = items.isEmpty ? 1 : items.length;
+    final focusTitle = dayMode ? '当日焦点' : '本周焦点';
+    final emptyHint = dayMode ? '当日暂无提醒' : '本周暂无提醒';
+
+    return ListView.separated(
+      padding: EdgeInsets.only(bottom: listBottom),
+      itemCount: listDataCount + 2,
+      separatorBuilder: (context, index) {
+        if (index == 0) return const SizedBox.shrink();
+        if (index == 1) return const SizedBox(height: 12);
+        return const SizedBox(height: 12);
+      },
+      itemBuilder: (context, index) {
+        if (index == 0) return _weekCalendarStrip(context);
+        if (index == 1) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        focusTitle,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: _kWeekLabelFg,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${items.length} 个提醒 · $pinnedCount 个置顶',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w400,
+                          color: _kWeekdayLabelFg,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                _weekScopePill(),
+              ],
+            ),
+          );
+        }
+        if (items.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
+            child: Center(
+              child: Text(
+                emptyHint,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400,
+                  color: Color(0xFF94A3B8),
+                ),
+              ),
+            ),
+          );
+        }
+        final item = items[index - 2];
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: item.festival != null
+              ? WeekViewEventCard.festival(
+                  festival: item.festival!,
+                  occurrenceDate: item.occurrenceDate,
+                  today: _calendarToday,
+                )
+              : WeekViewEventCard(
+                  event: item.event!,
+                  occurrenceDate: item.occurrenceDate,
+                  today: _calendarToday,
+                  onTap: () {
+                    showEventDetailSheet(
+                      context,
+                      item.event!,
+                      onEdit: () => _openWeekEventEdit(item.event!),
+                    );
+                  },
+                  onEdit: () => _openWeekEventEdit(item.event!),
+                  onDelete: () => _confirmDeleteWeekEvent(item.event!),
+                ),
+        );
+      },
+    );
   }
 
   String _timelineTitle() => _selectedDate == null ? '未来15天' : '当日事件';
@@ -771,20 +1446,15 @@ class _CalendarPageState extends State<CalendarPage> {
           GestureDetector(
             behavior: HitTestBehavior.translucent,
             onTap: dayMode ? _backToOverview : null,
-            child: MonthSelector(
-              monthLabel: _monthLabel,
-              compact: true,
-              onPreviousMonth: _onPrevMonth,
-              onNextMonth: _onNextMonth,
-              onTitleTap: _onTitleTap,
+            child: CalendarGrid(
+              weekDayLabels: CalendarPage._weekDays,
+              dayCells: cells,
+              maxWidth: maxWidth,
+              today: _calendarToday,
+              selectedDate: _selectedDate,
+              targetCellMainExtent: cellExtent,
+              onDateSelected: _onDateSelected,
             ),
-          ),
-          CalendarGrid(
-            weekDayLabels: CalendarPage._weekDays,
-            dayCells: cells,
-            maxWidth: maxWidth,
-            targetCellMainExtent: cellExtent,
-            onDateSelected: _onDateSelected,
           ),
         ],
       );
@@ -823,10 +1493,7 @@ class _CalendarPageState extends State<CalendarPage> {
               builder: (ctx) {
                 final src = reminder.sourceListEvent;
                 if (src != null) {
-                  return EventDetailSheet(
-                    event: src,
-                    displaySolarDate: reminder.eventDate,
-                  );
+                  return EventDetailSheet(event: src);
                 }
                 return EventDetailSheet(event: reminder.toListEvent());
               },
@@ -840,50 +1507,61 @@ class _CalendarPageState extends State<CalendarPage> {
       color: Colors.white,
       child: SafeArea(
         bottom: false,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final maxW = constraints.maxWidth;
-            final maxH = constraints.maxHeight;
-            final calBlockH = _calendarBlockHeight(rowCount, cellExtent, dayGutter);
-            final remaining = maxH - calBlockH;
-            final outerScroll = remaining < _kMinListBody;
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _calendarMonthHeader(context),
+            Expanded(
+              child: _isMonthView
+                  ? LayoutBuilder(
+                      builder: (context, constraints) {
+                        final maxW = constraints.maxWidth;
+                        final maxH = constraints.maxHeight;
+                        final calBlockH =
+                            _calendarBlockHeight(rowCount, cellExtent, dayGutter);
+                        final remaining = maxH - calBlockH;
+                        final outerScroll = remaining < _kMinListBody;
 
-            final afterCalSpacer = dayMode && gutterH > 0
-                ? GestureDetector(
-                    behavior: HitTestBehavior.translucent,
-                    onTap: _backToOverview,
-                    child: SizedBox(height: gutterH),
-                  )
-                : null;
+                        final afterCalSpacer = dayMode && gutterH > 0
+                            ? GestureDetector(
+                                behavior: HitTestBehavior.translucent,
+                                onTap: _backToOverview,
+                                child: SizedBox(height: gutterH),
+                              )
+                            : null;
 
-            if (outerScroll) {
-              return SingleChildScrollView(
-                controller: _pageScrollController,
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    calendarColumn(maxW),
-                    ?afterCalSpacer,
-                    calListBridge(),
-                    timelineSliver(shrinkWrap: true),
-                  ],
-                ),
-              );
-            }
+                        if (outerScroll) {
+                          return SingleChildScrollView(
+                            controller: _pageScrollController,
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                calendarColumn(maxW),
+                                ?afterCalSpacer,
+                                calListBridge(),
+                                timelineSliver(shrinkWrap: true),
+                              ],
+                            ),
+                          );
+                        }
 
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                calendarColumn(maxW),
-                ?afterCalSpacer,
-                calListBridge(),
-                Expanded(
-                  child: timelineSliver(shrinkWrap: false),
-                ),
-              ],
-            );
-          },
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            calendarColumn(maxW),
+                            ?afterCalSpacer,
+                            calListBridge(),
+                            Expanded(
+                              child: timelineSliver(shrinkWrap: false),
+                            ),
+                          ],
+                        );
+                      },
+                    )
+                  : _buildWeekBody(context),
+            ),
+          ],
         ),
       ),
     );

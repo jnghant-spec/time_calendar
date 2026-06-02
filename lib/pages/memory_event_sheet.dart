@@ -4,25 +4,35 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:time_calendar/models/memory_event.dart';
+import 'package:time_calendar/pages/photo_viewer_page.dart';
 import 'package:time_calendar/services/memory_service.dart';
 import 'package:time_calendar/utils/event_date_utils.dart';
 import 'package:time_calendar/widgets/common_date_picker.dart';
 
-Future<void> showMemoryEventSheet(
+Future<bool?> showMemoryEventSheet(
   BuildContext context, {
   required String collectionId,
   MemoryEvent? initial,
   bool readOnlyPreview = false,
 }) async {
-  await showModalBottomSheet<void>(
+  return showModalBottomSheet<bool>(
     context: context,
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
-    builder: (ctx) => MemoryEventSheet(
-      collectionId: collectionId,
-      initial: initial,
-      readOnlyPreview: readOnlyPreview,
-    ),
+    builder: (ctx) {
+      final height = MediaQuery.sizeOf(ctx).height;
+      return Padding(
+        padding: EdgeInsets.only(top: height * 0.08),
+        child: SizedBox(
+          height: height * 0.92,
+          child: MemoryEventSheet(
+            collectionId: collectionId,
+            initial: initial,
+            readOnlyPreview: readOnlyPreview,
+          ),
+        ),
+      );
+    },
   );
 }
 
@@ -39,7 +49,6 @@ class MemoryEventSheet extends StatefulWidget {
   final bool readOnlyPreview;
 
   static const Color _titleColor = Color(0xFF1F2937);
-  static const Color _muted = Color(0xFF94A3B8);
   static const Color _themeBlue = Color(0xFF1A73E8);
 
   @override
@@ -177,42 +186,45 @@ class _MemoryEventSheetState extends State<MemoryEventSheet> {
     final locText = _locCtrl.text.trim();
     final event = MemoryEvent(
       id: widget.initial?.id ?? MemoryService.generateId('mev'),
-      collectionId: widget.collectionId,
       title: title,
       location: locText.isEmpty ? null : locText,
       date: _date,
       photoPaths: MemoryService.encodePhotoGridSlots(_slotPhotos),
     );
-    await MemoryService.upsertEvent(event);
+    if (widget.initial == null) {
+      await MemoryService.addEventToCollection(event, widget.collectionId);
+    } else {
+      await MemoryService.upsertEvent(event);
+    }
     if (!mounted) return;
-    Navigator.pop(context);
+    Navigator.pop(context, true);
   }
 
-  void _showPhotoPreview(String path) {
-    showDialog<void>(
-      context: context,
-      barrierColor: Colors.black87,
-      builder: (ctx) => GestureDetector(
-        onTap: () => Navigator.pop(ctx),
-        child: ColoredBox(
-          color: Colors.transparent,
-          child: Center(
-            child: InteractiveViewer(
-              child: Image.file(File(path), fit: BoxFit.contain),
-            ),
-          ),
-        ),
-      ),
+  List<String> _viewerPhotoPaths() {
+    return _slotPhotos
+        .where(
+          (p) => p != null && p.trim().isNotEmpty && File(p).existsSync(),
+        )
+        .cast<String>()
+        .toList();
+  }
+
+  void _openPhotoViewer(int gridIndex) {
+    final paths = _viewerPhotoPaths();
+    if (paths.isEmpty) return;
+    final path = _slotPhotos[gridIndex];
+    if (path == null) return;
+    final initialIndex = paths.indexOf(path);
+    PhotoViewerPage.show(
+      context,
+      photos: paths.map((p) => MemoryPhoto(path: p)).toList(),
+      initialIndex: initialIndex >= 0 ? initialIndex : 0,
+      eventName: _titleCtrl.text.trim().isEmpty ? '纪念事件' : _titleCtrl.text.trim(),
+      eventDate: _date,
     );
   }
 
-  void _onSlotTap(int index) {
-    final path = _slotPhotos[index];
-    final hasPhoto = path != null && File(path).existsSync();
-    if (!hasPhoto) {
-      _pickForSlot(index);
-      return;
-    }
+  void _showPhotoActionSheet(int index) {
     showModalBottomSheet<void>(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -222,14 +234,6 @@ class _MemoryEventSheetState extends State<MemoryEventSheet> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
-              leading: const Icon(Icons.zoom_out_map),
-              title: const Text('查看大图'),
-              onTap: () {
-                Navigator.pop(ctx);
-                _showPhotoPreview(path);
-              },
-            ),
             ListTile(
               leading: const Icon(Icons.photo_library_outlined),
               title: const Text('替换照片'),
@@ -250,6 +254,14 @@ class _MemoryEventSheetState extends State<MemoryEventSheet> {
         ),
       ),
     );
+  }
+
+  void _onEmptySlotTap(int index) {
+    _pickForSlot(index);
+  }
+
+  void _onPhotoSlotTap(int index) {
+    _openPhotoViewer(index);
   }
 
   Widget _photoSlot(int index, double side) {
@@ -314,6 +326,30 @@ class _MemoryEventSheetState extends State<MemoryEventSheet> {
                 ),
               ),
             slotBadge(),
+            if (slot == 1)
+              Positioned(
+                top: 4,
+                left: 4,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: MemoryEventSheet._themeBlue,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Text(
+                    '封面',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                      height: 1.0,
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       );
@@ -335,7 +371,7 @@ class _MemoryEventSheetState extends State<MemoryEventSheet> {
         if (!hasPhoto) {
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: () => _onSlotTap(index),
+            onTap: () => _onEmptySlotTap(index),
             child: slotChrome(highlight: highlight, showImage: false),
           );
         }
@@ -378,7 +414,8 @@ class _MemoryEventSheetState extends State<MemoryEventSheet> {
               slotChrome(highlight: false, showImage: false),
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: () => _onSlotTap(index),
+            onTap: () => _onPhotoSlotTap(index),
+            onLongPress: () => _showPhotoActionSheet(index),
             child: slotChrome(highlight: highlight, showImage: true),
           ),
         );
@@ -389,310 +426,271 @@ class _MemoryEventSheetState extends State<MemoryEventSheet> {
   @override
   Widget build(BuildContext context) {
     final mq = MediaQuery.of(context);
-    final bottomInset = mq.padding.bottom;
 
     return Padding(
       padding: EdgeInsets.only(bottom: mq.viewInsets.bottom),
-      child: SizedBox(
-        height: mq.size.height * 0.9,
-        child: ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          child: Material(
-            color: const Color(0xFFFAFBFC),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Container(
-                  height: 56,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        child: Material(
+          color: const Color(0xFFFAFBFC),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  margin: const EdgeInsets.only(top: 8),
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE2E8F0),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text(
-                          '关闭',
-                          style: TextStyle(
-                            fontSize: 15,
-                            color: MemoryEventSheet._muted,
+                      TextField(
+                        controller: _titleCtrl,
+                        decoration: InputDecoration(
+                          hintText: '输入事件名称',
+                          hintStyle: const TextStyle(
+                            color: Color(0xFFCBD5E1),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(18),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFE2E8F0),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(18),
+                            borderSide: const BorderSide(
+                              color: MemoryEventSheet._themeBlue,
+                            ),
+                          ),
+                        ),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Color(0xFF1F2937),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _locCtrl,
+                        decoration: InputDecoration(
+                          hintText: '添加地点',
+                          hintStyle: const TextStyle(
+                            color: Color(0xFFCBD5E1),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(18),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFE2E8F0),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(18),
+                            borderSide: const BorderSide(
+                              color: MemoryEventSheet._themeBlue,
+                            ),
+                          ),
+                        ),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Color(0xFF1F2937),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: GestureDetector(
+                          onTap: _pickDate,
+                          behavior: HitTestBehavior.opaque,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: const Color(0xFFE2E8F0),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.calendar_today_outlined,
+                                  size: 14,
+                                  color: MemoryEventSheet._themeBlue,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  formatMemoryStreamDayZh(_date),
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: MemoryEventSheet._themeBlue,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                      Text(
-                        widget.initial == null ? '添加事件' : '修改事件',
-                        style: const TextStyle(
-                          fontSize: 17,
+                      const SizedBox(height: 16),
+                      const Text(
+                        '纪念照片',
+                        style: TextStyle(
+                          fontSize: 15,
                           fontWeight: FontWeight.w600,
                           color: MemoryEventSheet._titleColor,
                         ),
                       ),
-                      TextButton(
-                        onPressed: _saveEvent,
-                        child: const Text(
-                          '保存',
-                          style: TextStyle(
-                            fontSize: 15,
-                            color: MemoryEventSheet._themeBlue,
-                            fontWeight: FontWeight.w600,
+                      const SizedBox(height: 12),
+                      GridView.count(
+                        crossAxisCount: 3,
+                        childAspectRatio: 1.0,
+                        mainAxisSpacing: 8,
+                        crossAxisSpacing: 8,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        children: List.generate(
+                          9,
+                          (i) => LayoutBuilder(
+                            builder: (context, constraints) {
+                              final cell = constraints.maxWidth;
+                              return _photoSlot(i, cell);
+                            },
                           ),
                         ),
                       ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: MemoryEventSheet._themeBlue,
+                                side: const BorderSide(
+                                  color: MemoryEventSheet._themeBlue,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                              ),
+                              onPressed: _pickMultiGallery,
+                              icon: const Icon(
+                                Icons.photo_library_outlined,
+                                size: 18,
+                                color: MemoryEventSheet._themeBlue,
+                              ),
+                              label: const Text(
+                                '从相册上传',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: MemoryEventSheet._themeBlue,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: MemoryEventSheet._themeBlue,
+                                side: const BorderSide(
+                                  color: MemoryEventSheet._themeBlue,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                              ),
+                              onPressed: _takePhoto,
+                              icon: const Icon(
+                                Icons.camera_alt_outlined,
+                                size: 18,
+                                color: MemoryEventSheet._themeBlue,
+                              ),
+                              label: const Text(
+                                '拍照上传',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: MemoryEventSheet._themeBlue,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
                     ],
                   ),
                 ),
-                const Divider(
-                  height: 1,
-                  thickness: 1,
-                  color: Color(0xFFF1F5F9),
-                ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + bottomInset),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        TextField(
-                          controller: _titleCtrl,
-                          decoration: InputDecoration(
-                            hintText: '输入事件名称',
-                            hintStyle: const TextStyle(
-                              color: Color(0xFFCBD5E1),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(18),
-                              borderSide: const BorderSide(
-                                color: Color(0xFFE2E8F0),
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(18),
-                              borderSide: const BorderSide(
-                                color: MemoryEventSheet._themeBlue,
-                              ),
-                            ),
-                          ),
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Color(0xFF1F2937),
-                          ),
+              ),
+              SafeArea(
+                minimum: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: SizedBox(
+                  height: 48,
+                  child: Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: TextButton.styleFrom(
+                          minimumSize: const Size(0, 48),
                         ),
-                        const SizedBox(height: 20),
-                        TextField(
-                          controller: _locCtrl,
-                          decoration: InputDecoration(
-                            hintText: '添加地点',
-                            hintStyle: const TextStyle(
-                              color: Color(0xFFCBD5E1),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(18),
-                              borderSide: const BorderSide(
-                                color: Color(0xFFE2E8F0),
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(18),
-                              borderSide: const BorderSide(
-                                color: MemoryEventSheet._themeBlue,
-                              ),
-                            ),
-                          ),
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Color(0xFF1F2937),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: GestureDetector(
-                            onTap: _pickDate,
-                            behavior: HitTestBehavior.opaque,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 10,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF1F5F9),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: const Color(0xFFE2E8F0),
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(
-                                    Icons.calendar_today_outlined,
-                                    size: 14,
-                                    color: MemoryEventSheet._themeBlue,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    formatMemoryStreamDayZh(_date),
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      color: MemoryEventSheet._themeBlue,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          '纪念照片',
+                        child: const Text(
+                          '关闭',
                           style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: MemoryEventSheet._titleColor,
+                            color: Color(0xFF64748B),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        GridView.count(
-                          crossAxisCount: 3,
-                          childAspectRatio: 1.0,
-                          mainAxisSpacing: 8,
-                          crossAxisSpacing: 8,
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          children: List.generate(
-                            9,
-                            (i) => LayoutBuilder(
-                              builder: (context, constraints) {
-                                final cell = constraints.maxWidth;
-                                return _photoSlot(i, cell);
-                              },
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: MemoryEventSheet._themeBlue,
-                                  side: const BorderSide(
-                                    color: MemoryEventSheet._themeBlue,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 12,
-                                  ),
-                                ),
-                                onPressed: _pickMultiGallery,
-                                icon: const Icon(
-                                  Icons.photo_library_outlined,
-                                  size: 18,
-                                  color: MemoryEventSheet._themeBlue,
-                                ),
-                                label: const Text(
-                                  '从相册上传',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: MemoryEventSheet._themeBlue,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: MemoryEventSheet._themeBlue,
-                                  side: const BorderSide(
-                                    color: MemoryEventSheet._themeBlue,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 12,
-                                  ),
-                                ),
-                                onPressed: _takePhoto,
-                                icon: const Icon(
-                                  Icons.camera_alt_outlined,
-                                  size: 18,
-                                  color: MemoryEventSheet._themeBlue,
-                                ),
-                                label: const Text(
-                                  '拍照上传',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: MemoryEventSheet._themeBlue,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton(
-                                style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(
-                                    color: Color(0xFFE2E8F0),
-                                  ),
-                                  foregroundColor: const Color(0xFF64748B),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 14,
-                                  ),
-                                ),
-                                onPressed: () => Navigator.pop(context),
-                                child: const Text(
-                                  '关闭',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: MemoryEventSheet._themeBlue,
-                                  foregroundColor: Colors.white,
-                                  elevation: 0,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 14,
-                                  ),
-                                ),
-                                onPressed: _saveEvent,
-                                child: const Text(
-                                  '保存',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton(
+                        onPressed: _saveEvent,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: MemoryEventSheet._themeBlue,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          minimumSize: const Size(0, 48),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: const Text(
+                          '保存',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
+            ],
           ),
         ),
       ),

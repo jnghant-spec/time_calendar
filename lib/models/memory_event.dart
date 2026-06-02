@@ -1,8 +1,7 @@
-/// 时光集内的一条纪念事件。
+/// 时光集内的一条纪念事件（独立实体，通过 [CollectionSubEvent] 关联事件集）。
 class MemoryEvent {
   const MemoryEvent({
     required this.id,
-    required this.collectionId,
     required this.title,
     this.location,
     required this.date,
@@ -10,7 +9,6 @@ class MemoryEvent {
   });
 
   final String id;
-  final String collectionId;
   final String title;
   final String? location;
   final DateTime date;
@@ -18,7 +16,6 @@ class MemoryEvent {
 
   MemoryEvent copyWith({
     String? id,
-    String? collectionId,
     String? title,
     String? location,
     DateTime? date,
@@ -26,7 +23,6 @@ class MemoryEvent {
   }) {
     return MemoryEvent(
       id: id ?? this.id,
-      collectionId: collectionId ?? this.collectionId,
       title: title ?? this.title,
       location: location ?? this.location,
       date: date ?? this.date,
@@ -35,13 +31,12 @@ class MemoryEvent {
   }
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'collectionId': collectionId,
-    'title': title,
-    'location': location,
-    'date': date.toIso8601String(),
-    'photoPaths': photoPaths,
-  };
+        'id': id,
+        'title': title,
+        'location': location,
+        'date': date.toIso8601String(),
+        'photoPaths': photoPaths,
+      };
 
   factory MemoryEvent.fromJson(Map<String, dynamic> json) {
     final pathsRaw = json['photoPaths'];
@@ -51,7 +46,6 @@ class MemoryEvent {
     }
     return MemoryEvent(
       id: json['id'] as String,
-      collectionId: json['collectionId'] as String,
       title: json['title'] as String,
       location: json['location'] as String?,
       date: DateTime.parse(json['date'] as String),

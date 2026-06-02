@@ -49,6 +49,7 @@ dependencies:
   flutter_local_notifications: ^17.1.2
   timezone: ^0.9.2
   share_plus: ^13.1.0
+  gal: ^2.3.2
 
 dev_dependencies:
   flutter_test:
@@ -87,6 +88,7 @@ flutter:
     - assets/images/ic_festival_ethnic.svg
     - assets/images/ic_festival_religious.svg
     - assets/images/ic_preference.svg
+    - assets/images/ic_star.svg
     - assets/images/tab/ic_calendar.svg
     - assets/images/tab/ic_list.svg
     - assets/images/tab/ic_profile.svg

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:time_calendar/widgets/calendar/calendar_models.dart';
+import 'package:time_calendar/widgets/pinned_star_badge.dart';
 
 /// 日历事件卡片：标题在上、日期在下；左侧色条；右侧倒计时。
 /// 农历 pill 依赖 [CalendarPage._formatEventDateLine] 写入的不可见标记 `\u200e`。
@@ -17,7 +18,6 @@ class EventReminderCard extends StatelessWidget {
   static const Color _titleColorCal = Color(0xFF0F172A);
   static const Color _dateColorCal = Color(0xFF64748B);
   static const Color _borderColor = Color(0xFFF1F5F9);
-  static const Color _starColor = Color(0xFFFFB800);
   static const Color _lunarPillBg = Color(0xFFFFF7ED);
   static const Color _lunarPillFg = Color(0xFFF97316);
 
@@ -43,7 +43,8 @@ class EventReminderCard extends StatelessWidget {
   static String _stripLunarMarker(String raw) =>
       raw.replaceAll(_kLunarDateLineMarker, '').trim();
 
-  static bool _hasLunarMarker(String raw) => raw.contains(_kLunarDateLineMarker);
+  static bool _hasLunarMarker(String raw) =>
+      raw.contains(_kLunarDateLineMarker);
 
   /// 从 `festival_${core}_${y}_${m}_${d}` 解析节日核心 id（与日历页逻辑一致）。
   static String? festivalCoreIdFromReminderId(String reminderId) {
@@ -156,39 +157,44 @@ class EventReminderCard extends StatelessWidget {
 
   static Color _todayTextColor(Color accent) {
     const festivalGreen = Color(0xFF10B981);
-    return accent.toARGB32() == festivalGreen.toARGB32() ? festivalGreen : accent;
+    return accent.toARGB32() == festivalGreen.toARGB32()
+        ? festivalGreen
+        : accent;
   }
 
-  static Widget _countdownTrailing(EventReminderData event) {
+  /// 日历时间线卡片（含节日卡）右侧倒计时区域。
+  static Widget countdownTrailing(EventReminderData event) {
     const w = 80.0;
     final accent = event.accentColor;
     final daysRemaining = event.daysRemaining;
+    const festivalGreen = Color(0xFF10B981);
 
     Widget band(Widget child) {
-      return SizedBox(
-        width: w,
-        child: child,
-      );
+      return SizedBox(width: w, child: child);
     }
 
-    if (event.isFestival) {
-      const amber = Color(0xFFF59E0B);
-      return band(
-        Center(
-          child: Text(
-            '节日',
-            textAlign: TextAlign.right,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: amber,
-              height: 1.0,
-            ),
-          ),
-        ),
-      );
-    }
     if (daysRemaining == 0) {
+      if (event.isFestival) {
+        return band(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '今天',
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: festivalGreen,
+                  height: 1.0,
+                ),
+              ),
+            ],
+          ),
+        );
+      }
       return band(
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
@@ -210,6 +216,27 @@ class EventReminderCard extends StatelessWidget {
       );
     }
     if (daysRemaining < 0) {
+      if (event.isFestival) {
+        return band(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '已过去',
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey.shade600,
+                  height: 1.0,
+                ),
+              ),
+            ],
+          ),
+        );
+      }
       return band(
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
@@ -232,32 +259,36 @@ class EventReminderCard extends StatelessWidget {
         ),
       );
     }
+    final numberColor = Color.lerp(accent, Colors.black, 0.15)!;
     return band(
-      Column(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            '$daysRemaining',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-              color: accent,
-              height: 1.0,
+      Align(
+        alignment: Alignment.centerRight,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Text(
+              '$daysRemaining',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: numberColor,
+                height: 1.0,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '天后',
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w400,
-              color: accent.withValues(alpha: 0.7),
-              height: 1.0,
+            const SizedBox(width: 4),
+            Text(
+              '天后',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+                color: accent,
+                height: 1.0,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -274,135 +305,178 @@ class EventReminderCard extends StatelessWidget {
     final rawDate = event.dateText;
     final showLunar = !event.isFestival && _hasLunarMarker(rawDate);
     final dateDisplay = _stripLunarMarker(rawDate);
-    final barColor =
-        event.isFestival ? const Color(0xFFF59E0B) : accent;
+    final barColor = event.isFestival ? const Color(0xFFF59E0B) : accent;
 
-    return Semantics(
-      label: event.title,
-      hint: event.isFestival ? '节日' : countdownText(event.daysRemaining),
-      child: Material(
-        color: Colors.transparent,
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: _borderColor, width: 0.75),
-            boxShadow: _cardShadows,
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: onCardTap,
-            onLongPress: onTogglePin,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: innerPadH, vertical: innerPadV),
-              child: IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: barW,
-                      height: barH,
-                      decoration: BoxDecoration(
-                        color: barColor,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        event.title,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          fontSize: titleSize,
-                                          fontWeight: FontWeight.w700,
-                                          color: _titleColorCal,
-                                          height: 1.25,
-                                          letterSpacing: -0.31,
-                                        ),
-                                      ),
-                                    ),
-                                    if (event.isPinned && !event.isFestival) ...[
-                                      const SizedBox(width: 2),
-                                      const Icon(
-                                        Icons.star,
-                                        size: 16,
-                                        color: _starColor,
-                                        semanticLabel: '已置顶',
-                                      ),
-                                    ],
-                                    if (event.isFestival) ...[
-                                      const SizedBox(width: 8),
-                                      EventReminderCard.festivalTypeTag(event),
-                                    ],
-                                  ],
+    final showPinnedChrome = event.isPinned && !event.isFestival;
+
+    final cardBody = Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: innerPadH,
+        vertical: innerPadV,
+      ),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: barW,
+              height: barH,
+              decoration: BoxDecoration(
+                color: barColor,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                event.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: titleSize,
+                                  fontWeight: FontWeight.w700,
+                                  color: _titleColorCal,
+                                  height: 1.25,
+                                  letterSpacing: -0.31,
                                 ),
-                                const SizedBox(height: 6),
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        dateDisplay,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          fontSize: dateSize,
-                                          fontWeight: FontWeight.w400,
-                                          color: _dateColorCal,
-                                          height: 1.0,
-                                        ),
-                                      ),
-                                    ),
-                                    if (showLunar) ...[
-                                      const SizedBox(width: 8),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: _lunarPillBg,
-                                          borderRadius: BorderRadius.circular(6),
-                                        ),
-                                        child: const Text(
-                                          '农历',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w500,
-                                            color: _lunarPillFg,
-                                            height: 1.2,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ],
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          _countdownTrailing(event),
-                        ],
-                      ),
+                            if (event.isFestival) ...[
+                              const SizedBox(width: 8),
+                              EventReminderCard.festivalTypeTag(event),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                dateDisplay,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: dateSize,
+                                  fontWeight: FontWeight.w400,
+                                  color: _dateColorCal,
+                                  height: 1.0,
+                                ),
+                              ),
+                            ),
+                            if (showLunar) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: _lunarPillBg,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Text(
+                                  '农历',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    color: _lunarPillFg,
+                                    height: 1.2,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
+                  const SizedBox(width: 8),
+                  countdownTrailing(event),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    Widget cardSurface;
+    if (showPinnedChrome) {
+      cardSurface = Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: _borderColor, width: 0.75),
+              boxShadow: _cardShadows,
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                InkWell(
+                  onTap: onCardTap,
+                  onLongPress: onTogglePin,
+                  child: cardBody,
+                ),
+              ],
+            ),
+          ),
+          Positioned(
+            top: 0,
+            left: 16,
+            right: 16,
+            child: Container(
+              height: 2,
+              decoration: const BoxDecoration(
+                color: kPinnedStarGold,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
                 ),
               ),
             ),
           ),
+          const Positioned(top: 0, right: 6, child: PinnedStarBadge()),
+        ],
+      );
+    } else {
+      cardSurface = Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: _borderColor, width: 0.75),
+          boxShadow: _cardShadows,
         ),
-      ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onCardTap,
+          onLongPress: onTogglePin,
+          child: cardBody,
+        ),
+      );
+    }
+
+    return Semantics(
+      label: event.title,
+      hint: event.isFestival ? '节日' : countdownText(event.daysRemaining),
+      child: Material(color: Colors.transparent, child: cardSurface),
     );
   }
 }

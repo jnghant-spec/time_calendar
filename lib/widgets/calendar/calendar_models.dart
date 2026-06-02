@@ -13,7 +13,8 @@ class CalendarDayCellData {
     this.isCurrentMonth = true,
     this.isSelected = false,
     this.isToday = false,
-    this.markerColors = const [],
+    this.events = const [],
+    this.festivals = const [],
   });
 
   final String dayNumber;
@@ -24,7 +25,8 @@ class CalendarDayCellData {
   final bool isSelected;
   /// 是否为「上海」当前日历日（与 [isSelected] 可同时为 true，选中态优先绘制）。
   final bool isToday;
-  final List<Color> markerColors;
+  final List<ListEvent> events;
+  final List<CalendarFestival> festivals;
 }
 
 class EventReminderData {

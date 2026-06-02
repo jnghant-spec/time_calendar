@@ -1,10 +1,12 @@
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:time_calendar/models/memory_collection.dart';
 import 'package:time_calendar/models/memory_event.dart';
 import 'package:time_calendar/services/memory_service.dart';
 import 'package:time_calendar/services/tag_service.dart';
+import 'package:time_calendar/widgets/tag_circle_widget.dart';
 import 'package:time_calendar/utils/event_date_utils.dart';
 
 /// 时光集详情弹窗（横向/纵向）共用顶部区块。
@@ -51,24 +53,10 @@ class MemoryCollectionDetailHeader extends StatelessWidget {
     return '${formatYearMonthDot(events.first.date)} - ${formatYearMonthDot(events.last.date)}';
   }
 
-  Widget _tagPill() {
+  Widget _tagBadge() {
     final tag = TagService.getTagById(collection.tagId);
     if (tag == null) return const SizedBox.shrink();
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-      decoration: BoxDecoration(
-        color: tag.accentColor.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Text(
-        tag.name,
-        style: TextStyle(
-          fontSize: 11,
-          color: tag.accentColor,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    );
+    return TagCircleWidget(tag: tag, size: 40, showLabel: false);
   }
 
   @override
@@ -90,13 +78,30 @@ class MemoryCollectionDetailHeader extends StatelessWidget {
               children: [
                 cover != null
                     ? Image.file(File(cover), fit: BoxFit.cover)
-                    : Container(
-                        color: const Color(0xFFF1F5F9),
-                        alignment: Alignment.center,
-                        child: const Icon(
-                          Icons.photo_album_outlined,
-                          size: 48,
-                          color: Color(0xFFCBD5E1),
+                    : GestureDetector(
+                        onTap: onEditCollection,
+                        behavior: HitTestBehavior.opaque,
+                        child: Container(
+                          color: const Color(0xFFF1F5F9),
+                          alignment: Alignment.center,
+                          child: const Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.camera_alt_outlined,
+                                size: 32,
+                                color: Color(0xFFCBD5E1),
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                '点击添加封面',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Color(0xFF94A3B8),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                 Positioned(
@@ -104,18 +109,14 @@ class MemoryCollectionDetailHeader extends StatelessWidget {
                   right: 24,
                   child: Row(
                     children: [
-                      _circleIconBtn(
-                        Icons.share_outlined,
-                        const Color(0xFF1A73E8),
-                        Colors.white,
-                        onShare,
+                      MemoryGlassIconButton(
+                        icon: Icons.share_outlined,
+                        onTap: onShare,
                       ),
                       const SizedBox(width: 8),
-                      _circleIconBtn(
-                        Icons.edit_outlined,
-                        Colors.white,
-                        const Color(0xFF1F2937),
-                        onEditCollection,
+                      MemoryGlassIconButton(
+                        icon: Icons.edit_outlined,
+                        onTap: onEditCollection,
                       ),
                     ],
                   ),
@@ -145,7 +146,7 @@ class MemoryCollectionDetailHeader extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _tagPill(),
+            _tagBadge(),
             const SizedBox(width: 8),
             Text(
               '· 共 ${events.length} 个事件 · $photoCount 张照片',
@@ -192,34 +193,6 @@ class MemoryCollectionDetailHeader extends StatelessWidget {
     );
   }
 
-  static Widget _circleIconBtn(
-    IconData icon,
-    Color bgColor,
-    Color iconColor,
-    VoidCallback onTap,
-  ) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: bgColor,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        alignment: Alignment.center,
-        child: Icon(icon, size: 16, color: iconColor),
-      ),
-    );
-  }
-
   static Widget _viewToggleBtn(
     IconData icon,
     bool isActive,
@@ -239,6 +212,228 @@ class MemoryCollectionDetailHeader extends StatelessWidget {
           icon,
           size: 18,
           color: isActive ? Colors.white : _muted,
+        ),
+      ),
+    );
+  }
+}
+
+/// 封面图上的磨砂玻璃圆形按钮。
+class MemoryGlassIconButton extends StatelessWidget {
+  const MemoryGlassIconButton({
+    super.key,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: ClipOval(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          child: Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.35),
+                width: 0.5,
+              ),
+            ),
+            alignment: Alignment.center,
+            child: Icon(icon, size: 18, color: Colors.white),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 时间线节点：主题蓝圆点 + 可选向下细线（与详情列表一致）。
+class MemoryTimelineRailMarker extends StatelessWidget {
+  const MemoryTimelineRailMarker({super.key, this.showLineBelow = true});
+
+  final bool showLineBelow;
+
+  static const Color _themeBlue = Color(0xFF1A73E8);
+  static const Color _lineColor = Color(0xFFE2E8F0);
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 14,
+      child: Column(
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            margin: const EdgeInsets.only(top: 2),
+            decoration: BoxDecoration(
+              color: _themeBlue,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 2),
+            ),
+          ),
+          if (showLineBelow)
+            Expanded(
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: Container(
+                  width: 2,
+                  color: _lineColor,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 时间线地点元数据：浅灰胶囊底，提升可读性。
+class MemoryLocationCapsule extends StatelessWidget {
+  const MemoryLocationCapsule({super.key, required this.location});
+
+  final String location;
+
+  static const Color _bg = Color(0xFFF5F5F7);
+  static const Color _fg = Color(0xFF64748B);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: _bg,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.place_outlined, size: 12, color: _fg),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              location,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: _fg,
+                height: 1.2,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 详情页底部磨砂工具栏（添加居中，两侧编辑/删除）。
+class MemoryDetailBottomToolbar extends StatelessWidget {
+  const MemoryDetailBottomToolbar({
+    super.key,
+    required this.onAdd,
+    this.onEdit,
+    this.onDelete,
+  });
+
+  final VoidCallback onAdd;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
+
+  static const double barHeight = 56;
+  static const Color _themeBlue = Color(0xFF1A73E8);
+  static const Color _sideIcon = Color(0xFF64748B);
+  static const Color _deleteTint = Color(0xFFEF4444);
+
+  static double totalHeight(BuildContext context) =>
+      barHeight + MediaQuery.paddingOf(context).bottom;
+
+  @override
+  Widget build(BuildContext context) {
+    final bottom = MediaQuery.paddingOf(context).bottom;
+
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+        child: Container(
+          height: barHeight + bottom,
+          padding: EdgeInsets.only(left: 8, right: 8, bottom: bottom),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.7),
+            border: Border(
+              top: BorderSide(
+                color: const Color(0xFFE2E8F0).withValues(alpha: 0.8),
+              ),
+            ),
+          ),
+          child: Row(
+            children: [
+              IconButton(
+                onPressed: onEdit,
+                icon: Icon(
+                  Icons.edit_outlined,
+                  size: 22,
+                  color: onEdit != null ? _sideIcon : _sideIcon.withValues(alpha: 0.35),
+                ),
+              ),
+              Expanded(
+                child: Center(
+                  child: Material(
+                    color: _themeBlue,
+                    elevation: 2,
+                    shadowColor: _themeBlue.withValues(alpha: 0.35),
+                    shape: const StadiumBorder(),
+                    child: InkWell(
+                      onTap: onAdd,
+                      customBorder: const StadiumBorder(),
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 10,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.add, size: 20, color: Colors.white),
+                            SizedBox(width: 6),
+                            Text(
+                              '添加事件',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: onDelete,
+                icon: Icon(
+                  Icons.delete_outline,
+                  size: 22,
+                  color: onDelete != null
+                      ? _deleteTint.withValues(alpha: 0.88)
+                      : _deleteTint.withValues(alpha: 0.35),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

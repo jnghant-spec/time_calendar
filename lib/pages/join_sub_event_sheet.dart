@@ -1,0 +1,424 @@
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:time_calendar/models/memory_collection.dart';
+import 'package:time_calendar/models/memory_event.dart';
+import 'package:time_calendar/services/memory_service.dart';
+
+const Color _titleColor = Color(0xFF1F2937);
+const Color _muted = Color(0xFF94A3B8);
+const Color _disabled = Color(0xFFCBD5E1);
+const Color _dividerColor = Color(0xFFF1F5F9);
+const Color _successGreen = Color(0xFF10B981);
+const Color _warningAmber = Color(0xFFF59E0B);
+const Color _errorRed = Color(0xFFEF4444);
+
+enum _JoinTileState { current, alreadyJoined, joinable }
+
+/// 选择目标事件集并直接关联加入子事件。
+Future<void> showJoinSubEventSheet(
+  BuildContext context, {
+  required MemoryEvent event,
+  required String currentCollectionId,
+  VoidCallback? onJoined,
+}) {
+  return showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    isScrollControlled: true,
+    builder: (ctx) => _JoinSubEventSheet(
+      event: event,
+      currentCollectionId: currentCollectionId,
+      onJoined: onJoined,
+    ),
+  );
+}
+
+class _JoinSubEventSheet extends StatefulWidget {
+  const _JoinSubEventSheet({
+    required this.event,
+    required this.currentCollectionId,
+    this.onJoined,
+  });
+
+  final MemoryEvent event;
+  final String currentCollectionId;
+  final VoidCallback? onJoined;
+
+  @override
+  State<_JoinSubEventSheet> createState() => _JoinSubEventSheetState();
+}
+
+class _JoinSubEventSheetState extends State<_JoinSubEventSheet> {
+  List<MemoryCollection> _collections = [];
+  Map<String, List<MemoryEvent>> _eventsByCollection = {};
+  Set<String> _joinedCollectionIds = {};
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final collections = await MemoryService.getSortedCollections();
+    final joinedIds =
+        await MemoryService.getCollectionIdsBySubEventId(widget.event.id);
+    final grouped = <String, List<MemoryEvent>>{};
+    for (final c in collections) {
+      grouped[c.id] = await MemoryService.getEventsSorted(c.id);
+    }
+    if (!mounted) return;
+    setState(() {
+      _collections = collections;
+      _eventsByCollection = grouped;
+      _joinedCollectionIds = joinedIds.toSet();
+      _loading = false;
+    });
+  }
+
+  List<MemoryCollection> get _targetCollections =>
+      _collections.where((c) => c.id != widget.currentCollectionId).toList();
+
+  bool get _allOthersJoined {
+    final others = _targetCollections;
+    if (others.isEmpty) return false;
+    return others.every((c) => _joinedCollectionIds.contains(c.id));
+  }
+
+  _JoinTileState _tileState(String collectionId) {
+    if (collectionId == widget.currentCollectionId) {
+      return _JoinTileState.current;
+    }
+    if (_joinedCollectionIds.contains(collectionId)) {
+      return _JoinTileState.alreadyJoined;
+    }
+    return _JoinTileState.joinable;
+  }
+
+  String? _coverPath(MemoryCollection c) {
+    final custom = c.coverPhotoPath;
+    if (custom != null &&
+        custom.isNotEmpty &&
+        File(custom).existsSync()) {
+      return custom;
+    }
+    final ev = _eventsByCollection[c.id] ?? [];
+    for (var i = ev.length - 1; i >= 0; i--) {
+      final p = MemoryService.firstSlotPhotoPath(ev[i]);
+      if (p != null) return p;
+    }
+    return null;
+  }
+
+  Future<void> _joinToTarget(MemoryCollection target) async {
+    if (_tileState(target.id) != _JoinTileState.joinable) return;
+    try {
+      await MemoryService.joinSubEvent(widget.event.id, target.id);
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
+      Navigator.pop(context);
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            '「${widget.event.title}」已加入「${target.name}」',
+          ),
+          backgroundColor: _successGreen,
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      );
+      widget.onJoined?.call();
+    } on SubEventAlreadyInCollectionException catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _joinedCollectionIds = {..._joinedCollectionIds, target.id};
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('该事件已在此事件集中'),
+          backgroundColor: _warningAmber,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('加入失败，请重试'),
+          backgroundColor: _errorRed,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottom = MediaQuery.paddingOf(context).bottom;
+
+    return SafeArea(
+      top: false,
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.72,
+        ),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 12, 16, 0),
+              child: Row(
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text(
+                      '取消',
+                      style: TextStyle(color: _muted, fontSize: 16),
+                    ),
+                  ),
+                  const Expanded(
+                    child: Text(
+                      '加入其他事件集',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: _titleColor,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 64),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              '选择要加入的事件集',
+              style: TextStyle(fontSize: 14, color: _muted),
+            ),
+            const SizedBox(height: 8),
+            const Divider(height: 1, thickness: 1, color: _dividerColor),
+            if (_loading)
+              const Padding(
+                padding: EdgeInsets.all(32),
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            else if (_targetCollections.isEmpty)
+              Padding(
+                padding: EdgeInsets.fromLTRB(16, 32, 16, 32 + bottom),
+                child: Column(
+                  children: const [
+                    Icon(
+                      Icons.folder_open_outlined,
+                      size: 48,
+                      color: _disabled,
+                    ),
+                    SizedBox(height: 12),
+                    Text(
+                      '暂无其他事件集',
+                      style: TextStyle(fontSize: 14, color: _muted),
+                    ),
+                  ],
+                ),
+              )
+            else
+              Flexible(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        padding: EdgeInsets.zero,
+                        itemCount: _collections.length,
+                        separatorBuilder: (context, index) => const Divider(
+                          height: 1,
+                          thickness: 1,
+                          indent: 16,
+                          endIndent: 16,
+                          color: _dividerColor,
+                        ),
+                        itemBuilder: (context, index) {
+                          final c = _collections[index];
+                          final state = _tileState(c.id);
+                          final ev = _eventsByCollection[c.id] ?? [];
+                          final photoCount =
+                              MemoryService.countPhotosInCollection(ev);
+                          return _CollectionJoinTile(
+                            name: c.name,
+                            stats:
+                                '共 ${ev.length} 个事件 · $photoCount 张照片',
+                            coverPath: _coverPath(c),
+                            state: state,
+                            onTap: state == _JoinTileState.joinable
+                                ? () => _joinToTarget(c)
+                                : null,
+                          );
+                        },
+                      ),
+                    ),
+                    if (_allOthersJoined)
+                      Padding(
+                        padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottom),
+                        child: const Text(
+                          '该事件已加入所有事件集',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 14, color: _muted),
+                        ),
+                      )
+                    else
+                      SizedBox(height: bottom),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CollectionJoinTile extends StatelessWidget {
+  const _CollectionJoinTile({
+    required this.name,
+    required this.stats,
+    required this.coverPath,
+    required this.state,
+    this.onTap,
+  });
+
+  final String name;
+  final String stats;
+  final String? coverPath;
+  final _JoinTileState state;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final isCurrent = state == _JoinTileState.current;
+    final isJoined = state == _JoinTileState.alreadyJoined;
+    final isJoinable = state == _JoinTileState.joinable;
+
+    final nameColor = isCurrent ? _disabled : _titleColor;
+    final statsColor = isCurrent ? _disabled : _muted;
+
+    Widget cover = coverPath != null
+        ? Image.file(
+            File(coverPath!),
+            width: 48,
+            height: 48,
+            fit: BoxFit.cover,
+          )
+        : Container(
+            width: 48,
+            height: 48,
+            color: const Color(0xFFF1F5F9),
+            alignment: Alignment.center,
+            child: Icon(
+              Icons.photo_album_outlined,
+              size: 22,
+              color: statsColor,
+            ),
+          );
+    if (isCurrent) {
+      cover = Opacity(opacity: 0.4, child: cover);
+    }
+
+    Widget trailing;
+    if (isCurrent) {
+      trailing = const Text(
+        '当前所在',
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w500,
+          color: _disabled,
+        ),
+      );
+    } else if (isJoined) {
+      trailing = const Text(
+        '已加入',
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w500,
+          color: _successGreen,
+        ),
+      );
+    } else {
+      trailing = const Icon(
+        Icons.chevron_right,
+        size: 20,
+        color: _muted,
+      );
+    }
+
+    final content = SizedBox(
+      height: 72,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: cover,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: nameColor,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    stats,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: statsColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            trailing,
+          ],
+        ),
+      ),
+    );
+
+    if (isJoinable) {
+      return Material(
+        color: Colors.white,
+        child: InkWell(
+          onTap: onTap,
+          child: content,
+        ),
+      );
+    }
+
+    return IgnorePointer(
+      child: Material(
+        color: Colors.white,
+        child: content,
+      ),
+    );
+  }
+}
