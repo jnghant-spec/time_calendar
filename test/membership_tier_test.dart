@@ -37,9 +37,9 @@ void main() {
     });
 
     test('photos per event per tier', () {
-      expect(MembershipConfig.benefits[MembershipTier.free]!.photosPerEvent, 0);
-      expect(MembershipConfig.benefits[MembershipTier.basic]!.photosPerEvent, 3);
-      expect(MembershipConfig.benefits[MembershipTier.premium]!.photosPerEvent, 10);
+      expect(MembershipConfig.benefits[MembershipTier.free]!.photosPerEvent, 1);
+      expect(MembershipConfig.benefits[MembershipTier.basic]!.photosPerEvent, 9);
+      expect(MembershipConfig.benefits[MembershipTier.premium]!.photosPerEvent, 9);
     });
   });
 }

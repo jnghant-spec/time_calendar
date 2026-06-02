@@ -1,11 +1,20 @@
+import 'dart:io';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:lunar/lunar.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:time_calendar/models/list_event.dart';
 import 'package:time_calendar/models/membership_tier.dart';
+import 'package:time_calendar/models/reminder_tag.dart';
 import 'package:time_calendar/services/membership_service.dart';
+import 'package:time_calendar/services/tag_service.dart';
+import 'package:time_calendar/widgets/event_photo_paths_preview.dart';
+import 'package:time_calendar/widgets/common_date_picker.dart';
 import 'package:time_calendar/widgets/membership_soft_paywall.dart';
 
 // --- Design tokens（与任务规范一致） ---
@@ -19,45 +28,6 @@ const Color _kHint = Color(0xFF94A3B8);
 const List<BoxShadow> _kInputShadow = [
   BoxShadow(color: Color(0x0D111827), blurRadius: 20, offset: Offset(0, 8)),
 ];
-
-/// 日期滚轮单项：选中项浅灰圆角底 + 加粗，未选中灰色字（与任务稿一致）。
-Widget _dateWheelLabelCell(String text, bool isSelected) {
-  final style = TextStyle(
-    fontSize: 18,
-    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-    color: isSelected ? const Color(0xFF0F172A) : const Color(0xFF94A3B8),
-  );
-  return SizedBox(
-    height: 40,
-    child: Center(
-      child: isSelected
-          ? Container(
-              height: 40,
-              padding: const EdgeInsets.symmetric(horizontal: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              alignment: Alignment.center,
-              child: Text(text, style: style, maxLines: 1, overflow: TextOverflow.ellipsis),
-            )
-          : Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6),
-              child: Text(text, style: style, maxLines: 1, overflow: TextOverflow.ellipsis),
-            ),
-    ),
-  );
-}
-
-/// 公历/农历滚轮禁用默认实心遮罩。
-class _TransparentPickerOverlay extends StatelessWidget {
-  const _TransparentPickerOverlay();
-
-  @override
-  Widget build(BuildContext context) {
-    return const IgnorePointer(child: SizedBox.expand());
-  }
-}
 
 /// 与清单页 `_ShareDailyQuota` 完全一致的存储 key，保证限额共用。
 class _ShareDailyQuota {
@@ -408,197 +378,6 @@ void showShareSheetAfterEventAdd(BuildContext parentContext) {
   );
 }
 
-class _SolarDatePickerModal extends StatefulWidget {
-  const _SolarDatePickerModal({
-    required this.initialDate,
-    required this.onCancel,
-    required this.onConfirm,
-  });
-
-  final DateTime initialDate;
-  final VoidCallback onCancel;
-  final ValueChanged<DateTime> onConfirm;
-
-  @override
-  State<_SolarDatePickerModal> createState() => _SolarDatePickerModalState();
-}
-
-class _SolarDatePickerModalState extends State<_SolarDatePickerModal> {
-  late int y;
-  late int m;
-  late int d;
-  late FixedExtentScrollController _yearCtrl;
-  late FixedExtentScrollController _monthCtrl;
-  late FixedExtentScrollController _dayCtrl;
-
-  static int _daysInMonth(int year, int month) => DateTime(year, month + 1, 0).day;
-
-  void _clampDay() {
-    final maxD = _daysInMonth(y, m);
-    if (d > maxD) d = maxD;
-    if (d < 1) d = 1;
-  }
-
-  void _remountDayController() {
-    _clampDay();
-    _dayCtrl.dispose();
-    _dayCtrl = FixedExtentScrollController(initialItem: d - 1);
-  }
-
-  void _animatePickersToIndices() {
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted) return;
-      try {
-        await Future.wait([
-          _yearCtrl.animateToItem(
-            y - 1900,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-          ),
-          _monthCtrl.animateToItem(
-            m - 1,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-          ),
-          _dayCtrl.animateToItem(
-            d - 1,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-          ),
-        ]);
-      } catch (_) {}
-    });
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    final i = widget.initialDate;
-    y = i.year.clamp(1900, 2100);
-    m = i.month.clamp(1, 12);
-    d = i.day;
-    _clampDay();
-    _yearCtrl = FixedExtentScrollController(initialItem: y - 1900);
-    _monthCtrl = FixedExtentScrollController(initialItem: m - 1);
-    _dayCtrl = FixedExtentScrollController(initialItem: d - 1);
-  }
-
-  @override
-  void dispose() {
-    _yearCtrl.dispose();
-    _monthCtrl.dispose();
-    _dayCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final maxDay = _daysInMonth(y, m);
-
-    return _SheetShell(
-      title: '选择公历日期',
-      onCancel: widget.onCancel,
-      onConfirm: () => widget.onConfirm(DateTime(y, m, d)),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextButton(
-            onPressed: () {
-              final n = DateTime.now();
-              final ny = n.year.clamp(1900, 2100);
-              final nm = n.month;
-              final nd = n.day.clamp(1, _daysInMonth(ny, nm));
-              setState(() {
-                y = ny;
-                m = nm;
-                d = nd;
-                _remountDayController();
-              });
-              _animatePickersToIndices();
-            },
-            child: const Text('今天', style: TextStyle(color: _kThemeBlue, fontSize: 14)),
-          ),
-          SizedBox(
-            height: 216,
-            child: Row(
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: CupertinoPicker(
-                    selectionOverlay: const _TransparentPickerOverlay(),
-                    scrollController: _yearCtrl,
-                    itemExtent: 40,
-                    diameterRatio: 1.2,
-                    magnification: 1.0,
-                    squeeze: 0.9,
-                    looping: false,
-                    onSelectedItemChanged: (i) {
-                      HapticFeedback.lightImpact();
-                      setState(() {
-                        y = 1900 + i;
-                        _remountDayController();
-                      });
-                    },
-                    children: List.generate(
-                      201,
-                      (i) => _dateWheelLabelCell('${1900 + i}年', (1900 + i) == y),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  flex: 2,
-                  child: CupertinoPicker(
-                    selectionOverlay: const _TransparentPickerOverlay(),
-                    scrollController: _monthCtrl,
-                    itemExtent: 40,
-                    diameterRatio: 1.2,
-                    magnification: 1.0,
-                    squeeze: 0.9,
-                    looping: false,
-                    onSelectedItemChanged: (i) {
-                      HapticFeedback.lightImpact();
-                      setState(() {
-                        m = i + 1;
-                        _remountDayController();
-                      });
-                    },
-                    children: List.generate(
-                      12,
-                      (i) => _dateWheelLabelCell('${i + 1}月', (i + 1) == m),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  flex: 2,
-                  child: CupertinoPicker(
-                    selectionOverlay: const _TransparentPickerOverlay(),
-                    scrollController: _dayCtrl,
-                    itemExtent: 40,
-                    diameterRatio: 1.2,
-                    magnification: 1.0,
-                    squeeze: 0.9,
-                    looping: false,
-                    onSelectedItemChanged: (i) {
-                      HapticFeedback.lightImpact();
-                      setState(() => d = i + 1);
-                    },
-                    children: List.generate(
-                      maxDay,
-                      (i) => _dateWheelLabelCell('${i + 1}日', (i + 1) == d),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _TimePickerModal extends StatefulWidget {
   const _TimePickerModal({
     required this.initial,
@@ -639,7 +418,7 @@ class _TimePickerModalState extends State<_TimePickerModal> {
 
   @override
   Widget build(BuildContext context) {
-    return _SheetShell(
+    return AppDatePickerSheetShell(
       title: '选择时间',
       cancelLabel: '取消',
       confirmLabel: '确定',
@@ -655,7 +434,7 @@ class _TimePickerModalState extends State<_TimePickerModal> {
             Expanded(
               flex: 3,
               child: CupertinoPicker(
-                selectionOverlay: const _TransparentPickerOverlay(),
+                selectionOverlay: const AppTransparentPickerOverlay(),
                 scrollController: _hourCtrl,
                 itemExtent: 44,
                 diameterRatio: 1.2,
@@ -668,7 +447,7 @@ class _TimePickerModalState extends State<_TimePickerModal> {
                 },
                 children: List.generate(
                   24,
-                  (i) => _dateWheelLabelCell(
+                  (i) => appDateWheelLabelCell(
                     i.toString().padLeft(2, '0'),
                     i == _hour,
                   ),
@@ -679,7 +458,7 @@ class _TimePickerModalState extends State<_TimePickerModal> {
             Expanded(
               flex: 2,
               child: CupertinoPicker(
-                selectionOverlay: const _TransparentPickerOverlay(),
+                selectionOverlay: const AppTransparentPickerOverlay(),
                 scrollController: _minuteCtrl,
                 itemExtent: 44,
                 diameterRatio: 1.2,
@@ -691,8 +470,8 @@ class _TimePickerModalState extends State<_TimePickerModal> {
                   setState(() => _minuteIndex = i.clamp(0, 1));
                 },
                 children: [
-                  _dateWheelLabelCell('00分', _minuteIndex == 0),
-                  _dateWheelLabelCell('30分', _minuteIndex == 1),
+                  appDateWheelLabelCell('00分', _minuteIndex == 0),
+                  appDateWheelLabelCell('30分', _minuteIndex == 1),
                 ],
               ),
             ),
@@ -703,237 +482,7 @@ class _TimePickerModalState extends State<_TimePickerModal> {
   }
 }
 
-class _LunarDatePickerModal extends StatefulWidget {
-  const _LunarDatePickerModal({
-    required this.initialYear,
-    required this.initialMonthSigned,
-    required this.initialDay,
-    required this.onCancel,
-    required this.onConfirm,
-  });
-
-  final int initialYear;
-  final int initialMonthSigned;
-  final int initialDay;
-  final VoidCallback onCancel;
-  final void Function(int year, int monthSigned, int day) onConfirm;
-
-  @override
-  State<_LunarDatePickerModal> createState() => _LunarDatePickerModalState();
-}
-
-class _LunarDatePickerModalState extends State<_LunarDatePickerModal> {
-  late int y;
-  late int monthIndex;
-  late int day;
-  late FixedExtentScrollController _yearCtrl;
-  late FixedExtentScrollController _monthCtrl;
-  late FixedExtentScrollController _dayCtrl;
-
-  List<LunarMonth> get _months => LunarYear.fromYear(y).getMonths();
-  LunarMonth get _selMonth => _months[monthIndex];
-  int get _maxDay => _selMonth.getDayCount();
-
-  static String _monthLabel(LunarMonth m) {
-    final abs = m.getMonth().abs();
-    final leap = m.getMonth() < 0;
-    return '${leap ? '闰' : ''}${LunarUtil.MONTH[abs]}月';
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    y = widget.initialYear;
-    final months = LunarYear.fromYear(y).getMonths();
-    monthIndex = months.indexWhere((m) => m.getMonth() == widget.initialMonthSigned);
-    if (monthIndex < 0) monthIndex = 0;
-    day = widget.initialDay.clamp(1, months[monthIndex].getDayCount());
-    _yearCtrl = FixedExtentScrollController(initialItem: y - 1900);
-    _monthCtrl = FixedExtentScrollController(initialItem: monthIndex);
-    _dayCtrl = FixedExtentScrollController(initialItem: day - 1);
-  }
-
-  @override
-  void dispose() {
-    _yearCtrl.dispose();
-    _monthCtrl.dispose();
-    _dayCtrl.dispose();
-    super.dispose();
-  }
-
-  void _remountMonthAndDayControllers() {
-    _monthCtrl.dispose();
-    _dayCtrl.dispose();
-    monthIndex = monthIndex.clamp(0, _months.length - 1);
-    day = day.clamp(1, _selMonth.getDayCount());
-    _monthCtrl = FixedExtentScrollController(initialItem: monthIndex);
-    _dayCtrl = FixedExtentScrollController(initialItem: day - 1);
-  }
-
-  void _remountDayController() {
-    _dayCtrl.dispose();
-    day = day.clamp(1, _maxDay);
-    _dayCtrl = FixedExtentScrollController(initialItem: day - 1);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final months = _months;
-    final sel = _selMonth;
-    final md = _maxDay;
-
-    return _SheetShell(
-      title: '选择农历日期',
-      onCancel: widget.onCancel,
-      onConfirm: () => widget.onConfirm(y, sel.getMonth(), day),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextButton(
-            onPressed: () async {
-              final n = DateTime.now();
-              final lun = Lunar.fromDate(n);
-              final newY = lun.getYear();
-              final mList = LunarYear.fromYear(newY).getMonths();
-              final idx = mList.indexWhere((x) => x.getMonth() == lun.getMonth());
-              final newMi = idx >= 0 ? idx : 0;
-              final newDay = lun.getDay().clamp(1, mList[newMi].getDayCount());
-              final oldY = y;
-              setState(() {
-                y = newY;
-                monthIndex = newMi;
-                day = newDay;
-                if (newY != oldY) {
-                  _remountMonthAndDayControllers();
-                } else {
-                  _remountDayController();
-                }
-              });
-              WidgetsBinding.instance.addPostFrameCallback((_) async {
-                if (!mounted) return;
-                try {
-                  await Future.wait([
-                    _yearCtrl.animateToItem(
-                      y - 1900,
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeOut,
-                    ),
-                    _monthCtrl.animateToItem(
-                      monthIndex,
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeOut,
-                    ),
-                    _dayCtrl.animateToItem(
-                      day - 1,
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeOut,
-                    ),
-                  ]);
-                } catch (_) {}
-              });
-            },
-            child: const Text('今天', style: TextStyle(color: _kThemeBlue, fontSize: 14)),
-          ),
-          SizedBox(
-            height: 216,
-            child: Row(
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: CupertinoPicker(
-                    selectionOverlay: const _TransparentPickerOverlay(),
-                    scrollController: _yearCtrl,
-                    itemExtent: 40,
-                    diameterRatio: 1.2,
-                    magnification: 1.0,
-                    squeeze: 0.9,
-                    looping: false,
-                    onSelectedItemChanged: (i) {
-                      HapticFeedback.lightImpact();
-                      setState(() {
-                        y = 1900 + i;
-                        _remountMonthAndDayControllers();
-                      });
-                    },
-                    children: List.generate(
-                      201,
-                      (i) => _dateWheelLabelCell('${1900 + i}年', (1900 + i) == y),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  flex: 3,
-                  child: CupertinoPicker(
-                    selectionOverlay: const _TransparentPickerOverlay(),
-                    scrollController: _monthCtrl,
-                    itemExtent: 40,
-                    diameterRatio: 1.2,
-                    magnification: 1.0,
-                    squeeze: 0.9,
-                    looping: false,
-                    onSelectedItemChanged: (i) {
-                      HapticFeedback.lightImpact();
-                      setState(() {
-                        monthIndex = i;
-                        _remountDayController();
-                      });
-                    },
-                    children: [
-                      for (var i = 0; i < months.length; i++)
-                        _dateWheelLabelCell(_monthLabel(months[i]), i == monthIndex),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  flex: 2,
-                  child: CupertinoPicker(
-                    selectionOverlay: const _TransparentPickerOverlay(),
-                    scrollController: _dayCtrl,
-                    itemExtent: 40,
-                    diameterRatio: 1.2,
-                    magnification: 1.0,
-                    squeeze: 0.9,
-                    looping: false,
-                    onSelectedItemChanged: (i) {
-                      HapticFeedback.lightImpact();
-                      setState(() => day = i + 1);
-                    },
-                    children: List.generate(
-                      md,
-                      (i) => _dateWheelLabelCell(
-                        Lunar.fromYmd(y, sel.getMonth(), i + 1).getDayInChinese(),
-                        (i + 1) == day,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 // --- 页面主体 ---
-
-enum _TypeSeg { birthday, partner, goal, idol }
-
-_TypeSeg _typeSegFromCategory(ListCategory c) {
-  switch (c) {
-    case ListCategory.birthday:
-      return _TypeSeg.birthday;
-    case ListCategory.partner:
-      return _TypeSeg.partner;
-    case ListCategory.goal:
-      return _TypeSeg.goal;
-    case ListCategory.idol:
-      return _TypeSeg.idol;
-  }
-}
 
 TimeOfDay _parseTimeHm(String hm, TimeOfDay fallback) {
   final parts = hm.split(':');
@@ -949,12 +498,15 @@ class EventAddPage extends StatefulWidget {
   const EventAddPage({
     super.key,
     this.initialEvent,
+    this.initialTagId,
     this.customReminderCountForNewEvent,
     this.onGalleryTap,
     this.onCameraTap,
   });
 
   final ListEvent? initialEvent;
+  /// 新建事件时预选标签（需在本地标签列表中存在）；编辑模式忽略。
+  final String? initialTagId;
   /// 创建新事件时已有的自定义提醒条数（与清单中非节日事件总数对齐）。
   final int? customReminderCountForNewEvent;
   final VoidCallback? onGalleryTap;
@@ -967,7 +519,8 @@ class EventAddPage extends StatefulWidget {
 class _EventAddPageState extends State<EventAddPage> {
   final TextEditingController _titleCtrl = TextEditingController();
 
-  _TypeSeg _type = _TypeSeg.birthday;
+  String _selectedTagId = 'birthday';
+  List<ReminderTag> _availableTags = [];
   bool _pinned = false;
   bool _solarMode = true;
 
@@ -988,12 +541,366 @@ class _EventAddPageState extends State<EventAddPage> {
 
   MembershipTier _membershipTier = MembershipTier.free;
 
+  /// 与当前档位 [MembershipService.benefits] 对齐，异步初始化。
+  int _photoLimit = 0;
+
+  final List<XFile> _selectedPhotos = [];
+  List<String> _existingPhotoPaths = [];
+
   bool get _isEditMode => widget.initialEvent != null;
 
-  static const Color _cBirthday = Color(0xFFF97316);
-  static const Color _cPartner = Color(0xFFF43F5E);
-  static const Color _cGoal = Color(0xFF3B82F6);
-  static const Color _cIdol = Color(0xFFA855F7);
+  int get _totalPhotoCount => _existingPhotoPaths.length + _selectedPhotos.length;
+
+  List<String> get _displayPhotoPaths =>
+      [..._existingPhotoPaths, ..._selectedPhotos.map((x) => x.path)];
+
+  Future<void> _onPhotoLimitReached() async {
+    if (!mounted) return;
+    final limit = _photoLimit;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('当前档位最多可上传 $limit 张照片')),
+    );
+    if (_membershipTier == MembershipTier.free) {
+      await showMembershipSoftPaywall(
+        context,
+        title: '上传照片',
+        message: '升级会员即可上传更多纪念照片',
+        primaryLabel: '升级会员',
+        onTierChanged: _reloadMembershipTier,
+      );
+    }
+  }
+
+  void _openPhotoPreview(int displayIndex) {
+    final paths = _displayPhotoPaths;
+    if (displayIndex < 0 || displayIndex >= paths.length) return;
+    showEventPhotoPathsPreview(context, photoPaths: paths, initialIndex: displayIndex);
+  }
+
+  Future<void> _showPermissionSettingsHint(String resourceLabel) async {
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        content: Text('请在系统设置中允许时光集访问$resourceLabel'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              openAppSettings();
+            },
+            child: const Text('去设置'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<bool> _ensurePhotosPermission() async {
+    var status = await Permission.photos.status;
+    if (status.isGranted || status.isLimited) return true;
+    status = await Permission.photos.request();
+    if (status.isGranted || status.isLimited) return true;
+    if (status.isPermanentlyDenied) {
+      await _showPermissionSettingsHint('相册');
+      return false;
+    }
+    return false;
+  }
+
+  Future<bool> _ensureCameraPermission() async {
+    var status = await Permission.camera.status;
+    if (status.isGranted) return true;
+    status = await Permission.camera.request();
+    if (status.isGranted) return true;
+    if (status.isPermanentlyDenied) {
+      await _showPermissionSettingsHint('相机');
+      return false;
+    }
+    return false;
+  }
+
+  Future<void> _pickGallery() async {
+    final tier = await MembershipService.currentTier();
+    if (!mounted) return;
+    final limit = MembershipService.benefits(tier).photosPerEvent;
+    setState(() {
+      _membershipTier = tier;
+      _photoLimit = limit;
+    });
+    if (limit <= 0) return;
+    if (_totalPhotoCount >= limit) {
+      await _onPhotoLimitReached();
+      return;
+    }
+    if (!await _ensurePhotosPermission()) return;
+    final picker = ImagePicker();
+    final files = await picker.pickMultiImage(
+      imageQuality: 85,
+      maxWidth: 1080,
+      maxHeight: 1080,
+    );
+    if (files.isEmpty || !mounted) return;
+
+    final tierAfter = await MembershipService.currentTier();
+    if (!mounted) return;
+    final limitAfter = MembershipService.benefits(tierAfter).photosPerEvent;
+    setState(() {
+      _membershipTier = tierAfter;
+      _photoLimit = limitAfter;
+    });
+    final remaining = limitAfter - _totalPhotoCount;
+    if (remaining <= 0) {
+      await _onPhotoLimitReached();
+      return;
+    }
+    var toAdd = files;
+    if (files.length > remaining) {
+      toAdd = files.sublist(0, remaining);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('当前档位最多可上传 $limitAfter 张照片')),
+      );
+    }
+    setState(() => _selectedPhotos.addAll(toAdd));
+  }
+
+  Future<void> _pickCamera() async {
+    final tier = await MembershipService.currentTier();
+    if (!mounted) return;
+    final limit = MembershipService.benefits(tier).photosPerEvent;
+    setState(() {
+      _membershipTier = tier;
+      _photoLimit = limit;
+    });
+    if (limit <= 0) return;
+    if (_totalPhotoCount >= limit) {
+      await _onPhotoLimitReached();
+      return;
+    }
+    if (!await _ensureCameraPermission()) return;
+    final picker = ImagePicker();
+    final file = await picker.pickImage(
+      source: ImageSource.camera,
+      imageQuality: 85,
+      maxWidth: 1080,
+      maxHeight: 1080,
+    );
+    if (file == null || !mounted) return;
+
+    final tierAfter = await MembershipService.currentTier();
+    if (!mounted) return;
+    final limitAfter = MembershipService.benefits(tierAfter).photosPerEvent;
+    setState(() {
+      _membershipTier = tierAfter;
+      _photoLimit = limitAfter;
+    });
+    if (_totalPhotoCount >= limitAfter) {
+      await _onPhotoLimitReached();
+      return;
+    }
+    setState(() => _selectedPhotos.add(file));
+  }
+
+  void _removePhotoAtDisplayIndex(int index) {
+    setState(() {
+      if (index < _existingPhotoPaths.length) {
+        _existingPhotoPaths.removeAt(index);
+      } else {
+        _selectedPhotos.removeAt(index - _existingPhotoPaths.length);
+      }
+    });
+  }
+
+  Future<List<String>> _persistNewPhotos(String eventId, List<XFile> files) async {
+    if (files.isEmpty) return [];
+    final root = await getApplicationDocumentsDirectory();
+    final dir = Directory('${root.path}/photos');
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
+    final batch = DateTime.now().microsecondsSinceEpoch;
+    final out = <String>[];
+    for (var i = 0; i < files.length; i++) {
+      final destPath = '${dir.path}/${batch}_${eventId}_$i.jpg';
+      await File(files[i].path).copy(destPath);
+      out.add(destPath);
+    }
+    return out;
+  }
+
+  Widget _compactPhotoIconButton({
+    required IconData icon,
+    required VoidCallback onTap,
+    required bool atLimit,
+  }) {
+    return Opacity(
+      opacity: atLimit ? 0.3 : 1,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(22),
+          onTap: atLimit ? () => _onPhotoLimitReached() : onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Icon(icon, size: 28, color: _kThemeBlue),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _photoThumbnailGrid() {
+    return LayoutBuilder(
+      builder: (ctx, c) {
+        final itemW = (c.maxWidth - 16) / 3;
+        return Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: List.generate(_totalPhotoCount, (i) {
+            final imageWidget = i < _existingPhotoPaths.length
+                ? Image.file(File(_existingPhotoPaths[i]), fit: BoxFit.cover)
+                : Image.file(File(_selectedPhotos[i - _existingPhotoPaths.length].path), fit: BoxFit.cover);
+            return SizedBox(
+              width: itemW,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      GestureDetector(
+                        onTap: () => _openPhotoPreview(i),
+                        behavior: HitTestBehavior.opaque,
+                        child: imageWidget,
+                      ),
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: GestureDetector(
+                          onTap: () => _removePhotoAtDisplayIndex(i),
+                          child: Container(
+                            width: 20,
+                            height: 20,
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.5),
+                              shape: BoxShape.circle,
+                            ),
+                            alignment: Alignment.center,
+                            child: const Icon(Icons.close, size: 12, color: Colors.white),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }),
+        );
+      },
+    );
+  }
+
+  Widget _buildPhotoSection(BuildContext context) {
+    final cap = _photoLimit;
+    final expanded = cap <= 0 || _totalPhotoCount == 0;
+    final atLimit = cap > 0 && _totalPhotoCount >= cap;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          '上传照片',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: _kTitleColor),
+        ),
+        const SizedBox(height: 10),
+        if (cap == 0)
+          Row(
+            children: [
+              Expanded(
+                child: _PhotoSlot(
+                  icon: Icons.photo_library_outlined,
+                  label: '手机相册',
+                  onTap: () => showMembershipSoftPaywall(
+                    context,
+                    title: '上传照片',
+                    message: '照片上传是会员功能，升级基础版即可使用',
+                    primaryLabel: '升级会员',
+                    onTierChanged: _reloadMembershipTier,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _PhotoSlot(
+                  icon: Icons.photo_camera_outlined,
+                  label: '拍照',
+                  onTap: () => showMembershipSoftPaywall(
+                    context,
+                    title: '上传照片',
+                    message: '照片上传是会员功能，升级基础版即可使用',
+                    primaryLabel: '升级会员',
+                    onTierChanged: _reloadMembershipTier,
+                  ),
+                ),
+              ),
+            ],
+          )
+        else if (expanded)
+          Row(
+            children: [
+              Expanded(
+                child: _PhotoSlot(
+                  icon: Icons.photo_library_outlined,
+                  label: '手机相册',
+                  onTap: _pickGallery,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _PhotoSlot(
+                  icon: Icons.photo_camera_outlined,
+                  label: '拍照',
+                  onTap: _pickCamera,
+                ),
+              ),
+            ],
+          )
+        else ...[
+          SizedBox(
+            height: 56,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                _compactPhotoIconButton(
+                  icon: Icons.photo_library_outlined,
+                  onTap: _pickGallery,
+                  atLimit: atLimit,
+                ),
+                const SizedBox(width: 24),
+                const SizedBox(
+                  height: 28,
+                  child: VerticalDivider(width: 1, thickness: 1, color: Color(0xFFE2E8F0)),
+                ),
+                const SizedBox(width: 24),
+                _compactPhotoIconButton(
+                  icon: Icons.photo_camera_outlined,
+                  onTap: _pickCamera,
+                  atLimit: atLimit,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          _photoThumbnailGrid(),
+        ],
+      ],
+    );
+  }
 
   @override
   void initState() {
@@ -1002,7 +909,7 @@ class _EventAddPageState extends State<EventAddPage> {
     const fallbackTime = TimeOfDay(hour: 9, minute: 0);
     if (initial != null) {
       _titleCtrl.text = initial.title;
-      _type = _typeSegFromCategory(initial.category);
+      _selectedTagId = initial.tagId;
       _pinned = initial.isPinned;
       _solarMode = !(initial.isLunarDate || initial.isLunarRecurring);
       final bd = initial.baseDate;
@@ -1024,7 +931,9 @@ class _EventAddPageState extends State<EventAddPage> {
       _advanceTime = _parseTimeHm(initial.advanceTimeHm, fallbackTime);
       _sameDayTime = _parseTimeHm(initial.sameDayTimeHm, fallbackTime);
       _shareEnabled = initial.pendingShareAfterAdd;
+      _existingPhotoPaths = List<String>.from(initial.photoPaths);
     } else {
+      _selectedTagId = widget.initialTagId ?? 'birthday';
       final lunar = Lunar.fromDate(_solarDate);
       _lunarYear = lunar.getYear();
       _lunarMonthSigned = lunar.getMonth();
@@ -1032,13 +941,45 @@ class _EventAddPageState extends State<EventAddPage> {
     }
     _titleCtrl.addListener(() => setState(() {}));
     MembershipService.currentTier().then((t) {
-      if (mounted) setState(() => _membershipTier = t);
+      if (mounted) {
+        setState(() {
+          _membershipTier = t;
+          _photoLimit = MembershipService.benefits(t).photosPerEvent;
+        });
+      }
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final tags = await TagService.loadTags();
+      if (!mounted) return;
+      setState(() {
+        _availableTags = tags;
+        if (widget.initialEvent != null) {
+          final tid = widget.initialEvent!.tagId;
+          _selectedTagId =
+              tags.any((t) => t.id == tid) ? tid : (tags.isNotEmpty ? tags.first.id : 'birthday');
+        } else {
+          final sheetTagId = widget.initialTagId;
+          if (sheetTagId != null && tags.any((t) => t.id == sheetTagId)) {
+            _selectedTagId = sheetTagId;
+          } else if (tags.isNotEmpty) {
+            _selectedTagId = tags.first.id;
+          } else {
+            _selectedTagId = 'birthday';
+          }
+          _applyTypeDefaults(_selectedTagId);
+        }
+      });
     });
   }
 
   Future<void> _reloadMembershipTier() async {
     final t = await MembershipService.currentTier();
-    if (mounted) setState(() => _membershipTier = t);
+    if (mounted) {
+      setState(() {
+        _membershipTier = t;
+        _photoLimit = MembershipService.benefits(t).photosPerEvent;
+      });
+    }
   }
 
   @override
@@ -1049,45 +990,14 @@ class _EventAddPageState extends State<EventAddPage> {
 
   bool get _titleOk => _titleCtrl.text.trim().isNotEmpty;
 
-  Color _typeColor(_TypeSeg t) {
-    switch (t) {
-      case _TypeSeg.birthday:
-        return _cBirthday;
-      case _TypeSeg.partner:
-        return _cPartner;
-      case _TypeSeg.goal:
-        return _cGoal;
-      case _TypeSeg.idol:
-        return _cIdol;
-    }
-  }
-
-  ListCategory _categoryForType(_TypeSeg t) {
-    switch (t) {
-      case _TypeSeg.birthday:
-        return ListCategory.birthday;
-      case _TypeSeg.partner:
-        return ListCategory.partner;
-      case _TypeSeg.goal:
-        return ListCategory.goal;
-      case _TypeSeg.idol:
-        return ListCategory.idol;
-    }
-  }
-
-  void _applyTypeDefaults(_TypeSeg t) {
-    switch (t) {
-      case _TypeSeg.birthday:
-      case _TypeSeg.partner:
-        _repeat = EventRepeatRule.yearly;
-        _reminder = EventReminderType.advanceAndSameDay;
-        _advanceDays = EventAdvanceDaysOption.oneDay;
-        break;
-      case _TypeSeg.goal:
-      case _TypeSeg.idol:
-        _repeat = EventRepeatRule.none;
-        _reminder = EventReminderType.sameDayOnly;
-        break;
+  void _applyTypeDefaults(String tagId) {
+    if (tagId == 'birthday' || tagId == 'partner') {
+      _repeat = EventRepeatRule.yearly;
+      _reminder = EventReminderType.advanceAndSameDay;
+      _advanceDays = EventAdvanceDaysOption.oneDay;
+    } else {
+      _repeat = EventRepeatRule.none;
+      _reminder = EventReminderType.sameDayOnly;
     }
   }
 
@@ -1149,7 +1059,7 @@ class _EventAddPageState extends State<EventAddPage> {
       isScrollControlled: true,
       barrierColor: Colors.black54,
       builder: (ctx) {
-        return _SolarDatePickerModal(
+        return AppSolarDatePickerModal(
           initialDate: DateTime(_solarDate.year, _solarDate.month, _solarDate.day),
           onCancel: () => Navigator.pop(ctx),
           onConfirm: (picked) {
@@ -1176,7 +1086,7 @@ class _EventAddPageState extends State<EventAddPage> {
       isScrollControlled: true,
       barrierColor: Colors.black54,
       builder: (ctx) {
-        return _LunarDatePickerModal(
+        return AppLunarDatePickerModal(
           initialYear: _lunarYear,
           initialMonthSigned: _lunarMonthSigned,
           initialDay: _lunarDay,
@@ -1259,11 +1169,26 @@ class _EventAddPageState extends State<EventAddPage> {
     final baseDay = DateTime(base.year, base.month, base.day);
     final isExpired = (_repeat == EventRepeatRule.none) && baseDay.isBefore(today);
     final initial = widget.initialEvent;
+    final eventId = initial?.id ?? DateTime.now().millisecondsSinceEpoch.toString();
+
+    List<String> newPersisted;
+    try {
+      newPersisted = await _persistNewPhotos(eventId, _selectedPhotos);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('照片保存失败，请重试')),
+      );
+      return;
+    }
+
+    final photoPaths = [..._existingPhotoPaths, ...newPersisted];
+
     final event = ListEvent(
-      id: initial?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      id: eventId,
       title: _titleCtrl.text.trim(),
       baseDate: DateTime(base.year, base.month, base.day),
-      category: _categoryForType(_type),
+      tagId: _selectedTagId,
       isPinned: _pinned,
       isLunarRecurring: !_solarMode,
       isExpired: isExpired,
@@ -1274,6 +1199,7 @@ class _EventAddPageState extends State<EventAddPage> {
       sameDayTimeHm: _fmtTime(_sameDayTime),
       isLunarDate: !_solarMode,
       photoUrl: initial?.photoUrl,
+      photoPaths: photoPaths,
       pendingShareAfterAdd: _shareEnabled,
     );
     nav.pop(event);
@@ -1295,7 +1221,7 @@ class _EventAddPageState extends State<EventAddPage> {
     final titleBorderColor = _titleOk ? _kBorderInput : _kError;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFFAFBFC),
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -1334,20 +1260,15 @@ class _EventAddPageState extends State<EventAddPage> {
                       scrollDirection: Axis.horizontal,
                       child: Row(
                         children: [
-                          for (final e in _TypeSeg.values) ...[
+                          for (final tag in _availableTags) ...[
                             _TypeChip(
-                              label: switch (e) {
-                                _TypeSeg.birthday => '生日',
-                                _TypeSeg.partner => '伴侣',
-                                _TypeSeg.goal => '目标',
-                                _TypeSeg.idol => '偶像',
-                              },
-                              selected: _type == e,
-                              color: _typeColor(e),
+                              label: tag.name,
+                              selected: _selectedTagId == tag.id,
+                              color: tag.accentColor,
                               onTap: () {
                                 setState(() {
-                                  _type = e;
-                                  _applyTypeDefaults(e);
+                                  _selectedTagId = tag.id;
+                                  _applyTypeDefaults(tag.id);
                                 });
                               },
                             ),
@@ -1581,66 +1502,7 @@ class _EventAddPageState extends State<EventAddPage> {
                       ),
                     ],
                     const SizedBox(height: 20),
-                    const Text(
-                      '上传照片',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: _kTitleColor),
-                    ),
-                    const SizedBox(height: 10),
-                    if (MembershipService.benefits(_membershipTier).photosPerEvent ==
-                        0)
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _PhotoSlot(
-                              icon: Icons.photo_library_outlined,
-                              label: '手机相册',
-                              onTap: () => showMembershipSoftPaywall(
-                                context,
-                                title: '上传照片',
-                                message:
-                                    '照片上传是会员功能，升级基础版即可使用',
-                                primaryLabel: '升级会员',
-                                onTierChanged: _reloadMembershipTier,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _PhotoSlot(
-                              icon: Icons.photo_camera_outlined,
-                              label: '拍照',
-                              onTap: () => showMembershipSoftPaywall(
-                                context,
-                                title: '上传照片',
-                                message:
-                                    '照片上传是会员功能，升级基础版即可使用',
-                                primaryLabel: '升级会员',
-                                onTierChanged: _reloadMembershipTier,
-                              ),
-                            ),
-                          ),
-                        ],
-                      )
-                    else
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _PhotoSlot(
-                              icon: Icons.photo_library_outlined,
-                              label: '手机相册',
-                              onTap: widget.onGalleryTap,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _PhotoSlot(
-                              icon: Icons.photo_camera_outlined,
-                              label: '拍照',
-                              onTap: widget.onCameraTap,
-                            ),
-                          ),
-                        ],
-                      ),
+                    _buildPhotoSection(context),
                     const SizedBox(height: 16),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -1704,78 +1566,6 @@ class _EventAddPageState extends State<EventAddPage> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SheetShell extends StatelessWidget {
-  const _SheetShell({
-    required this.title,
-    required this.child,
-    required this.onCancel,
-    required this.onConfirm,
-    this.cancelLabel = '取消',
-    this.confirmLabel = '确定',
-  });
-
-  final String title;
-  final Widget child;
-  final VoidCallback onCancel;
-  final VoidCallback onConfirm;
-  final String cancelLabel;
-  final String confirmLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      child: Material(
-        color: Colors.white,
-        child: Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                decoration: const BoxDecoration(
-                  border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
-                ),
-                child: Row(
-                  children: [
-                    TextButton(
-                      onPressed: onCancel,
-                      child: Text(cancelLabel, style: const TextStyle(color: _kCloseGrey, fontSize: 16)),
-                    ),
-                    Expanded(
-                      child: Text(
-                        title,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: _kTitleColor,
-                        ),
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: onConfirm,
-                      child: Text(
-                        confirmLabel,
-                        style: const TextStyle(color: _kThemeBlue, fontSize: 16, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: child,
-              ),
-            ],
-          ),
         ),
       ),
     );

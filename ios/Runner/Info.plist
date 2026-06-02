@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Time Calendar</string>
+	<string>时光集</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -66,6 +66,10 @@
 	</array>
 	<key>NSContactsUsageDescription</key>
 	<string>用于批量导入联系人生日，创建生日提醒。</string>
+	<key>NSCameraUsageDescription</key>
+	<string>时光集需要访问相机，以便您为重要日子拍摄纪念照片。</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>时光集需要访问相册，以便您为重要日子挑选纪念照片。</string>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

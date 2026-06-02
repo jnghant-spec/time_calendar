@@ -3,7 +3,8 @@ import 'package:time_calendar/models/list_event.dart';
 
 DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
-int _daysInGregorianMonth(int year, int month) => DateTime(year, month + 1, 0).day;
+int _daysInGregorianMonth(int year, int month) =>
+    DateTime(year, month + 1, 0).day;
 
 bool sameGregorianDay(DateTime a, DateTime b) =>
     a.year == b.year && a.month == b.month && a.day == b.day;
@@ -51,8 +52,7 @@ List<DateTime> occurrenceDatesInGregorianMonth(
     case EventRepeatRule.daily:
       final dim = _daysInGregorianMonth(viewYear, viewMonth);
       raw = [
-        for (var day = 1; day <= dim; day++)
-          DateTime(viewYear, viewMonth, day),
+        for (var day = 1; day <= dim; day++) DateTime(viewYear, viewMonth, day),
       ];
       break;
     case EventRepeatRule.weekly:
@@ -113,8 +113,11 @@ bool eventOccursOnGregorianDay(ListEvent event, DateTime gregorianDay) {
   final y = gregorianDay.year;
   final m = gregorianDay.month;
   final d = gregorianDay.day;
-  return occurrenceDatesInGregorianMonth(event, y, m)
-      .any((od) => od.year == y && od.month == m && od.day == d);
+  return occurrenceDatesInGregorianMonth(
+    event,
+    y,
+    m,
+  ).any((od) => od.year == y && od.month == m && od.day == d);
 }
 
 /// 计算事件下一个用于展示/倒计时的日期（≥ 起始日 [anchorDateOnly]）。
@@ -210,3 +213,40 @@ int daysUntil(ListEvent event) {
   final targetDate = _dateOnly(target);
   return targetDate.difference(today).inDays;
 }
+
+/// 周一～周日 → 「一」…「日」（用于清单/详情日期文案）。
+String weekdayZhShort(int weekday) {
+  const w = ['一', '二', '三', '四', '五', '六', '日'];
+  return w[weekday - 1];
+}
+
+/// 公历「YYYY年M月D日 周x」。
+String formatGregorianDateLongZh(DateTime d) {
+  return '${d.year}年${d.month}月${d.day}日 周${weekdayZhShort(d.weekday)}';
+}
+
+/// 由公历日计算农历月日展示串（与清单农历 pill 一致）。
+String formatLunarMonthDayFromSolar(DateTime solar) {
+  final lunar = Lunar.fromDate(solar);
+  return '农历 ${lunar.getMonthInChinese()}月${lunar.getDayInChinese()}';
+}
+
+/// 「2023.05」格式（时光集卡片时间范围）。
+String formatYearMonthDot(DateTime d) {
+  final m = d.month.toString().padLeft(2, '0');
+  return '${d.year}.$m';
+}
+
+/// 照片流底部文案：「2023年5月1日」。
+String formatMemoryStreamDayZh(DateTime d) {
+  return '${d.year}年${d.month}月${d.day}日';
+}
+
+/// 「2023年5月1日」完整日期（同 [formatMemoryStreamDayZh]）。
+String formatFullDate(DateTime d) => formatMemoryStreamDayZh(d);
+
+/// 「周一」～「周日」。
+String formatWeekdayZh(DateTime d) => '周${weekdayZhShort(d.weekday)}';
+
+/// 横向事件卡片：「3月10日」。
+String formatMonthDayZh(DateTime d) => '${d.month}月${d.day}日';

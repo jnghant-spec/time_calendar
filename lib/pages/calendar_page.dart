@@ -6,6 +6,7 @@ import 'package:time_calendar/models/calendar_festival.dart';
 import 'package:time_calendar/models/list_event.dart';
 import 'package:time_calendar/models/membership_tier.dart';
 import 'package:time_calendar/services/festival_service.dart';
+import 'package:time_calendar/services/tag_service.dart';
 import 'package:time_calendar/services/membership_service.dart';
 import 'package:time_calendar/services/share_service.dart';
 import 'package:time_calendar/utils/event_date_utils.dart';
@@ -75,19 +76,6 @@ class CalendarPage extends StatefulWidget {
     if (c != 0) return c;
     if (a.isFestival != b.isFestival) return a.isFestival ? 1 : -1;
     return a.title.compareTo(b.title);
-  }
-
-  static Color _accentForCategory(ListCategory c) {
-    switch (c) {
-      case ListCategory.partner:
-        return const Color(0xFFF43F5E);
-      case ListCategory.birthday:
-        return const Color(0xFFF97316);
-      case ListCategory.goal:
-        return const Color(0xFF3B82F6);
-      case ListCategory.idol:
-        return const Color(0xFFA855F7);
-    }
   }
 
   /// 从 `festival_${f.id}_${y}_${m}_${d}` 解析 [f.id]（可能含下划线）。
@@ -190,7 +178,10 @@ class _CalendarPageState extends State<CalendarPage> {
     _loadMonthFestivals();
     _listController = ScrollController()..addListener(_compressFromScroll);
     _pageScrollController = ScrollController()..addListener(_compressFromScroll);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await TagService.loadTags();
+      if (!mounted) return;
+      setState(() {});
       _loadSubscriptions();
     });
   }
@@ -294,7 +285,7 @@ class _CalendarPageState extends State<CalendarPage> {
                 lunar: e.isLunarRecurring,
               ),
               daysRemaining: dr,
-              accentColor: CalendarPage._accentForCategory(e.category),
+              accentColor: TagService.accentForDisplay(e.tagId),
             );
           },
         )
@@ -656,7 +647,7 @@ class _CalendarPageState extends State<CalendarPage> {
       for (final d in occurrenceDatesInGregorianMonth(e, _viewYear, _viewMonth)) {
         final k = '${d.year}-${d.month}-${d.day}';
         m.putIfAbsent(k, () => []);
-        final accent = CalendarPage._accentForCategory(e.category);
+        final accent = TagService.accentForDisplay(e.tagId);
         if (m[k]!.length < 2 && !m[k]!.contains(accent)) {
           m[k]!.add(accent);
         }

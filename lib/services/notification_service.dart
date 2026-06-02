@@ -178,7 +178,7 @@ class NotificationService {
     final scheduled = tz.TZDateTime.from(fireAt, tz.local);
     await _notifications.zonedSchedule(
       _trialReminderNotifId,
-      '时光日历',
+      '时光集',
       '你的高级体验将在 2 天后结束，订阅基础版 ¥4.99/月 即可保留全部功能',
       scheduled,
       const NotificationDetails(

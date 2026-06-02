@@ -35,7 +35,7 @@ class EventReminderData {
     required this.title,
     required this.daysRemaining,
     required this.accentColor,
-    required this.category,
+    required this.tagId,
     this.isPinned = false,
     this.repeatRule,
     this.reminderType,
@@ -68,7 +68,7 @@ class EventReminderData {
       title: source.title,
       daysRemaining: daysRemaining,
       accentColor: accentColor,
-      category: source.category,
+      tagId: source.tagId,
       isPinned: source.isPinned,
       repeatRule: source.repeatRule,
       reminderType: source.reminderType,
@@ -96,7 +96,7 @@ class EventReminderData {
       title: f.name,
       daysRemaining: daysRemaining,
       accentColor: f.color,
-      category: ListCategory.goal,
+      tagId: '',
       isFestival: true,
       festivalCategoryKey: f.category,
       festivalLunarLine: f.lunarDate,
@@ -135,7 +135,8 @@ class EventReminderData {
   final bool isPinned;
 
   final String id;
-  final ListCategory category;
+  /// 用户事件对应 [ListEvent.tagId]；节日行为空字符串。
+  final String tagId;
 
   final EventRepeatRule? repeatRule;
   final EventReminderType? reminderType;
@@ -173,7 +174,7 @@ class EventReminderData {
       id: id,
       title: title,
       baseDate: DateTime(eventDate.year, eventDate.month, eventDate.day),
-      category: category,
+      tagId: tagId,
       isPinned: isPinned,
       isLunarRecurring: isLunarRecurring ?? false,
       repeatRule: repeatRule ?? EventRepeatRule.none,

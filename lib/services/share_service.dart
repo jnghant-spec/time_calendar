@@ -49,7 +49,7 @@ class ShareService {
         FestivalShareCard.backgroundForCategoryKey(e.festivalCategoryKey);
     final rawDesc = _descriptionLine(e);
     final excerpt = rawDesc.isEmpty
-        ? '用时光日历记录每一个值得记住的日子。'
+        ? '用时光集记录每一个值得记住的日子。'
         : _truncateDescription(rawDesc);
 
     final card = FestivalShareCard(
@@ -58,6 +58,7 @@ class ShareService {
       secondaryLines: _secondaryCalendarLines(e),
       descriptionExcerpt: excerpt,
       backgroundColor: bg,
+      photoPaths: e.sourceListEvent?.photoPaths ?? const [],
     );
 
     final bytes = await _captureCardToPng(navigatorContext, card);
@@ -72,7 +73,7 @@ class ShareService {
     await SharePlus.instance.share(
       ShareParams(
         files: [XFile(file.path, mimeType: 'image/png')],
-        text: '${e.title} · 时光日历',
+        text: '${e.title} · 时光集',
       ),
     );
   }

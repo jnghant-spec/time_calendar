@@ -1,11 +1,11 @@
-# 时光日历 - Kimi 对话上下文摘要
+# 时光集 - Kimi 对话上下文摘要
 ## 最后更新：2026-05-01
 
 ---
 
 ## 项目基本信息
 
-- **项目名称**：时光日历
+- **项目名称**：时光集
 - **技术栈**：Flutter（Dart）
 - **目标平台**：iOS / Android
 - **代码仓库**：https://github.com/jnghant-spec/time_calendar
@@ -115,6 +115,6 @@
 ## 断点续传指南
 
 若 Kimi 对话超出上限，在新对话框中发送：
-我正在开发时光日历 Flutter App，GitHub 仓库：https://github.com/jnghant-spec/time_calendar
+我正在开发时光集 Flutter App，GitHub 仓库：https://github.com/jnghant-spec/time_calendar
 请读取仓库中的 lib/pages/list_page.dart 和 lib/pages/calendar_page.dart，基于现有代码继续修改。
 设计规范见项目根目录 doc/kimi_context.md，严禁违背其中的颜色/圆角/间距/排序/限额等定义。

@@ -219,7 +219,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 SizedBox(height: SizeConfig.sp(context, 20)),
                 Text(
-                  '欢迎使用时光日历',
+                  '欢迎使用时光集',
                   textAlign: TextAlign.center,
                   style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w700,

@@ -65,9 +65,9 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       navigatorKey: navigatorKey,
-      title: '时光日历',
+      title: '时光集',
       theme: appTheme,
-      home: const MainNavigationPage(initialIndex: 2),
+      home: const MainNavigationPage(initialIndex: 3),
     );
   }
 }

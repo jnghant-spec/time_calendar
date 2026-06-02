@@ -148,9 +148,18 @@ class MembershipComparisonTable extends StatelessWidget {
       ],
       [
         featureCell('照片上传'),
-        cell('', MembershipTier.free, dash: true),
-        cell('3 张/事件', MembershipTier.basic),
-        cell('10 张/事件', MembershipTier.premium),
+        cell(
+          '${MembershipConfig.benefits[MembershipTier.free]!.photosPerEvent} 张/事件',
+          MembershipTier.free,
+        ),
+        cell(
+          '${MembershipConfig.benefits[MembershipTier.basic]!.photosPerEvent} 张/事件',
+          MembershipTier.basic,
+        ),
+        cell(
+          '${MembershipConfig.benefits[MembershipTier.premium]!.photosPerEvent} 张/事件',
+          MembershipTier.premium,
+        ),
       ],
     ];
 

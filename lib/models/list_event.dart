@@ -1,17 +1,12 @@
-// 清单页（ListPage）分类、行数据与侧滑操作枚举；与 UI 引用名保持一致。
+// 清单页行数据与侧滑操作枚举；标签通过 ListEvent.tagId 关联 ReminderTag。
+
+import 'dart:convert';
 
 /// 侧滑项操作（与清单卡片 Slidable 一致）
 enum SwipeAction {
   onTogglePin,
   onShare,
   onDelete,
-}
-
-enum ListCategory {
-  birthday,
-  partner,
-  goal,
-  idol,
 }
 
 enum EventRepeatRule {
@@ -40,7 +35,7 @@ class ListEvent {
     required this.id,
     required this.title,
     required this.baseDate,
-    required this.category,
+    required this.tagId,
     this.isPinned = false,
     this.isLunarRecurring = false,
     this.isExpired = false,
@@ -51,6 +46,7 @@ class ListEvent {
     this.sameDayTimeHm = '09:00',
     this.isLunarDate = false,
     this.photoUrl,
+    this.photoPaths = const [],
     this.pendingShareAfterAdd = false,
   });
 
@@ -58,7 +54,8 @@ class ListEvent {
   final String title;
   /// 事件日历日；一次性事件为唯一发生日，循环事件同时为 **循环起始锚点**（编辑起始日即更新本字段）。
   final DateTime baseDate;
-  final ListCategory category;
+  /// 关联 [ReminderTag.id]；默认与历史枚举名一致如 `birthday`。
+  final String tagId;
   final bool isPinned;
   /// 农历循环生日等：展示农历标签文案。
   final bool isLunarRecurring;
@@ -73,6 +70,8 @@ class ListEvent {
   /// 用户在添加页是否按农历选择日期。
   final bool isLunarDate;
   final String? photoUrl;
+  /// 本地持久化的照片文件路径列表。
+  final List<String> photoPaths;
   /// FAB 添加成功后是否立刻打开分享 Sheet（由 ListPage 消费后应还原为 false）。
   final bool pendingShareAfterAdd;
 
@@ -83,7 +82,7 @@ class ListEvent {
     String? id,
     String? title,
     DateTime? baseDate,
-    ListCategory? category,
+    String? tagId,
     bool? isPinned,
     bool? isLunarRecurring,
     bool? isExpired,
@@ -94,13 +93,14 @@ class ListEvent {
     String? sameDayTimeHm,
     bool? isLunarDate,
     String? photoUrl,
+    List<String>? photoPaths,
     bool? pendingShareAfterAdd,
   }) {
     return ListEvent(
       id: id ?? this.id,
       title: title ?? this.title,
       baseDate: baseDate ?? this.baseDate,
-      category: category ?? this.category,
+      tagId: tagId ?? this.tagId,
       isPinned: isPinned ?? this.isPinned,
       isLunarRecurring: isLunarRecurring ?? this.isLunarRecurring,
       isExpired: isExpired ?? this.isExpired,
@@ -111,7 +111,75 @@ class ListEvent {
       sameDayTimeHm: sameDayTimeHm ?? this.sameDayTimeHm,
       isLunarDate: isLunarDate ?? this.isLunarDate,
       photoUrl: photoUrl ?? this.photoUrl,
+      photoPaths: photoPaths ?? this.photoPaths,
       pendingShareAfterAdd: pendingShareAfterAdd ?? this.pendingShareAfterAdd,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'baseDate': baseDate.toIso8601String(),
+        'tagId': tagId,
+        'isPinned': isPinned,
+        'isLunarRecurring': isLunarRecurring,
+        'isExpired': isExpired,
+        'repeatRule': repeatRule.name,
+        'reminderType': reminderType.name,
+        'advanceDaysOption': advanceDaysOption.name,
+        'advanceTimeHm': advanceTimeHm,
+        'sameDayTimeHm': sameDayTimeHm,
+        'isLunarDate': isLunarDate,
+        'photoUrl': photoUrl,
+        'photoPaths': jsonEncode(photoPaths),
+        'pendingShareAfterAdd': pendingShareAfterAdd,
+      };
+
+  factory ListEvent.fromJson(Map<String, dynamic> json) {
+    return ListEvent(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      baseDate: DateTime.parse(json['baseDate'] as String),
+      tagId: json['tagId'] as String,
+      isPinned: json['isPinned'] as bool? ?? false,
+      isLunarRecurring: json['isLunarRecurring'] as bool? ?? false,
+      isExpired: json['isExpired'] as bool? ?? false,
+      repeatRule: EventRepeatRule.values.firstWhere(
+        (e) => e.name == json['repeatRule'],
+        orElse: () => EventRepeatRule.none,
+      ),
+      reminderType: EventReminderType.values.firstWhere(
+        (e) => e.name == json['reminderType'],
+        orElse: () => EventReminderType.sameDayOnly,
+      ),
+      advanceDaysOption: EventAdvanceDaysOption.values.firstWhere(
+        (e) => e.name == json['advanceDaysOption'],
+        orElse: () => EventAdvanceDaysOption.oneDay,
+      ),
+      advanceTimeHm: json['advanceTimeHm'] as String? ?? '09:00',
+      sameDayTimeHm: json['sameDayTimeHm'] as String? ?? '09:00',
+      isLunarDate: json['isLunarDate'] as bool? ?? false,
+      photoUrl: json['photoUrl'] as String?,
+      photoPaths: _decodePhotoPaths(json['photoPaths']),
+      pendingShareAfterAdd: json['pendingShareAfterAdd'] as bool? ?? false,
+    );
+  }
+}
+
+List<String> _decodePhotoPaths(dynamic raw) {
+  if (raw == null) return const [];
+  if (raw is List) {
+    return raw.map((e) => e.toString()).toList();
+  }
+  if (raw is String) {
+    if (raw.isEmpty) return const [];
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is List) {
+        return decoded.map((e) => e.toString()).toList();
+      }
+    } catch (_) {}
+    return const [];
+  }
+  return const [];
 }

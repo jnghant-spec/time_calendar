@@ -8,7 +8,7 @@ void main() {
       id: '1',
       title: '测试生日',
       baseDate: DateTime(2000, 1, 1),
-      category: ListCategory.birthday,
+      tagId: 'birthday',
       repeatRule: EventRepeatRule.yearly,
     );
     expect(occurrenceDatesInGregorianMonth(e, 2026, 1), [DateTime(2026, 1, 1)]);
@@ -22,7 +22,7 @@ void main() {
       id: '1b',
       title: '测试每年循环',
       baseDate: DateTime(2026, 4, 5),
-      category: ListCategory.birthday,
+      tagId: 'birthday',
       repeatRule: EventRepeatRule.yearly,
     );
     expect(occurrenceDatesInGregorianMonth(e, 2025, 4), isEmpty);
@@ -35,7 +35,7 @@ void main() {
       id: 'd',
       title: '测试每天循环',
       baseDate: DateTime(2026, 4, 5),
-      category: ListCategory.goal,
+      tagId: 'goal',
       repeatRule: EventRepeatRule.daily,
     );
     final april = occurrenceDatesInGregorianMonth(e, 2026, 4);
@@ -52,7 +52,7 @@ void main() {
       id: '2',
       title: '截止',
       baseDate: DateTime(2026, 5, 10),
-      category: ListCategory.goal,
+      tagId: 'goal',
       repeatRule: EventRepeatRule.none,
     );
     expect(occurrenceDatesInGregorianMonth(e, 2026, 5), [DateTime(2026, 5, 10)]);
@@ -64,7 +64,7 @@ void main() {
       id: '3',
       title: 'y',
       baseDate: DateTime(2000, 1, 1),
-      category: ListCategory.birthday,
+      tagId: 'birthday',
       repeatRule: EventRepeatRule.yearly,
     );
     final next = effectiveDate(e);

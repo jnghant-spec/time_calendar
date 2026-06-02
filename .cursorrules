@@ -1,0 +1,26 @@
+# 时光集 - 项目上下文
+- 技术栈:Flutter 3.x,Dart,Android + iOS 双端
+- 包名:time_calendar(严禁修改,否则 import 路径断裂)
+- GitHub:https://github.com/jnghant-spec/time_calendar
+
+# 设计规范（严禁违背）
+- 主题蓝 #1A73E8
+- 置顶星标 #FFB800
+- 农历标签背景 #FFF7ED / 前景 #F97316
+- 节日标记 #10B981
+- 输入框圆角 18px
+- 按钮/卡片圆角 16px
+- Pill 圆角 16px
+- 清单页背景 #FAFBFC
+- 卡片边框 #F1F5F9
+- 过期文字色 #C7C7CC
+
+# 排序规则
+- 置顶未过期 → 非置顶未过期 → 置顶已过期 → 非置顶已过期
+- 已过期区域内按日期倒序
+
+# 开发纪律
+- 修改前检查 dart analyze 和 flutter test
+- 严禁修改无关模块（会员系统、节日设置页、日历页、分享卡片、通讯录导入）
+- 严禁修改 pubspec.yaml 的 name 字段
+- 严禁修改 Android applicationId 和 iOS Bundle Identifier

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:lunar/lunar.dart';
 import 'package:time_calendar/models/list_event.dart';
+import 'package:time_calendar/services/tag_service.dart';
 
 /// 日历页半屏事件详情（底部 Modal）。
 class EventDetailSheet extends StatelessWidget {
@@ -21,11 +22,6 @@ class EventDetailSheet extends StatelessWidget {
   static const Color _star = Color(0xFFFFB800);
   static const Color _lunarBg = Color(0xFFFFF7ED);
   static const Color _lunarFg = Color(0xFFF97316);
-
-  static const Color _cBirthday = Color(0xFFF97316);
-  static const Color _cPartner = Color(0xFFF43F5E);
-  static const Color _cGoal = Color(0xFF3B82F6);
-  static const Color _cIdol = Color(0xFFA855F7);
 
   static String _weekdayZh(int weekday) {
     const w = ['一', '二', '三', '四', '五', '六', '日'];
@@ -77,35 +73,19 @@ class EventDetailSheet extends StatelessWidget {
   static bool _showSameDay(EventReminderType t) =>
       t == EventReminderType.advanceAndSameDay || t == EventReminderType.sameDayOnly;
 
-  Color _categoryAccent(ListCategory c) {
-    switch (c) {
-      case ListCategory.partner:
-        return _cPartner;
-      case ListCategory.birthday:
-        return _cBirthday;
-      case ListCategory.goal:
-        return _cGoal;
-      case ListCategory.idol:
-        return _cIdol;
+  Widget _tagIcon(String tagId, Color accent) {
+    if (tagId == 'birthday') {
+      return Icon(Icons.cake, color: accent, size: 20);
     }
-  }
-
-  Widget _categoryIcon(ListCategory category, Color accent) {
-    switch (category) {
-      case ListCategory.partner:
-        return SvgPicture.asset(
-          'assets/images/ic_couple_hearts.svg',
-          width: 20,
-          height: 20,
-          colorFilter: ColorFilter.mode(accent, BlendMode.srcIn),
-        );
-      case ListCategory.birthday:
-        return Icon(Icons.cake, color: accent, size: 20);
-      case ListCategory.goal:
-        return Icon(Icons.track_changes, color: accent, size: 20);
-      case ListCategory.idol:
-        return Icon(Icons.star, color: accent, size: 20);
+    if (tagId == 'partner') {
+      return SvgPicture.asset(
+        'assets/images/ic_couple_hearts.svg',
+        width: 20,
+        height: 20,
+        colorFilter: ColorFilter.mode(accent, BlendMode.srcIn),
+      );
     }
+    return Icon(Icons.label, color: accent, size: 20);
   }
 
   Widget _summaryRow(String label, Widget right) {
@@ -141,7 +121,7 @@ class EventDetailSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = _categoryAccent(event.category);
+    final accent = TagService.accentForDisplay(event.tagId);
     final baseD = DateTime(event.baseDate.year, event.baseDate.month, event.baseDate.day);
     final d = displaySolarDate != null
         ? DateTime(
@@ -211,7 +191,7 @@ class EventDetailSheet extends StatelessWidget {
                               shape: BoxShape.circle,
                             ),
                             alignment: Alignment.center,
-                            child: _categoryIcon(event.category, accent),
+                            child: _tagIcon(event.tagId, accent),
                           ),
                           const SizedBox(width: 12),
                           Expanded(

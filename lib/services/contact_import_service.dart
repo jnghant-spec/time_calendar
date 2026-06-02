@@ -118,7 +118,7 @@ class ContactImportService {
   }) {
     final taken = <String>{};
     for (final e in existingEvents) {
-      if (e.category != ListCategory.birthday) continue;
+      if (e.tagId != 'birthday') continue;
       taken.add(_dedupeKey(e.title, e.baseDate.month, e.baseDate.day));
     }
     return candidates
@@ -142,7 +142,7 @@ class ContactImportService {
           'contact_${c.contactId}_${c.month}_${c.day}_${DateTime.now().millisecondsSinceEpoch}',
       title: title,
       baseDate: DateTime(c.anchorYear, c.month, c.day),
-      category: ListCategory.birthday,
+      tagId: 'birthday',
       isPinned: false,
       isLunarRecurring: false,
       isLunarDate: false,
