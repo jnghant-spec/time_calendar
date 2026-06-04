@@ -279,6 +279,11 @@ class MembershipService {
     return _decodeIdSet(raw);
   }
 
+  static Future<void> clearArchivedEventIds() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keyArchivedEventIds);
+  }
+
   static Future<void> syncArchivedEventsForTier(List<ListEvent> events) async {
     final tier = await currentTier();
     final quota = benefits(tier).reminderQuota;

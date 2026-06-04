@@ -912,6 +912,7 @@ class _EventAddPageState extends State<EventAddPage> {
     const fallbackTime = TimeOfDay(hour: 9, minute: 0);
     if (initial != null) {
       _titleCtrl.text = initial.title;
+      _noteCtrl.text = initial.note ?? '';
       _selectedTagId = initial.tagId;
       _pinned = initial.isPinned;
       _solarMode = !(initial.isLunarDate || initial.isLunarRecurring);
@@ -1243,6 +1244,8 @@ class _EventAddPageState extends State<EventAddPage> {
     }
 
     final photoPaths = [..._existingPhotoPaths, ...newPersisted];
+    final noteRaw = _noteCtrl.text.trim();
+    final note = noteRaw.isEmpty ? null : noteRaw;
 
     final event = ListEvent(
       id: eventId,
@@ -1261,6 +1264,7 @@ class _EventAddPageState extends State<EventAddPage> {
       photoUrl: initial?.photoUrl,
       photoPaths: photoPaths,
       pendingShareAfterAdd: _shareEnabled,
+      note: note,
     );
     nav.pop(event);
     if (_shareEnabled) {

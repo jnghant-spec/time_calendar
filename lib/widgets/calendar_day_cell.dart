@@ -22,6 +22,8 @@ class CalendarDayCell extends StatelessWidget {
     this.lunarTextStyle = _defaultLunarTextStyle,
     this.highlightLunarOnFestival = true,
     this.cellPadding = 4,
+    this.dayToLunarGap = 0,
+    this.lunarToMarkerGap = 1,
     this.markerSize = 4,
     this.markerSpacing = 2,
     this.dayFontSize = 16,
@@ -44,6 +46,8 @@ class CalendarDayCell extends StatelessWidget {
   final TextStyle lunarTextStyle;
   final bool highlightLunarOnFestival;
   final double cellPadding;
+  final double dayToLunarGap;
+  final double lunarToMarkerGap;
   final double markerSize;
   final double markerSpacing;
   final double dayFontSize;
@@ -104,7 +108,9 @@ class CalendarDayCell extends StatelessWidget {
     final lunarLabel = _lunarLabelFor(dayOnly);
 
     final useShadow = showSelectedShadow && isSelected && !isToday;
-    final hasMarkers = festivals.isNotEmpty || events.isNotEmpty;
+    final hasUserReminders = events.isNotEmpty;
+    final hasFestivals = festivals.isNotEmpty;
+    final hasMarkers = hasFestivals || hasUserReminders;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -150,6 +156,7 @@ class CalendarDayCell extends StatelessWidget {
                         height: 1.0,
                       ),
                     ),
+                    if (dayToLunarGap > 0) SizedBox(height: dayToLunarGap),
                     Text(
                       lunarLabel,
                       maxLines: 1,
@@ -160,13 +167,14 @@ class CalendarDayCell extends StatelessWidget {
                         height: 1.0,
                       ),
                     ),
-                    if (hasMarkers) const SizedBox(height: 1),
-                    _MarkerRow(
-                      festivals: festivals,
-                      events: events,
-                      markerSize: markerSize,
-                      markerSpacing: markerSpacing,
-                    ),
+                    if (hasMarkers) SizedBox(height: lunarToMarkerGap),
+                    if (hasMarkers)
+                      _MarkerRow(
+                        showFestivalDot: hasFestivals,
+                        events: events,
+                        markerSize: markerSize,
+                        markerSpacing: markerSpacing,
+                      ),
                   ],
                 ),
               ),
@@ -210,29 +218,60 @@ class CalendarDayCell extends StatelessWidget {
 
 class _MarkerRow extends StatelessWidget {
   const _MarkerRow({
-    required this.festivals,
+    required this.showFestivalDot,
     required this.events,
     required this.markerSize,
     required this.markerSpacing,
   });
 
-  final List<CalendarFestival> festivals;
+  static const int _maxDots = 3;
+  static const Color _festivalDotColor = Color(0xFF10B981);
+  static const Color _fallbackReminderColor = Color(0xFF94A3B8);
+
+  final bool showFestivalDot;
   final List<ListEvent> events;
   final double markerSize;
   final double markerSpacing;
 
+  static int _markerEventPriority(ListEvent a, ListEvent b) {
+    if (a.isPinned != b.isPinned) return a.isPinned ? -1 : 1;
+    final c = a.baseDate.compareTo(b.baseDate);
+    if (c != 0) return c;
+    return a.id.compareTo(b.id);
+  }
+
+  List<Color> _reminderDotColors(int maxCount) {
+    if (maxCount <= 0 || events.isEmpty) return const [];
+    final sorted = List<ListEvent>.from(events)..sort(_markerEventPriority);
+    final colors = <Color>[];
+    final seenColorKeys = <int>{};
+    for (final e in sorted) {
+      if (colors.length >= maxCount) break;
+      final color = e.tagId.isNotEmpty
+          ? TagService.accentForDisplay(e.tagId)
+          : _fallbackReminderColor;
+      if (seenColorKeys.add(color.toARGB32())) {
+        colors.add(color);
+      }
+    }
+    return colors;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final children = <Widget>[];
+    final festivalSlots = showFestivalDot ? 1 : 0;
+    final reminderSlots = _maxDots - festivalSlots;
+    final reminderColors = _reminderDotColors(reminderSlots);
 
-    if (festivals.isNotEmpty) {
-      children.add(_dot(const Color(0xFF10B981)));
+    final children = <Widget>[];
+    if (showFestivalDot) {
+      children.add(_dot(_festivalDotColor));
     }
-    if (events.isNotEmpty) {
-      if (children.isNotEmpty) children.add(SizedBox(width: markerSpacing));
-      children.add(
-        _dot(TagService.accentForDisplay(events.first.tagId)),
-      );
+    for (final color in reminderColors) {
+      if (children.isNotEmpty) {
+        children.add(SizedBox(width: markerSpacing));
+      }
+      children.add(_dot(color));
     }
 
     if (children.isEmpty) {

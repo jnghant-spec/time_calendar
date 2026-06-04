@@ -7,9 +7,11 @@ import 'package:timezone/timezone.dart' as tz;
 
 import 'package:time_calendar/app/user_app_context.dart';
 import 'package:time_calendar/pages/main_navigation_page.dart';
+import 'package:time_calendar/services/event_service.dart';
 import 'package:time_calendar/services/festival_service.dart';
 import 'package:time_calendar/services/membership_service.dart';
 import 'package:time_calendar/services/memory_service.dart';
+import 'package:time_calendar/services/tag_service.dart';
 import 'package:time_calendar/services/notification_service.dart';
 import 'package:time_calendar/services/user_session.dart';
 import 'package:time_calendar/theme/app_theme.dart';
@@ -24,7 +26,14 @@ Future<void> main() async {
 
   await FestivalService.ensureFestivalSeedDataLoaded();
 
+  await TagService.loadTags();
+
   await MemoryService.ensureDemoSeedIfEmpty();
+
+  if (kDebugMode) {
+    await EventService.clearAllEvents();
+    await EventService.seedJune5Events();
+  }
 
   await NotificationService.init(navigatorKey: appNavigatorKey);
 

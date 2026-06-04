@@ -59,6 +59,21 @@ void main() {
     expect(occurrenceDatesInGregorianMonth(e, 2027, 5), isEmpty);
   });
 
+  test('calendar dot uses occurrence only not advance reminder day', () {
+    final e = ListEvent(
+      id: 'adv',
+      title: '还信用卡',
+      baseDate: DateTime(2026, 6, 5),
+      tagId: 'partner',
+      repeatRule: EventRepeatRule.none,
+      reminderType: EventReminderType.advanceOnly,
+      advanceDaysOption: EventAdvanceDaysOption.oneDay,
+    );
+    expect(eventOccursOnGregorianDay(e, DateTime(2026, 6, 5)), true);
+    expect(eventOccursOnGregorianDay(e, DateTime(2026, 6, 4)), false);
+    expect(eventOccursOnGregorianDay(e, DateTime(2026, 6, 3)), false);
+  });
+
   test('effectiveDate yearly still rolls forward from today', () {
     final e = ListEvent(
       id: '3',

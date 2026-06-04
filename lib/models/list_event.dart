@@ -30,6 +30,9 @@ enum EventAdvanceDaysOption {
   oneMonth,
 }
 
+/// 测试种子事件共用的公历发生日（2026-06-05）。
+final DateTime kListEventJune5TestDate = DateTime(2026, 6, 5);
+
 class ListEvent {
   const ListEvent({
     required this.id,
@@ -48,6 +51,7 @@ class ListEvent {
     this.photoUrl,
     this.photoPaths = const [],
     this.pendingShareAfterAdd = false,
+    this.note,
   });
 
   final String id;
@@ -74,6 +78,8 @@ class ListEvent {
   final List<String> photoPaths;
   /// FAB 添加成功后是否立刻打开分享 Sheet（由 ListPage 消费后应还原为 false）。
   final bool pendingShareAfterAdd;
+  /// 用户备注（添加/编辑页「备注」输入框）。
+  final String? note;
 
   /// 循环起始日（与 [baseDate] 同日，仅保留年月日语义）。
   DateTime get anchorDate => DateTime(baseDate.year, baseDate.month, baseDate.day);
@@ -95,6 +101,7 @@ class ListEvent {
     String? photoUrl,
     List<String>? photoPaths,
     bool? pendingShareAfterAdd,
+    String? note,
   }) {
     return ListEvent(
       id: id ?? this.id,
@@ -113,6 +120,7 @@ class ListEvent {
       photoUrl: photoUrl ?? this.photoUrl,
       photoPaths: photoPaths ?? this.photoPaths,
       pendingShareAfterAdd: pendingShareAfterAdd ?? this.pendingShareAfterAdd,
+      note: note ?? this.note,
     );
   }
 
@@ -133,6 +141,7 @@ class ListEvent {
         'photoUrl': photoUrl,
         'photoPaths': jsonEncode(photoPaths),
         'pendingShareAfterAdd': pendingShareAfterAdd,
+        if (note != null) 'note': note,
       };
 
   factory ListEvent.fromJson(Map<String, dynamic> json) {
@@ -162,6 +171,7 @@ class ListEvent {
       photoUrl: json['photoUrl'] as String?,
       photoPaths: _decodePhotoPaths(json['photoPaths']),
       pendingShareAfterAdd: json['pendingShareAfterAdd'] as bool? ?? false,
+      note: json['note'] as String?,
     );
   }
 }

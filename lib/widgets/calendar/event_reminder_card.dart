@@ -314,103 +314,101 @@ class EventReminderCard extends StatelessWidget {
         horizontal: innerPadH,
         vertical: innerPadV,
       ),
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Container(
-              width: barW,
-              height: barH,
-              decoration: BoxDecoration(
-                color: barColor,
-                borderRadius: BorderRadius.circular(2),
-              ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: barW,
+            height: barH,
+            decoration: BoxDecoration(
+              color: barColor,
+              borderRadius: BorderRadius.circular(2),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                event.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: titleSize,
-                                  fontWeight: FontWeight.w700,
-                                  color: _titleColorCal,
-                                  height: 1.25,
-                                  letterSpacing: -0.31,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              event.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: titleSize,
+                                fontWeight: FontWeight.w700,
+                                color: _titleColorCal,
+                                height: 1.25,
+                                letterSpacing: -0.31,
+                              ),
+                            ),
+                          ),
+                          if (event.isFestival) ...[
+                            const SizedBox(width: 8),
+                            EventReminderCard.festivalTypeTag(event),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              dateDisplay,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: dateSize,
+                                fontWeight: FontWeight.w400,
+                                color: _dateColorCal,
+                                height: 1.0,
+                              ),
+                            ),
+                          ),
+                          if (showLunar) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: _lunarPillBg,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Text(
+                                '农历',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: _lunarPillFg,
+                                  height: 1.2,
                                 ),
                               ),
                             ),
-                            if (event.isFestival) ...[
-                              const SizedBox(width: 8),
-                              EventReminderCard.festivalTypeTag(event),
-                            ],
                           ],
-                        ),
-                        const SizedBox(height: 6),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                dateDisplay,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: dateSize,
-                                  fontWeight: FontWeight.w400,
-                                  color: _dateColorCal,
-                                  height: 1.0,
-                                ),
-                              ),
-                            ),
-                            if (showLunar) ...[
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: _lunarPillBg,
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: const Text(
-                                  '农历',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                    color: _lunarPillFg,
-                                    height: 1.2,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  countdownTrailing(event),
-                ],
-              ),
+                ),
+                const SizedBox(width: 8),
+                countdownTrailing(event),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
 

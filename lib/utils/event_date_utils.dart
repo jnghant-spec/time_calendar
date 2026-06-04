@@ -110,9 +110,13 @@ List<DateTime> _lunarRepeatOccurrencesInGregorianMonth(
 
 /// 是否在指定公历日发生（用于点选某日筛选）。
 bool eventOccursOnGregorianDay(ListEvent event, DateTime gregorianDay) {
-  final y = gregorianDay.year;
-  final m = gregorianDay.month;
-  final d = gregorianDay.day;
+  final target = _dateOnly(gregorianDay);
+  if (!event.isLunarRecurring && event.repeatRule == EventRepeatRule.none) {
+    return _dateOnly(event.baseDate) == target;
+  }
+  final y = target.year;
+  final m = target.month;
+  final d = target.day;
   return occurrenceDatesInGregorianMonth(
     event,
     y,

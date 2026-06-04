@@ -9,25 +9,49 @@ import 'package:time_calendar/widgets/pinned_star_badge.dart';
 
 /// 周视图提醒卡片。
 class WeekViewEventCard extends StatelessWidget {
-  const WeekViewEventCard({
+  WeekViewEventCard({
     super.key,
-    required this.event,
+    required ListEvent event,
     required this.occurrenceDate,
     required this.today,
     this.onTap,
     this.onEdit,
     this.onDelete,
-  }) : festival = null;
+  })  : event = event,
+        festival = null,
+        isFestivalCard = false,
+        accent = TagService.accentForDisplay(event.tagId),
+        tagName = TagService.getTagById(event.tagId)?.name ?? '提醒',
+        daysDiff = _daysDiff(occurrenceDate, today),
+        reminderLabels = _reminderLabels(event, occurrenceDate),
+        pinned = event.isPinned,
+        title = event.title,
+        noteText = _trimNote(event.note),
+        numberColor = _numberColorFor(TagService.accentForDisplay(event.tagId)),
+        photoPath = _firstPhotoPath(event),
+        tagId = event.tagId;
 
-  const WeekViewEventCard.festival({
+  WeekViewEventCard.festival({
     super.key,
-    required this.festival,
+    required CalendarFestival festival,
     required this.occurrenceDate,
     required this.today,
   })  : event = null,
+        festival = festival,
         onTap = null,
         onEdit = null,
-        onDelete = null;
+        onDelete = null,
+        isFestivalCard = true,
+        accent = festival.color,
+        tagName = _festivalTagLabel(festival),
+        daysDiff = _daysDiff(occurrenceDate, today),
+        reminderLabels = _festivalReminderLabels(occurrenceDate),
+        pinned = false,
+        title = festival.name,
+        noteText = '',
+        numberColor = _numberColorFor(festival.color),
+        photoPath = null,
+        tagId = '';
 
   final ListEvent? event;
   final CalendarFestival? festival;
@@ -37,11 +61,42 @@ class WeekViewEventCard extends StatelessWidget {
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
 
+  final bool isFestivalCard;
+  final Color accent;
+  final String tagName;
+  final int daysDiff;
+  final List<String> reminderLabels;
+  final bool pinned;
+  final String title;
+  final String noteText;
+  final Color numberColor;
+  final String? photoPath;
+  final String tagId;
+
   static const Color _titleColor = Color(0xFF0F172A);
   static const Color _muted = Color(0xFF64748B);
   static const Color _hint = Color(0xFF94A3B8);
   static const Color _noteColor = Color(0xFFFFB800);
   static const Color _themeBlue = Color(0xFF1A73E8);
+  static const Color _borderCard = Color(0xFFF1F5F9);
+
+  static const double _photoW = 100;
+  static const double _photoH = 133;
+
+  static String _trimNote(String? note) => note?.trim() ?? '';
+
+  static Color _numberColorFor(Color accent) =>
+      Color.lerp(accent, Colors.black, 0.15)!;
+
+  static String? _firstPhotoPath(ListEvent e) {
+    final path = e.photoPaths.isNotEmpty ? e.photoPaths.first : e.photoUrl;
+    if (path == null || path.isEmpty) return null;
+    return path;
+  }
+
+  static List<String> _festivalReminderLabels(DateTime occurrenceDate) => [
+        '${occurrenceDate.month}月${occurrenceDate.day}日 09:00',
+      ];
 
   static int _advanceDayCount(EventAdvanceDaysOption o) {
     switch (o) {
@@ -78,21 +133,14 @@ class WeekViewEventCard extends StatelessWidget {
     return out;
   }
 
-  static String _nearestReminderLabel(ListEvent e, DateTime occurrenceDay) {
-    final times = _reminderTimes(e, occurrenceDay);
-    if (times.isEmpty) return '';
-    final now = DateTime.now();
-    DateTime pick = times.last;
-    for (final t in times) {
-      if (!t.isBefore(now)) {
-        pick = t;
-        break;
-      }
-    }
-    final hh = pick.hour.toString().padLeft(2, '0');
-    final mm = pick.minute.toString().padLeft(2, '0');
-    return '${pick.month}月${pick.day}日 $hh:$mm';
+  static String _formatReminderLabel(DateTime t) {
+    final hh = t.hour.toString().padLeft(2, '0');
+    final mm = t.minute.toString().padLeft(2, '0');
+    return '${t.month}月${t.day}日 $hh:$mm';
   }
+
+  static List<String> _reminderLabels(ListEvent e, DateTime occurrenceDay) =>
+      _reminderTimes(e, occurrenceDay).map(_formatReminderLabel).toList();
 
   static String _festivalTagLabel(CalendarFestival f) {
     final preset = f.sourceLabel?.trim();
@@ -117,13 +165,24 @@ class WeekViewEventCard extends StatelessWidget {
         .inDays;
   }
 
-  Widget _photoArea(Color accent) {
-    const w = 100.0;
-    const h = 133.0;
-    if (festival != null) {
+  Widget _tagIconPhotoFallback() {
+    return Container(
+      width: _photoW,
+      height: _photoH,
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      alignment: Alignment.center,
+      child: TagIconHelper.build(tagId: tagId, color: accent, size: 48),
+    );
+  }
+
+  Widget _photoArea() {
+    if (isFestivalCard) {
       return Container(
-        width: w,
-        height: h,
+        width: _photoW,
+        height: _photoH,
         decoration: BoxDecoration(
           color: accent.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(16),
@@ -132,89 +191,55 @@ class WeekViewEventCard extends StatelessWidget {
         child: Icon(Icons.celebration_outlined, color: accent, size: 40),
       );
     }
-    final e = event!;
-    final path = e.photoPaths.isNotEmpty ? e.photoPaths.first : e.photoUrl;
-    if (path != null && path.isNotEmpty && File(path).existsSync()) {
+    final path = photoPath;
+    if (path != null) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: Image.file(
           File(path),
-          width: w,
-          height: h,
+          width: _photoW,
+          height: _photoH,
           fit: BoxFit.cover,
+          cacheWidth: 200,
+          cacheHeight: 266,
+          errorBuilder: (_, _, _) => _tagIconPhotoFallback(),
         ),
       );
     }
-    return Container(
-      width: w,
-      height: h,
-      decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      alignment: Alignment.center,
-      child: TagIconHelper.build(tagId: e.tagId, color: accent, size: 48),
-    );
+    return _tagIconPhotoFallback();
   }
 
-  Widget _countdownColumn(Color accent, int daysDiff) {
-    const w = 56.0;
-    if (daysDiff == 0) {
-      return SizedBox(
-        width: w,
-        child: Center(
-          child: Text(
-            '今天',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: accent,
-              height: 1.0,
-            ),
-          ),
-        ),
-      );
-    }
-    final numberColor = Color.lerp(accent, Colors.black, 0.15)!;
-    return SizedBox(
-      width: w,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            '$daysDiff',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: numberColor,
-              height: 1.0,
-            ),
-          ),
-          Text(
-            '天后',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w400,
-              color: accent,
-              height: 1.0,
-            ),
+  Widget _reminderTimeList() {
+    if (reminderLabels.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var i = 0; i < reminderLabels.length; i++) ...[
+          if (i > 0) const SizedBox(height: 4),
+          Row(
+            children: [
+              const Icon(Icons.access_time, size: 14, color: _hint),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  reminderLabels[i],
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w400,
+                    color: _muted,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ),
         ],
-      ),
+      ],
     );
   }
 
-  Widget _cardInner(
-    Color accent,
-    String tagName,
-    int daysDiff,
-    String reminderTime, {
-    required bool pinned,
-  }) {
-    final title = festival?.name ?? event!.title;
-    const note = '';
-
+  Widget _cardInner() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -238,87 +263,141 @@ class WeekViewEventCard extends StatelessWidget {
                 ),
               ],
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          _photoArea(accent),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: _titleColor,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  height: 24,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  decoration: BoxDecoration(
-                    color: accent,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    tagName,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-                if (reminderTime.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(Icons.access_time, size: 14, color: _hint),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          reminderTime,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w400,
-                            color: _muted,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _photoArea(),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: _titleColor,
+                            ),
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                    ],
-                  ),
-                ],
-                if (note.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    note,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w400,
-                      color: _noteColor,
+                        if (pinned) ...[
+                          const SizedBox(width: 8),
+                          const PinnedStarBadge(),
+                        ],
+                        const SizedBox(width: 6),
+                      ],
                     ),
-                  ),
-                ],
-              ],
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.only(right: 62),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            height: 24,
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            decoration: BoxDecoration(
+                              color: accent,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              tagName,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                          if (reminderLabels.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            _reminderTimeList(),
+                          ],
+                          if (noteText.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                const Icon(Icons.note, size: 14, color: _noteColor),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                  child: Text(
+                                    noteText,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w400,
+                                      color: _noteColor,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          Positioned(
+            right: 6,
+            top: 0,
+            bottom: 0,
+            child: Center(
+              child: daysDiff == 0
+                  ? Text(
+                      '今天',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: accent,
+                        height: 1.0,
+                      ),
+                    )
+                  : Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: '$daysDiff',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                              color: numberColor,
+                              height: 1.0,
+                            ),
+                          ),
+                          TextSpan(
+                            text: '天后',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w400,
+                              color: accent,
+                              height: 1.0,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
             ),
           ),
-          const SizedBox(width: 12),
-          _countdownColumn(accent, daysDiff),
         ],
       ),
     );
   }
 
-  Widget _pinnedChrome(Widget child, {required bool pinned}) {
+  Widget _pinnedChrome(Widget child) {
     if (!pinned) {
       return GestureDetector(onTap: onTap, behavior: HitTestBehavior.opaque, child: child);
     }
@@ -343,41 +422,18 @@ class WeekViewEventCard extends StatelessWidget {
             ),
           ),
         ),
-        const Positioned(
-          top: kPinnedStarBadgeTop,
-          right: kPinnedStarBadgeRight,
-          child: PinnedStarBadge(),
-        ),
       ],
     );
   }
 
-  static const Color _borderCard = Color(0xFFF1F5F9);
-
   @override
   Widget build(BuildContext context) {
-    final accent = festival != null
-        ? festival!.color
-        : TagService.accentForDisplay(event!.tagId);
-    final tagName = festival != null ? _festivalTagLabel(festival!) : (TagService.getTagById(event!.tagId)?.name ?? '提醒');
-    final daysDiff = _daysDiff(occurrenceDate, today);
-    final reminderTime = event != null
-        ? _nearestReminderLabel(event!, occurrenceDate)
-        : '${occurrenceDate.month}月${occurrenceDate.day}日 09:00';
+    final inner = _cardInner();
 
-    final pinned = event?.isPinned ?? false;
-    final inner = _cardInner(
-      accent,
-      tagName,
-      daysDiff,
-      reminderTime,
-      pinned: pinned,
-    );
-
-    if (festival != null || onEdit == null) {
+    if (isFestivalCard || onEdit == null) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(16),
-        child: _pinnedChrome(inner, pinned: pinned),
+        child: _pinnedChrome(inner),
       );
     }
 
@@ -436,11 +492,6 @@ class WeekViewEventCard extends StatelessWidget {
                   ),
                 ),
               ),
-            ),
-            const Positioned(
-              top: kPinnedStarBadgeTop,
-              right: kPinnedStarBadgeRight,
-              child: PinnedStarBadge(),
             ),
           ],
         ],

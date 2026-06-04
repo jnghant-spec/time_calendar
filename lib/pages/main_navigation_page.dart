@@ -6,6 +6,7 @@ import 'package:time_calendar/pages/list_page.dart';
 import 'package:time_calendar/pages/memory_page.dart';
 import 'package:time_calendar/pages/membership_sheet.dart';
 import 'package:time_calendar/pages/profile_page.dart';
+import 'package:time_calendar/services/event_service.dart';
 import 'package:time_calendar/services/event_usage_service.dart';
 import 'package:time_calendar/services/membership_service.dart';
 import 'package:time_calendar/services/tag_service.dart';
@@ -21,162 +22,6 @@ class MainNavigationPage extends StatefulWidget {
   State<MainNavigationPage> createState() => _MainNavigationPageState();
 }
 
-List<ListEvent> _initialGlobalMockEvents() {
-  // 基准日期：2026-05-02（周六）。ListEvent 字段均为非空，不适用提醒项使用占位默认值。
-  return [
-    ListEvent(
-      id: '1',
-      title: '妈妈的生日',
-      baseDate: DateTime(2026, 4, 25),
-      tagId: 'birthday',
-      isPinned: true,
-      isLunarRecurring: true,
-      isLunarDate: true,
-      repeatRule: EventRepeatRule.yearly,
-      reminderType: EventReminderType.advanceAndSameDay,
-      advanceDaysOption: EventAdvanceDaysOption.oneDay,
-      advanceTimeHm: '09:00',
-      sameDayTimeHm: '09:00',
-      isExpired: false,
-    ),
-    ListEvent(
-      id: '2',
-      title: '恋爱纪念日',
-      baseDate: DateTime(2026, 5, 3),
-      tagId: 'partner',
-      isPinned: true,
-      isLunarRecurring: false,
-      isLunarDate: false,
-      repeatRule: EventRepeatRule.yearly,
-      reminderType: EventReminderType.sameDayOnly,
-      advanceDaysOption: EventAdvanceDaysOption.oneDay,
-      advanceTimeHm: '09:00',
-      sameDayTimeHm: '09:00',
-      isExpired: false,
-    ),
-    ListEvent(
-      id: '3',
-      title: '考研倒计时',
-      baseDate: DateTime(2026, 12, 25),
-      tagId: 'goal',
-      isPinned: false,
-      isLunarRecurring: false,
-      isLunarDate: false,
-      repeatRule: EventRepeatRule.none,
-      reminderType: EventReminderType.sameDayOnly,
-      advanceDaysOption: EventAdvanceDaysOption.oneDay,
-      advanceTimeHm: '09:00',
-      sameDayTimeHm: '09:00',
-      isExpired: false,
-    ),
-    ListEvent(
-      id: '4',
-      title: '周杰伦演唱会',
-      baseDate: DateTime(2026, 4, 28),
-      tagId: 'idol',
-      isPinned: false,
-      isLunarRecurring: false,
-      isLunarDate: false,
-      repeatRule: EventRepeatRule.none,
-      reminderType: EventReminderType.sameDayOnly,
-      advanceDaysOption: EventAdvanceDaysOption.oneDay,
-      advanceTimeHm: '09:00',
-      sameDayTimeHm: '18:00',
-      isExpired: true,
-    ),
-    ListEvent(
-      id: '5',
-      title: '父亲生日',
-      baseDate: DateTime(2026, 4, 20),
-      tagId: 'birthday',
-      isPinned: false,
-      isLunarRecurring: true,
-      isLunarDate: true,
-      repeatRule: EventRepeatRule.yearly,
-      reminderType: EventReminderType.advanceAndSameDay,
-      advanceDaysOption: EventAdvanceDaysOption.threeDays,
-      advanceTimeHm: '09:00',
-      sameDayTimeHm: '09:00',
-      isExpired: false,
-    ),
-    ListEvent(
-      id: '6',
-      title: '项目交付截止',
-      baseDate: DateTime(2026, 5, 15),
-      tagId: 'goal',
-      isPinned: true,
-      isLunarRecurring: false,
-      isLunarDate: false,
-      repeatRule: EventRepeatRule.none,
-      reminderType: EventReminderType.advanceAndSameDay,
-      advanceDaysOption: EventAdvanceDaysOption.oneWeek,
-      advanceTimeHm: '09:00',
-      sameDayTimeHm: '09:00',
-      isExpired: false,
-    ),
-    ListEvent(
-      id: '7',
-      title: '晨跑打卡',
-      baseDate: DateTime(2026, 5, 2),
-      tagId: 'goal',
-      isPinned: false,
-      isLunarRecurring: false,
-      isLunarDate: false,
-      repeatRule: EventRepeatRule.daily,
-      reminderType: EventReminderType.sameDayOnly,
-      advanceDaysOption: EventAdvanceDaysOption.oneDay,
-      advanceTimeHm: '09:00',
-      sameDayTimeHm: '07:00',
-      isExpired: false,
-    ),
-    ListEvent(
-      id: '8',
-      title: '团队周会',
-      baseDate: DateTime(2026, 5, 5),
-      tagId: 'goal',
-      isPinned: false,
-      isLunarRecurring: false,
-      isLunarDate: false,
-      repeatRule: EventRepeatRule.weekly,
-      reminderType: EventReminderType.sameDayOnly,
-      advanceDaysOption: EventAdvanceDaysOption.oneDay,
-      advanceTimeHm: '09:00',
-      sameDayTimeHm: '09:00',
-      isExpired: false,
-    ),
-    ListEvent(
-      id: '9',
-      title: '还信用卡',
-      baseDate: DateTime(2026, 5, 10),
-      tagId: 'partner',
-      isPinned: false,
-      isLunarRecurring: false,
-      isLunarDate: false,
-      repeatRule: EventRepeatRule.monthly,
-      reminderType: EventReminderType.advanceOnly,
-      advanceDaysOption: EventAdvanceDaysOption.oneDay,
-      advanceTimeHm: '09:00',
-      sameDayTimeHm: '09:00',
-      isExpired: false,
-    ),
-    ListEvent(
-      id: '10',
-      title: '爷爷生日',
-      baseDate: DateTime(2026, 3, 15),
-      tagId: 'birthday',
-      isPinned: false,
-      isLunarRecurring: true,
-      isLunarDate: true,
-      repeatRule: EventRepeatRule.yearly,
-      reminderType: EventReminderType.advanceAndSameDay,
-      advanceDaysOption: EventAdvanceDaysOption.oneDay,
-      advanceTimeHm: '09:00',
-      sameDayTimeHm: '09:00',
-      isExpired: false,
-    ),
-  ];
-}
-
 class _MainNavigationPageState extends State<MainNavigationPage> {
   late int _currentIndex;
   late List<ListEvent> _globalEvents;
@@ -185,9 +30,7 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
-    _globalEvents = _initialGlobalMockEvents();
-    EventUsageService.updateCount(_globalEvents.length);
-    MembershipService.syncArchivedEventsForTier(_globalEvents);
+    _globalEvents = const [];
     TagService.reminderCountForTag =
         (tagId) => _globalEvents.where((e) => e.tagId == tagId).length;
     TagService.unlinkRemindersForTag = (tagId) async {
@@ -201,9 +44,18 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
             .toList(),
       );
     };
+    _loadPersistedEvents();
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => _maybeShowTrialEndedSnack(),
     );
+  }
+
+  Future<void> _loadPersistedEvents() async {
+    final events = await EventService.loadAllEvents();
+    if (!mounted) return;
+    setState(() => _globalEvents = events);
+    EventUsageService.updateCount(events.length);
+    await MembershipService.syncArchivedEventsForTier(events);
   }
 
   Future<void> _maybeShowTrialEndedSnack() async {
@@ -228,8 +80,8 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
 
   void _onEventsChanged(List<ListEvent> updated) {
     setState(() => _globalEvents = updated);
+    EventService.saveAllEvents(updated);
     MembershipService.syncArchivedEventsForTier(updated);
-    EventUsageService.updateCount(updated.length);
   }
 
   void _onMembershipTierChanged() {
