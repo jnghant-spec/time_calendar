@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lunar/lunar.dart';
 import 'package:path_provider/path_provider.dart';
@@ -11,9 +12,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:time_calendar/models/list_event.dart';
 import 'package:time_calendar/models/membership_tier.dart';
 import 'package:time_calendar/models/reminder_tag.dart';
+import 'package:time_calendar/pages/photo_crop_page.dart';
 import 'package:time_calendar/services/membership_service.dart';
 import 'package:time_calendar/services/tag_service.dart';
-import 'package:time_calendar/widgets/event_photo_paths_preview.dart';
 import 'package:time_calendar/widgets/common_date_picker.dart';
 import 'package:time_calendar/widgets/membership_soft_paywall.dart';
 import 'package:time_calendar/widgets/tag_circle_widget.dart';
@@ -21,11 +22,9 @@ import 'package:time_calendar/widgets/tag_editor_sheet.dart';
 
 // --- Design tokens（与任务规范一致） ---
 const Color _kThemeBlue = Color(0xFF1A73E8);
-const Color _kPinStar = Color(0xFFFFB800);
 const Color _kTitleColor = Color(0xFF0F172A);
 const Color _kCloseGrey = Color(0xFF64748B);
 const Color _kBorderInput = Color(0xFFECEFF5);
-const Color _kError = Color(0xFFF04444);
 const Color _kHint = Color(0xFF94A3B8);
 const List<BoxShadow> _kInputShadow = [
   BoxShadow(color: Color(0x0D111827), blurRadius: 20, offset: Offset(0, 8)),
@@ -521,6 +520,7 @@ class EventAddPage extends StatefulWidget {
 class _EventAddPageState extends State<EventAddPage> {
   final TextEditingController _titleCtrl = TextEditingController();
   final TextEditingController _noteCtrl = TextEditingController();
+  final FocusNode _titleFocusNode = FocusNode();
 
   String _selectedTagId = '';
   List<ReminderTag> _availableTags = [];
@@ -544,40 +544,197 @@ class _EventAddPageState extends State<EventAddPage> {
 
   MembershipTier _membershipTier = MembershipTier.free;
 
-  /// 与当前档位 [MembershipService.benefits] 对齐，异步初始化。
-  int _photoLimit = 0;
-
-  final List<XFile> _selectedPhotos = [];
-  List<String> _existingPhotoPaths = [];
+  String? _eventPhotoPath;
 
   bool get _isEditMode => widget.initialEvent != null;
 
-  int get _totalPhotoCount => _existingPhotoPaths.length + _selectedPhotos.length;
+  bool get _hasEventPhoto =>
+      _eventPhotoPath != null && _eventPhotoPath!.isNotEmpty;
 
-  List<String> get _displayPhotoPaths =>
-      [..._existingPhotoPaths, ..._selectedPhotos.map((x) => x.path)];
-
-  Future<void> _onPhotoLimitReached() async {
+  Future<void> _pickAndCropPhoto() async {
+    final tier = await MembershipService.currentTier();
     if (!mounted) return;
-    final limit = _photoLimit;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('当前档位最多可上传 $limit 张照片')),
-    );
-    if (_membershipTier == MembershipTier.free) {
+    final limit = MembershipService.benefits(tier).photosPerEvent;
+    setState(() {
+      _membershipTier = tier;
+    });
+    if (limit <= 0) {
       await showMembershipSoftPaywall(
         context,
         title: '上传照片',
-        message: '升级会员即可上传更多纪念照片',
+        message: '照片上传是会员功能，升级基础版即可使用',
         primaryLabel: '升级会员',
         onTierChanged: _reloadMembershipTier,
       );
+      return;
     }
+    if (!await _ensurePhotosPermission()) return;
+
+    final picker = ImagePicker();
+    final file = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1024,
+      maxHeight: 1024,
+    );
+    if (file == null || !mounted) return;
+
+    final croppedPath = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) => PhotoCropPage(sourcePath: file.path),
+      ),
+    );
+    if (croppedPath == null || !mounted) return;
+    setState(() => _eventPhotoPath = croppedPath);
   }
 
-  void _openPhotoPreview(int displayIndex) {
-    final paths = _displayPhotoPaths;
-    if (displayIndex < 0 || displayIndex >= paths.length) return;
-    showEventPhotoPathsPreview(context, photoPaths: paths, initialIndex: displayIndex);
+  Future<void> _showPhotoReplaceSheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        child: Material(
+          color: Colors.white,
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  height: 48,
+                  child: ListTile(
+                    leading: const Icon(Icons.photo_library),
+                    title: const Text('重新选择', style: TextStyle(fontSize: 16)),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _pickAndCropPhoto();
+                    },
+                  ),
+                ),
+                const Divider(height: 1),
+                SizedBox(
+                  height: 48,
+                  child: ListTile(
+                    leading: const Icon(Icons.delete, color: Colors.red),
+                    title: const Text(
+                      '删除照片',
+                      style: TextStyle(fontSize: 16, color: Colors.red),
+                    ),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      setState(() => _eventPhotoPath = null);
+                    },
+                  ),
+                ),
+                SizedBox(
+                  height: 48,
+                  child: ListTile(
+                    title: const Text(
+                      '取消',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 16, color: _kCloseGrey),
+                    ),
+                    onTap: () => Navigator.pop(ctx),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<String?> _persistEventPhoto(String eventId, String? sourcePath) async {
+    if (sourcePath == null || sourcePath.isEmpty) return null;
+    final root = await getApplicationDocumentsDirectory();
+    final photosDir = '${root.path}/photos';
+    if (sourcePath.startsWith(photosDir)) return sourcePath;
+
+    final dir = Directory(photosDir);
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
+    final batch = DateTime.now().microsecondsSinceEpoch;
+    final destPath = '${dir.path}/${batch}_$eventId.jpg';
+    await File(sourcePath).copy(destPath);
+    return destPath;
+  }
+
+  Widget _buildPhotoAddEntry({required VoidCallback onTap}) {
+    return CustomPaint(
+      painter: _DashedRectPainter(color: const Color(0xFFE2E8F0)),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: const SizedBox(
+          height: 160,
+          width: double.infinity,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.photo_library_outlined, size: 24, color: _kHint),
+              SizedBox(height: 8),
+              Text('添加照片', style: TextStyle(fontSize: 14, color: _kHint)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPhotoPreview() {
+    return GestureDetector(
+      onTap: _showPhotoReplaceSheet,
+      child: Stack(
+        alignment: Alignment.bottomRight,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Image.file(
+              File(_eventPhotoPath!),
+              height: 160,
+              width: double.infinity,
+              fit: BoxFit.cover,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8),
+            child: GestureDetector(
+              onTap: _showPhotoReplaceSheet,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.8),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  '更换',
+                  style: TextStyle(color: _kThemeBlue, fontSize: 12),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPhotoSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          '上传照片',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: _kTitleColor),
+        ),
+        const SizedBox(height: 10),
+        if (_hasEventPhoto)
+          _buildPhotoPreview()
+        else
+          _buildPhotoAddEntry(onTap: _pickAndCropPhoto),
+      ],
+    );
   }
 
   Future<void> _showPermissionSettingsHint(String resourceLabel) async {
@@ -612,299 +769,6 @@ class _EventAddPageState extends State<EventAddPage> {
     return false;
   }
 
-  Future<bool> _ensureCameraPermission() async {
-    var status = await Permission.camera.status;
-    if (status.isGranted) return true;
-    status = await Permission.camera.request();
-    if (status.isGranted) return true;
-    if (status.isPermanentlyDenied) {
-      await _showPermissionSettingsHint('相机');
-      return false;
-    }
-    return false;
-  }
-
-  Future<void> _pickGallery() async {
-    final tier = await MembershipService.currentTier();
-    if (!mounted) return;
-    final limit = MembershipService.benefits(tier).photosPerEvent;
-    setState(() {
-      _membershipTier = tier;
-      _photoLimit = limit;
-    });
-    if (limit <= 0) return;
-    if (_totalPhotoCount >= limit) {
-      await _onPhotoLimitReached();
-      return;
-    }
-    if (!await _ensurePhotosPermission()) return;
-    final picker = ImagePicker();
-    final files = await picker.pickMultiImage(
-      imageQuality: 85,
-      maxWidth: 1080,
-      maxHeight: 1080,
-    );
-    if (files.isEmpty || !mounted) return;
-
-    final tierAfter = await MembershipService.currentTier();
-    if (!mounted) return;
-    final limitAfter = MembershipService.benefits(tierAfter).photosPerEvent;
-    setState(() {
-      _membershipTier = tierAfter;
-      _photoLimit = limitAfter;
-    });
-    final remaining = limitAfter - _totalPhotoCount;
-    if (remaining <= 0) {
-      await _onPhotoLimitReached();
-      return;
-    }
-    var toAdd = files;
-    if (files.length > remaining) {
-      toAdd = files.sublist(0, remaining);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('当前档位最多可上传 $limitAfter 张照片')),
-      );
-    }
-    setState(() => _selectedPhotos.addAll(toAdd));
-  }
-
-  Future<void> _pickCamera() async {
-    final tier = await MembershipService.currentTier();
-    if (!mounted) return;
-    final limit = MembershipService.benefits(tier).photosPerEvent;
-    setState(() {
-      _membershipTier = tier;
-      _photoLimit = limit;
-    });
-    if (limit <= 0) return;
-    if (_totalPhotoCount >= limit) {
-      await _onPhotoLimitReached();
-      return;
-    }
-    if (!await _ensureCameraPermission()) return;
-    final picker = ImagePicker();
-    final file = await picker.pickImage(
-      source: ImageSource.camera,
-      imageQuality: 85,
-      maxWidth: 1080,
-      maxHeight: 1080,
-    );
-    if (file == null || !mounted) return;
-
-    final tierAfter = await MembershipService.currentTier();
-    if (!mounted) return;
-    final limitAfter = MembershipService.benefits(tierAfter).photosPerEvent;
-    setState(() {
-      _membershipTier = tierAfter;
-      _photoLimit = limitAfter;
-    });
-    if (_totalPhotoCount >= limitAfter) {
-      await _onPhotoLimitReached();
-      return;
-    }
-    setState(() => _selectedPhotos.add(file));
-  }
-
-  void _removePhotoAtDisplayIndex(int index) {
-    setState(() {
-      if (index < _existingPhotoPaths.length) {
-        _existingPhotoPaths.removeAt(index);
-      } else {
-        _selectedPhotos.removeAt(index - _existingPhotoPaths.length);
-      }
-    });
-  }
-
-  Future<List<String>> _persistNewPhotos(String eventId, List<XFile> files) async {
-    if (files.isEmpty) return [];
-    final root = await getApplicationDocumentsDirectory();
-    final dir = Directory('${root.path}/photos');
-    if (!await dir.exists()) {
-      await dir.create(recursive: true);
-    }
-    final batch = DateTime.now().microsecondsSinceEpoch;
-    final out = <String>[];
-    for (var i = 0; i < files.length; i++) {
-      final destPath = '${dir.path}/${batch}_${eventId}_$i.jpg';
-      await File(files[i].path).copy(destPath);
-      out.add(destPath);
-    }
-    return out;
-  }
-
-  Widget _compactPhotoIconButton({
-    required IconData icon,
-    required VoidCallback onTap,
-    required bool atLimit,
-  }) {
-    return Opacity(
-      opacity: atLimit ? 0.3 : 1,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(22),
-          onTap: atLimit ? () => _onPhotoLimitReached() : onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(8),
-            child: Icon(icon, size: 28, color: _kThemeBlue),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _photoThumbnailGrid() {
-    return LayoutBuilder(
-      builder: (ctx, c) {
-        final itemW = (c.maxWidth - 16) / 3;
-        return Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: List.generate(_totalPhotoCount, (i) {
-            final imageWidget = i < _existingPhotoPaths.length
-                ? Image.file(File(_existingPhotoPaths[i]), fit: BoxFit.cover)
-                : Image.file(File(_selectedPhotos[i - _existingPhotoPaths.length].path), fit: BoxFit.cover);
-            return SizedBox(
-              width: itemW,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: AspectRatio(
-                  aspectRatio: 1,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      GestureDetector(
-                        onTap: () => _openPhotoPreview(i),
-                        behavior: HitTestBehavior.opaque,
-                        child: imageWidget,
-                      ),
-                      Positioned(
-                        top: 4,
-                        right: 4,
-                        child: GestureDetector(
-                          onTap: () => _removePhotoAtDisplayIndex(i),
-                          child: Container(
-                            width: 20,
-                            height: 20,
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.5),
-                              shape: BoxShape.circle,
-                            ),
-                            alignment: Alignment.center,
-                            child: const Icon(Icons.close, size: 12, color: Colors.white),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          }),
-        );
-      },
-    );
-  }
-
-  Widget _buildPhotoSection(BuildContext context) {
-    final cap = _photoLimit;
-    final expanded = cap <= 0 || _totalPhotoCount == 0;
-    final atLimit = cap > 0 && _totalPhotoCount >= cap;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const Text(
-          '上传照片',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: _kTitleColor),
-        ),
-        const SizedBox(height: 10),
-        if (cap == 0)
-          Row(
-            children: [
-              Expanded(
-                child: _PhotoSlot(
-                  icon: Icons.photo_library_outlined,
-                  label: '手机相册',
-                  onTap: () => showMembershipSoftPaywall(
-                    context,
-                    title: '上传照片',
-                    message: '照片上传是会员功能，升级基础版即可使用',
-                    primaryLabel: '升级会员',
-                    onTierChanged: _reloadMembershipTier,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _PhotoSlot(
-                  icon: Icons.photo_camera_outlined,
-                  label: '拍照',
-                  onTap: () => showMembershipSoftPaywall(
-                    context,
-                    title: '上传照片',
-                    message: '照片上传是会员功能，升级基础版即可使用',
-                    primaryLabel: '升级会员',
-                    onTierChanged: _reloadMembershipTier,
-                  ),
-                ),
-              ),
-            ],
-          )
-        else if (expanded)
-          Row(
-            children: [
-              Expanded(
-                child: _PhotoSlot(
-                  icon: Icons.photo_library_outlined,
-                  label: '手机相册',
-                  onTap: _pickGallery,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _PhotoSlot(
-                  icon: Icons.photo_camera_outlined,
-                  label: '拍照',
-                  onTap: _pickCamera,
-                ),
-              ),
-            ],
-          )
-        else ...[
-          SizedBox(
-            height: 56,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                _compactPhotoIconButton(
-                  icon: Icons.photo_library_outlined,
-                  onTap: _pickGallery,
-                  atLimit: atLimit,
-                ),
-                const SizedBox(width: 24),
-                const SizedBox(
-                  height: 28,
-                  child: VerticalDivider(width: 1, thickness: 1, color: Color(0xFFE2E8F0)),
-                ),
-                const SizedBox(width: 24),
-                _compactPhotoIconButton(
-                  icon: Icons.photo_camera_outlined,
-                  onTap: _pickCamera,
-                  atLimit: atLimit,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          _photoThumbnailGrid(),
-        ],
-      ],
-    );
-  }
-
   @override
   void initState() {
     super.initState();
@@ -935,7 +799,7 @@ class _EventAddPageState extends State<EventAddPage> {
       _advanceTime = _parseTimeHm(initial.advanceTimeHm, fallbackTime);
       _sameDayTime = _parseTimeHm(initial.sameDayTimeHm, fallbackTime);
       _shareEnabled = initial.pendingShareAfterAdd;
-      _existingPhotoPaths = List<String>.from(initial.photoPaths);
+      _eventPhotoPath = initial.photoPaths.isNotEmpty ? initial.photoPaths.first : null;
     } else {
       _selectedTagId = widget.initialTagId ?? '';
       final lunar = Lunar.fromDate(_solarDate);
@@ -948,7 +812,6 @@ class _EventAddPageState extends State<EventAddPage> {
       if (mounted) {
         setState(() {
           _membershipTier = t;
-          _photoLimit = MembershipService.benefits(t).photosPerEvent;
         });
       }
     });
@@ -976,6 +839,9 @@ class _EventAddPageState extends State<EventAddPage> {
         }
       });
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _titleFocusNode.requestFocus();
+    });
   }
 
   Future<void> _reloadMembershipTier() async {
@@ -983,13 +849,13 @@ class _EventAddPageState extends State<EventAddPage> {
     if (mounted) {
       setState(() {
         _membershipTier = t;
-        _photoLimit = MembershipService.benefits(t).photosPerEvent;
       });
     }
   }
 
   @override
   void dispose() {
+    _titleFocusNode.dispose();
     _titleCtrl.dispose();
     _noteCtrl.dispose();
     super.dispose();
@@ -1232,9 +1098,9 @@ class _EventAddPageState extends State<EventAddPage> {
     final initial = widget.initialEvent;
     final eventId = initial?.id ?? DateTime.now().millisecondsSinceEpoch.toString();
 
-    List<String> newPersisted;
+    String? persistedPhotoPath;
     try {
-      newPersisted = await _persistNewPhotos(eventId, _selectedPhotos);
+      persistedPhotoPath = await _persistEventPhoto(eventId, _eventPhotoPath);
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1243,7 +1109,8 @@ class _EventAddPageState extends State<EventAddPage> {
       return;
     }
 
-    final photoPaths = [..._existingPhotoPaths, ...newPersisted];
+    final photoPaths =
+        persistedPhotoPath != null ? [persistedPhotoPath] : <String>[];
     final noteRaw = _noteCtrl.text.trim();
     final note = noteRaw.isEmpty ? null : noteRaw;
 
@@ -1280,11 +1147,96 @@ class _EventAddPageState extends State<EventAddPage> {
   bool get _showSameDay =>
       _reminder == EventReminderType.advanceAndSameDay || _reminder == EventReminderType.sameDayOnly;
 
+  static const double _eventAddTagIconSize = 48;
+  static const double _eventAddTagSlotSize = 56;
+
+  Widget _eventAddTagIconSlot({required bool selected, required Widget icon}) {
+    return Container(
+      width: _eventAddTagSlotSize,
+      height: _eventAddTagSlotSize,
+      alignment: Alignment.center,
+      decoration: selected
+          ? BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFFFAFBFC),
+              border: Border.all(color: const Color(0xFF1A73E8), width: 2),
+            )
+          : null,
+      child: icon,
+    );
+  }
+
+  Widget _eventAddTagPickerItem(ReminderTag tag) {
+    final selected = _selectedTagId == tag.id;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          if (selected) {
+            _selectedTagId = '';
+          } else {
+            _selectedTagId = tag.id;
+            _applyTypeDefaults(tag.id);
+          }
+        });
+      },
+      onLongPress: () => _openEditTagSheet(tag),
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: _eventAddTagSlotSize,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            _eventAddTagIconSlot(
+              selected: selected,
+              icon: TagCircleWidget(
+                tag: tag,
+                size: _eventAddTagIconSize,
+                showLabel: false,
+                isSelected: false,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              tag.name,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                color: selected
+                    ? const Color(0xFF1A73E8)
+                    : const Color(0xFF64748B),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  InputDecoration _eventFieldDecoration(String hintText) {
+    const radius = BorderRadius.all(Radius.circular(18));
+    const enabledSide = BorderSide(color: Color(0xFFF1F5F9), width: 1.0);
+    const focusedSide = BorderSide(color: Color(0xFF1A73E8), width: 1.5);
+    return InputDecoration(
+      isDense: true,
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      hintText: hintText,
+      hintStyle: const TextStyle(color: _kHint, fontSize: 16),
+      border: const OutlineInputBorder(borderRadius: radius, borderSide: enabledSide),
+      enabledBorder: const OutlineInputBorder(borderRadius: radius, borderSide: enabledSide),
+      focusedBorder: const OutlineInputBorder(borderRadius: radius, borderSide: focusedSide),
+    );
+  }
+
   Widget _labeledInputRow({
     required String label,
     required TextEditingController controller,
     required String hintText,
-    required Color borderColor,
   }) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -1302,27 +1254,107 @@ class _EventAddPageState extends State<EventAddPage> {
         ),
         Expanded(
           child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: borderColor),
+            decoration: const BoxDecoration(
+              borderRadius: BorderRadius.all(Radius.circular(18)),
               boxShadow: _kInputShadow,
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            alignment: Alignment.center,
             child: TextField(
               controller: controller,
               maxLines: 1,
               textAlignVertical: TextAlignVertical.center,
               style: const TextStyle(fontSize: 16, height: 1.25, color: _kTitleColor),
-              decoration: InputDecoration(
-                isDense: true,
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.zero,
-                hintText: hintText,
-                hintStyle: const TextStyle(color: _kHint, fontSize: 16),
+              decoration: _eventFieldDecoration(hintText),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _titleInputRowWithPin() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        const SizedBox(
+          width: 60,
+          child: Text(
+            '标题',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF1F2937),
+            ),
+          ),
+        ),
+        Flexible(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 280),
+            child: Container(
+              decoration: const BoxDecoration(
+                borderRadius: BorderRadius.all(Radius.circular(18)),
+                boxShadow: _kInputShadow,
+              ),
+              child: TextField(
+                controller: _titleCtrl,
+                focusNode: _titleFocusNode,
+                maxLines: 1,
+                textAlignVertical: TextAlignVertical.center,
+                style: const TextStyle(fontSize: 16, height: 1.25, color: _kTitleColor),
+                decoration: _eventFieldDecoration('输入事件标题…'),
               ),
             ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        GestureDetector(
+          onTap: () => setState(() => _pinned = !_pinned),
+          behavior: HitTestBehavior.opaque,
+          child: SizedBox(
+            width: 48,
+            height: 48,
+            child: _pinned
+                ? Container(
+                    width: 48,
+                    height: 48,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      color: const Color(0xFFFFFBEB),
+                      border: Border.all(
+                        color: const Color(0xFFFFB800),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: SvgPicture.asset(
+                      'assets/images/ic_star.svg',
+                      width: 32,
+                      height: 32,
+                    ),
+                  )
+                : Container(
+                    width: 48,
+                    height: 48,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      color: const Color(0xFFF8FAFC),
+                      border: Border.all(
+                        color: const Color(0xFFE2E8F0),
+                        width: 1.0,
+                      ),
+                    ),
+                    child: SvgPicture.asset(
+                      'assets/images/ic_star.svg',
+                      width: 32,
+                      height: 32,
+                      colorFilter: const ColorFilter.matrix(<double>[
+                        0.2126, 0.7152, 0.0722, 0, 0,
+                        0.2126, 0.7152, 0.0722, 0, 0,
+                        0.2126, 0.7152, 0.0722, 0, 0,
+                        0, 0, 0, 1, 0,
+                      ]),
+                    ),
+                  ),
           ),
         ),
       ],
@@ -1331,11 +1363,12 @@ class _EventAddPageState extends State<EventAddPage> {
 
   @override
   Widget build(BuildContext context) {
-    final titleBorderColor = _titleOk ? _kBorderInput : _kError;
-
     return Scaffold(
       backgroundColor: const Color(0xFFFAFBFC),
-      body: SafeArea(
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        behavior: HitTestBehavior.translucent,
+        child: SafeArea(
         bottom: false,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1370,7 +1403,7 @@ class _EventAddPageState extends State<EventAddPage> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     SizedBox(
-                      height: TagCircleWidget.barHeight,
+                      height: 84,
                       child: SingleChildScrollView(
                         clipBehavior: Clip.none,
                         scrollDirection: Axis.horizontal,
@@ -1379,20 +1412,7 @@ class _EventAddPageState extends State<EventAddPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             for (final tag in _availableTags) ...[
-                              GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _selectedTagId = tag.id;
-                                    _applyTypeDefaults(tag.id);
-                                  });
-                                },
-                                onLongPress: () => _openEditTagSheet(tag),
-                                behavior: HitTestBehavior.opaque,
-                                child: TagCircleWidget(
-                                  tag: tag,
-                                  isSelected: _selectedTagId == tag.id,
-                                ),
-                              ),
+                              _eventAddTagPickerItem(tag),
                               const SizedBox(width: 12),
                             ],
                             TagCircleWidget.scrollActionPill(
@@ -1406,51 +1426,14 @@ class _EventAddPageState extends State<EventAddPage> {
                         ),
                       ),
                     ),
+                    Container(height: 1, color: const Color(0xFFF1F5F9)),
                     const SizedBox(height: 16),
-                    _labeledInputRow(
-                      label: '标题',
-                      controller: _titleCtrl,
-                      hintText: '输入事件标题…',
-                      borderColor: titleBorderColor,
-                    ),
-                    const SizedBox(height: 16),
+                    _titleInputRowWithPin(),
+                    const SizedBox(height: 8),
                     _labeledInputRow(
                       label: '备注',
                       controller: _noteCtrl,
                       hintText: '添加备注…',
-                      borderColor: _kBorderInput,
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      height: 50,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEFF6FF),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      alignment: Alignment.center,
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.star, color: _kPinStar, size: 20),
-                          const SizedBox(width: 8),
-                          const Text(
-                            '置顶',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: _kTitleColor),
-                          ),
-                          const Spacer(),
-                          Switch.adaptive(
-                            value: _pinned,
-                            onChanged: (v) => setState(() => _pinned = v),
-                            thumbColor: WidgetStateProperty.resolveWith(
-                              (s) => s.contains(WidgetState.selected) ? Colors.white : null,
-                            ),
-                            trackColor: WidgetStateProperty.resolveWith(
-                              (s) => s.contains(WidgetState.selected) ? _kThemeBlue : null,
-                            ),
-                          ),
-                        ],
-                      ),
                     ),
                     const SizedBox(height: 20),
                     _sectionIconTitle(icon: Icons.calendar_today_outlined, title: '时间设置'),
@@ -1688,6 +1671,7 @@ class _EventAddPageState extends State<EventAddPage> {
           ],
         ),
       ),
+      ),
     );
   }
 }
@@ -1773,40 +1757,6 @@ class _TimeRow extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _PhotoSlot extends StatelessWidget {
-  const _PhotoSlot({
-    required this.icon,
-    required this.label,
-    this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _DashedRectPainter(color: const Color(0xFFE2E8F0)),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: SizedBox(
-          height: 88,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 28, color: _kHint),
-              const SizedBox(height: 8),
-              Text(label, style: const TextStyle(fontSize: 14, color: _kCloseGrey)),
-            ],
-          ),
-        ),
       ),
     );
   }

@@ -10,11 +10,15 @@ import 'package:time_calendar/pages/memory_create_sheet.dart';
 import 'package:time_calendar/pages/memory_photo_stream_sheet.dart';
 import 'package:time_calendar/pages/photo_viewer_page.dart';
 import 'package:time_calendar/services/memory_service.dart';
-import 'package:time_calendar/services/tag_service.dart';
+import 'package:time_calendar/services/tag_bar_state.dart';
 import 'package:time_calendar/utils/event_date_utils.dart';
 import 'package:time_calendar/widgets/confirm_delete_dialog.dart';
 import 'package:time_calendar/widgets/tag_circle_widget.dart';
 import 'package:time_calendar/widgets/tag_editor_sheet.dart';
+import 'package:time_calendar/widgets/unified_tag_bar.dart';
+
+/// FAB bottom(16) + FAB height(56) + breathing space(8)
+const _kListScrollBottomPadding = 16.0 + 56.0 + 8.0;
 
 class MemoryPage extends StatefulWidget {
   const MemoryPage({super.key});
@@ -68,14 +72,13 @@ enum _CoverThumbStyle { standard, narrow, tall }
 class _MemoryPageState extends State<MemoryPage> {
   bool _narrowCardsSelected = true;
   List<MemoryCollection> _collections = [];
-  List<ReminderTag> _tags = [];
-  String? _filterTagId;
   Map<String, List<MemoryEvent>> _eventsByCol = {};
   bool _loading = true;
 
-  List<MemoryCollection> get _visibleCollections {
-    if (_filterTagId == null) return _collections;
-    return _collections.where((c) => c.tagId == _filterTagId).toList();
+  List<MemoryCollection> _visibleCollections() {
+    final filterTagId = TagBarState().selectedTagId;
+    if (filterTagId == null) return _collections;
+    return _collections.where((c) => c.tagId == filterTagId).toList();
   }
 
   @override
@@ -88,7 +91,12 @@ class _MemoryPageState extends State<MemoryPage> {
   }
 
   Future<void> _refresh() async {
-    final tags = await TagService.loadTags();
+    await TagBarState().loadTags();
+    final tags = TagBarState().tags;
+    final selected = TagBarState().selectedTagId;
+    if (selected != null && !tags.any((t) => t.id == selected)) {
+      TagBarState().selectTag(null);
+    }
     final cols = await MemoryService.getSortedCollections();
     final map = <String, List<MemoryEvent>>{};
     for (final c in cols) {
@@ -96,11 +104,6 @@ class _MemoryPageState extends State<MemoryPage> {
     }
     if (!mounted) return;
     setState(() {
-      _tags = tags;
-      if (_filterTagId != null &&
-          !tags.any((t) => t.id == _filterTagId)) {
-        _filterTagId = null;
-      }
       _collections = cols;
       _eventsByCol = map;
       _loading = false;
@@ -109,17 +112,23 @@ class _MemoryPageState extends State<MemoryPage> {
 
   Future<bool> _deleteTagFromEditor(ReminderTag tag) async {
     if (!mounted) return false;
-    return confirmUnlinkDeleteTag(context, tag);
+    final ok = await confirmUnlinkDeleteTag(context, tag);
+    if (!ok || !mounted) return false;
+    if (TagBarState().selectedTagId == tag.id) {
+      TagBarState().selectTag(null);
+    }
+    return true;
   }
 
   Future<void> _openTagManage() async {
     await showTagManageSheet(
       context,
-      onTagsChanged: _refresh,
+      onTagsChanged: () async {
+        await TagBarState().loadTags();
+        await _refresh();
+      },
       onDeleteTag: _deleteTagFromEditor,
     );
-    if (!mounted) return;
-    await _refresh();
   }
 
   String _rangeLine(List<MemoryEvent> ev) {
@@ -532,32 +541,65 @@ class _MemoryPageState extends State<MemoryPage> {
     );
   }
 
-  Widget _buildTagFilterBar() {
-    const filterStyle = true;
-    return TagCircleWidget.partitionedFilterBar(
-      height: TagCircleWidget.memoryFilterBarHeight,
-      allChip: TagCircleWidget.allFilterChip(
-        selected: _filterTagId == null,
-        onTap: () => setState(() => _filterTagId = null),
-        memoryStyle: filterStyle,
-      ),
-      scrollChildren: [
-        for (final t in _tags)
-          TagCircleWidget(
-            tag: t,
-            isSelected: _filterTagId == t.id,
-            twoLineLabel: filterStyle,
-            brandBlueSelectedLabel: filterStyle,
-            showSelectionRing: filterStyle,
-            onTap: () => setState(() => _filterTagId = t.id),
-          ),
-      ],
-      trailingPill: TagCircleWidget.scrollActionPill(
-        label: '管理',
-        onTap: _openTagManage,
-        barItemHeight: TagCircleWidget.memoryFilterBarHeight,
-        itemWidth: TagCircleWidget.memoryFilterItemWidth,
-      ),
+  Widget _collectionListBody() {
+    return ListenableBuilder(
+      listenable: TagBarState(),
+      builder: (context, _) {
+        final visible = _visibleCollections();
+        if (_collections.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.photo_album_outlined,
+                  size: 64,
+                  color: Colors.grey.shade300,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  '暂无时光集',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: MemoryPage._muted,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  '点击右下角 + 创建你的第一个回忆集',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: MemoryPage._muted,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+        if (visible.isEmpty) {
+          return const Center(
+            child: Text(
+              '该标签下暂无事件集',
+              style: TextStyle(
+                fontSize: 16,
+                color: MemoryPage._muted,
+              ),
+            ),
+          );
+        }
+        return ListView.builder(
+          physics: const ClampingScrollPhysics(),
+          padding: const EdgeInsets.only(bottom: _kListScrollBottomPadding),
+          itemCount: visible.length,
+          itemBuilder: (ctx, i) {
+            final c = visible[i];
+            final ev = _eventsByCol[c.id] ?? [];
+            return _narrowCardsSelected
+                ? _narrowCard(context, c, ev)
+                : _tallCard(context, c, ev);
+          },
+        );
+      },
     );
   }
 
@@ -941,76 +983,23 @@ class _MemoryPageState extends State<MemoryPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (!_loading) _buildTagFilterBar(),
+                if (!_loading) ...[
+                  UnifiedTagBar(onManagePressed: _openTagManage),
+                  const SizedBox(height: 8),
+                ],
                 Expanded(
                   child: _loading
                       ? const Center(
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : _collections.isEmpty
-                          ? Center(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.photo_album_outlined,
-                                    size: 64,
-                                    color: Colors.grey.shade300,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  const Text(
-                                    '暂无时光集',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: MemoryPage._muted,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  const Text(
-                                    '点击右下角 + 创建你的第一个回忆集',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: MemoryPage._muted,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )
-                          : _visibleCollections.isEmpty
-                              ? Center(
-                                  child: Text(
-                                    '该标签下暂无事件集',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: MemoryPage._muted,
-                                    ),
-                                  ),
-                                )
-                              : ListView.builder(
-                                  padding: EdgeInsets.fromLTRB(
-                                    0,
-                                    0,
-                                    0,
-                                    (bottomSafe + 80) > 120
-                                        ? bottomSafe + 80
-                                        : 120.0,
-                                  ),
-                                  itemCount: _visibleCollections.length,
-                                  itemBuilder: (ctx, i) {
-                                    final c = _visibleCollections[i];
-                                    final ev = _eventsByCol[c.id] ?? [];
-                                    return _narrowCardsSelected
-                                        ? _narrowCard(context, c, ev)
-                                        : _tallCard(context, c, ev);
-                                  },
-                                ),
+                      : _collectionListBody(),
                 ),
               ],
             ),
           ),
           Positioned(
             right: 16,
-            bottom: 16 + bottomSafe,
+            bottom: 32 + bottomSafe,
             child: Container(
               width: 56,
               height: 56,

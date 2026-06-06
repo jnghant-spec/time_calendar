@@ -159,6 +159,11 @@ class AppSolarDatePickerModal extends StatefulWidget {
 }
 
 class _AppSolarDatePickerModalState extends State<AppSolarDatePickerModal> {
+  static const int _minYear = 1900;
+  static const int _maxYear = 2050;
+  static const double _pickerItemExtent = 40.0;
+  static const double _pickerHeight = 210.0;
+
   late int y;
   late int m;
   late int d;
@@ -187,7 +192,7 @@ class _AppSolarDatePickerModalState extends State<AppSolarDatePickerModal> {
       try {
         await Future.wait([
           _yearCtrl.animateToItem(
-            y - 1900,
+            y - _minYear,
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeOut,
           ),
@@ -210,11 +215,11 @@ class _AppSolarDatePickerModalState extends State<AppSolarDatePickerModal> {
   void initState() {
     super.initState();
     final i = widget.initialDate;
-    y = i.year.clamp(1900, 2100);
+    y = i.year.clamp(_minYear, _maxYear);
     m = i.month.clamp(1, 12);
     d = i.day;
     _clampDay();
-    _yearCtrl = FixedExtentScrollController(initialItem: y - 1900);
+    _yearCtrl = FixedExtentScrollController(initialItem: y - _minYear);
     _monthCtrl = FixedExtentScrollController(initialItem: m - 1);
     _dayCtrl = FixedExtentScrollController(initialItem: d - 1);
   }
@@ -241,7 +246,7 @@ class _AppSolarDatePickerModalState extends State<AppSolarDatePickerModal> {
           TextButton(
             onPressed: () {
               final n = DateTime.now();
-              final ny = n.year.clamp(1900, 2100);
+              final ny = n.year.clamp(_minYear, _maxYear);
               final nm = n.month;
               final nd = n.day.clamp(1, _daysInMonth(ny, nm));
               setState(() {
@@ -255,7 +260,7 @@ class _AppSolarDatePickerModalState extends State<AppSolarDatePickerModal> {
             child: const Text('今天', style: TextStyle(color: _kThemeBlue, fontSize: 14)),
           ),
           SizedBox(
-            height: 216,
+            height: _pickerHeight,
             child: Row(
               children: [
                 Expanded(
@@ -263,7 +268,7 @@ class _AppSolarDatePickerModalState extends State<AppSolarDatePickerModal> {
                   child: CupertinoPicker(
                     selectionOverlay: const AppTransparentPickerOverlay(),
                     scrollController: _yearCtrl,
-                    itemExtent: 40,
+                    itemExtent: _pickerItemExtent,
                     diameterRatio: 1.2,
                     magnification: 1.0,
                     squeeze: 0.9,
@@ -271,14 +276,16 @@ class _AppSolarDatePickerModalState extends State<AppSolarDatePickerModal> {
                     onSelectedItemChanged: (i) {
                       HapticFeedback.lightImpact();
                       setState(() {
-                        y = 1900 + i;
+                        y = _minYear + i;
                         _remountDayController();
                       });
                     },
                     children: List.generate(
-                      201,
-                      (i) =>
-                          appDateWheelLabelCell('${1900 + i}年', (1900 + i) == y),
+                      _maxYear - _minYear + 1,
+                      (i) => appDateWheelLabelCell(
+                        '${_minYear + i}年',
+                        (_minYear + i) == y,
+                      ),
                     ),
                   ),
                 ),
@@ -288,7 +295,7 @@ class _AppSolarDatePickerModalState extends State<AppSolarDatePickerModal> {
                   child: CupertinoPicker(
                     selectionOverlay: const AppTransparentPickerOverlay(),
                     scrollController: _monthCtrl,
-                    itemExtent: 40,
+                    itemExtent: _pickerItemExtent,
                     diameterRatio: 1.2,
                     magnification: 1.0,
                     squeeze: 0.9,
@@ -312,7 +319,7 @@ class _AppSolarDatePickerModalState extends State<AppSolarDatePickerModal> {
                   child: CupertinoPicker(
                     selectionOverlay: const AppTransparentPickerOverlay(),
                     scrollController: _dayCtrl,
-                    itemExtent: 40,
+                    itemExtent: _pickerItemExtent,
                     diameterRatio: 1.2,
                     magnification: 1.0,
                     squeeze: 0.9,
@@ -328,6 +335,15 @@ class _AppSolarDatePickerModalState extends State<AppSolarDatePickerModal> {
                   ),
                 ),
               ],
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.only(bottom: 8),
+            child: Center(
+              child: Text(
+                '最远支持至2050年',
+                style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+              ),
             ),
           ),
         ],
@@ -359,33 +375,105 @@ class AppLunarDatePickerModal extends StatefulWidget {
 }
 
 class _AppLunarDatePickerModalState extends State<AppLunarDatePickerModal> {
+  static const int _minYear = 1900;
+  static const int _maxYear = 2050;
+  static const double _pickerItemExtent = 40.0;
+  static const double _pickerHeight = 210.0;
+
+  static const List<String> _lunarDayLabels = [
+    '初一',
+    '初二',
+    '初三',
+    '初四',
+    '初五',
+    '初六',
+    '初七',
+    '初八',
+    '初九',
+    '初十',
+    '十一',
+    '十二',
+    '十三',
+    '十四',
+    '十五',
+    '十六',
+    '十七',
+    '十八',
+    '十九',
+    '二十',
+    '廿一',
+    '廿二',
+    '廿三',
+    '廿四',
+    '廿五',
+    '廿六',
+    '廿七',
+    '廿八',
+    '廿九',
+    '三十',
+  ];
+
   late int y;
   late int monthIndex;
+  late int _monthSigned;
   late int day;
   late FixedExtentScrollController _yearCtrl;
   late FixedExtentScrollController _monthCtrl;
   late FixedExtentScrollController _dayCtrl;
 
-  List<LunarMonth> get _months => LunarYear.fromYear(y).getMonths();
-  LunarMonth get _selMonth => _months[monthIndex];
-  int get _maxDay => _selMonth.getDayCount();
+  List<LunarMonth> _sortedMonthsFor(int year) {
+    final months = List<LunarMonth>.from(LunarYear.fromYear(year).getMonths());
+    months.sort((a, b) {
+      final absCmp = a.getMonth().abs().compareTo(b.getMonth().abs());
+      if (absCmp != 0) return absCmp;
+      return b.getMonth().compareTo(a.getMonth());
+    });
+    return months;
+  }
 
-  static String _monthLabel(LunarMonth m) {
-    final abs = m.getMonth().abs();
-    final leap = m.getMonth() < 0;
-    return '${leap ? '闰' : ''}${LunarUtil.MONTH[abs]}月';
+  List<String> _monthLabelsFor(int year) {
+    return _sortedMonthsFor(year).map((lm) {
+      final monthChinese = '${LunarUtil.MONTH[lm.getMonth().abs()]}月';
+      if (lm.getMonth() < 0) {
+        return '闰$monthChinese';
+      }
+      return monthChinese;
+    }).toList();
+  }
+
+  List<int> _monthSignedListFor(int year) {
+    return _sortedMonthsFor(year).map((lm) => lm.getMonth()).toList();
+  }
+
+  int _dayCountFor(int year, int monthSigned) {
+    for (final lm in LunarYear.fromYear(year).getMonths()) {
+      if (lm.getMonth() == monthSigned) {
+        return lm.getDayCount();
+      }
+    }
+    return 30;
+  }
+
+  int _monthIndexForYearChange(int newY) {
+    final dynamicMonthSigned = _monthSignedListFor(newY);
+    if (dynamicMonthSigned.contains(_monthSigned)) {
+      return dynamicMonthSigned.indexOf(_monthSigned);
+    }
+    final normalMonth = _monthSigned.abs();
+    final idx = dynamicMonthSigned.indexOf(normalMonth);
+    return idx >= 0 ? idx : 0;
   }
 
   @override
   void initState() {
     super.initState();
-    y = widget.initialYear;
-    final months = LunarYear.fromYear(y).getMonths();
-    monthIndex =
-        months.indexWhere((m) => m.getMonth() == widget.initialMonthSigned);
+    y = widget.initialYear.clamp(_minYear, _maxYear);
+    final dynamicMonthSigned = _monthSignedListFor(y);
+    monthIndex = dynamicMonthSigned.indexOf(widget.initialMonthSigned);
     if (monthIndex < 0) monthIndex = 0;
-    day = widget.initialDay.clamp(1, months[monthIndex].getDayCount());
-    _yearCtrl = FixedExtentScrollController(initialItem: y - 1900);
+    _monthSigned = dynamicMonthSigned[monthIndex];
+    day = widget.initialDay.clamp(1, _dayCountFor(y, _monthSigned));
+    _yearCtrl = FixedExtentScrollController(initialItem: y - _minYear);
     _monthCtrl = FixedExtentScrollController(initialItem: monthIndex);
     _dayCtrl = FixedExtentScrollController(initialItem: day - 1);
   }
@@ -398,31 +486,43 @@ class _AppLunarDatePickerModalState extends State<AppLunarDatePickerModal> {
     super.dispose();
   }
 
-  void _remountMonthAndDayControllers() {
-    _monthCtrl.dispose();
-    _dayCtrl.dispose();
-    monthIndex = monthIndex.clamp(0, _months.length - 1);
-    day = day.clamp(1, _selMonth.getDayCount());
-    _monthCtrl = FixedExtentScrollController(initialItem: monthIndex);
-    _dayCtrl = FixedExtentScrollController(initialItem: day - 1);
-  }
+  void _syncDayAfterYearOrMonthChange(int newY, int newMonthIndex) {
+    final dynamicMonthSigned = _monthSignedListFor(newY);
+    if (newMonthIndex < 0 || newMonthIndex >= dynamicMonthSigned.length) {
+      newMonthIndex = 0;
+    }
+    final newMonthSigned = dynamicMonthSigned[newMonthIndex];
+    final newMd = _dayCountFor(newY, newMonthSigned);
+    final newDay = day > newMd ? newMd : day;
+    final yearChanged = newY != y;
 
-  void _remountDayController() {
-    _dayCtrl.dispose();
-    day = day.clamp(1, _maxDay);
-    _dayCtrl = FixedExtentScrollController(initialItem: day - 1);
+    setState(() {
+      y = newY;
+      monthIndex = newMonthIndex;
+      _monthSigned = newMonthSigned;
+      day = newDay;
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      try {
+        if (yearChanged) {
+          _monthCtrl.jumpToItem(monthIndex);
+        }
+        _dayCtrl.jumpToItem(newDay - 1);
+      } catch (_) {}
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final months = _months;
-    final sel = _selMonth;
-    final md = _maxDay;
+    final monthLabels = _monthLabelsFor(y);
+    final md = _dayCountFor(y, _monthSigned);
 
     return AppDatePickerSheetShell(
       title: '选择农历日期',
       onCancel: widget.onCancel,
-      onConfirm: () => widget.onConfirm(y, sel.getMonth(), day),
+      onConfirm: () => widget.onConfirm(y, _monthSigned, day),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -430,28 +530,27 @@ class _AppLunarDatePickerModalState extends State<AppLunarDatePickerModal> {
             onPressed: () async {
               final n = DateTime.now();
               final lun = Lunar.fromDate(n);
-              final newY = lun.getYear();
-              final mList = LunarYear.fromYear(newY).getMonths();
-              final idx = mList.indexWhere((x) => x.getMonth() == lun.getMonth());
-              final newMi = idx >= 0 ? idx : 0;
-              final newDay = lun.getDay().clamp(1, mList[newMi].getDayCount());
-              final oldY = y;
+              final newY = lun.getYear().clamp(_minYear, _maxYear);
+              final dynamicMonthSigned = _monthSignedListFor(newY);
+              var newMonthIndex = dynamicMonthSigned.indexOf(lun.getMonth());
+              if (newMonthIndex < 0) newMonthIndex = 0;
+              final newMonthSigned = dynamicMonthSigned[newMonthIndex];
+              final newDay = lun.getDay().clamp(
+                1,
+                _dayCountFor(newY, newMonthSigned),
+              );
               setState(() {
                 y = newY;
-                monthIndex = newMi;
+                monthIndex = newMonthIndex;
+                _monthSigned = newMonthSigned;
                 day = newDay;
-                if (newY != oldY) {
-                  _remountMonthAndDayControllers();
-                } else {
-                  _remountDayController();
-                }
               });
               WidgetsBinding.instance.addPostFrameCallback((_) async {
                 if (!mounted) return;
                 try {
                   await Future.wait([
                     _yearCtrl.animateToItem(
-                      y - 1900,
+                      y - _minYear,
                       duration: const Duration(milliseconds: 300),
                       curve: Curves.easeOut,
                     ),
@@ -472,7 +571,7 @@ class _AppLunarDatePickerModalState extends State<AppLunarDatePickerModal> {
             child: const Text('今天', style: TextStyle(color: _kThemeBlue, fontSize: 14)),
           ),
           SizedBox(
-            height: 216,
+            height: _pickerHeight,
             child: Row(
               children: [
                 Expanded(
@@ -480,22 +579,22 @@ class _AppLunarDatePickerModalState extends State<AppLunarDatePickerModal> {
                   child: CupertinoPicker(
                     selectionOverlay: const AppTransparentPickerOverlay(),
                     scrollController: _yearCtrl,
-                    itemExtent: 40,
-                    diameterRatio: 1.2,
-                    magnification: 1.0,
-                    squeeze: 0.9,
+                    itemExtent: _pickerItemExtent,
                     looping: false,
                     onSelectedItemChanged: (i) {
                       HapticFeedback.lightImpact();
-                      setState(() {
-                        y = 1900 + i;
-                        _remountMonthAndDayControllers();
-                      });
+                      final newY = _minYear + i;
+                      _syncDayAfterYearOrMonthChange(
+                        newY,
+                        _monthIndexForYearChange(newY),
+                      );
                     },
                     children: List.generate(
-                      201,
-                      (i) =>
-                          appDateWheelLabelCell('${1900 + i}年', (1900 + i) == y),
+                      _maxYear - _minYear + 1,
+                      (i) => appDateWheelLabelCell(
+                        '${_minYear + i}年',
+                        (_minYear + i) == y,
+                      ),
                     ),
                   ),
                 ),
@@ -503,24 +602,22 @@ class _AppLunarDatePickerModalState extends State<AppLunarDatePickerModal> {
                 Expanded(
                   flex: 3,
                   child: CupertinoPicker(
+                    key: ValueKey('lunar-month-$y'),
                     selectionOverlay: const AppTransparentPickerOverlay(),
                     scrollController: _monthCtrl,
-                    itemExtent: 40,
-                    diameterRatio: 1.2,
-                    magnification: 1.0,
-                    squeeze: 0.9,
+                    itemExtent: _pickerItemExtent,
                     looping: false,
                     onSelectedItemChanged: (i) {
                       HapticFeedback.lightImpact();
-                      setState(() {
-                        monthIndex = i;
-                        _remountDayController();
-                      });
+                      _syncDayAfterYearOrMonthChange(y, i);
                     },
-                    children: [
-                      for (var i = 0; i < months.length; i++)
-                        appDateWheelLabelCell(_monthLabel(months[i]), i == monthIndex),
-                    ],
+                    children: List.generate(
+                      monthLabels.length,
+                      (i) => appDateWheelLabelCell(
+                        monthLabels[i],
+                        i == monthIndex,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -529,10 +626,7 @@ class _AppLunarDatePickerModalState extends State<AppLunarDatePickerModal> {
                   child: CupertinoPicker(
                     selectionOverlay: const AppTransparentPickerOverlay(),
                     scrollController: _dayCtrl,
-                    itemExtent: 40,
-                    diameterRatio: 1.2,
-                    magnification: 1.0,
-                    squeeze: 0.9,
+                    itemExtent: _pickerItemExtent,
                     looping: false,
                     onSelectedItemChanged: (i) {
                       HapticFeedback.lightImpact();
@@ -541,14 +635,22 @@ class _AppLunarDatePickerModalState extends State<AppLunarDatePickerModal> {
                     children: List.generate(
                       md,
                       (i) => appDateWheelLabelCell(
-                        Lunar.fromYmd(y, sel.getMonth(), i + 1)
-                            .getDayInChinese(),
+                        _lunarDayLabels[i],
                         (i + 1) == day,
                       ),
                     ),
                   ),
                 ),
               ],
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.only(bottom: 8),
+            child: Center(
+              child: Text(
+                '最远支持至2050年',
+                style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+              ),
             ),
           ),
         ],

@@ -12,6 +12,7 @@ import 'package:time_calendar/pages/event_detail_sheet.dart';
 import 'package:time_calendar/services/event_usage_service.dart';
 import 'package:time_calendar/services/membership_service.dart';
 import 'package:time_calendar/services/memory_service.dart';
+import 'package:time_calendar/services/tag_bar_state.dart';
 import 'package:time_calendar/services/tag_service.dart';
 import 'package:time_calendar/theme/app_theme.dart';
 import 'package:time_calendar/utils/event_date_utils.dart';
@@ -21,6 +22,7 @@ import 'package:time_calendar/widgets/membership_soft_paywall.dart';
 import 'package:time_calendar/widgets/pinned_star_badge.dart';
 import 'package:time_calendar/widgets/tag_circle_widget.dart';
 import 'package:time_calendar/widgets/tag_editor_sheet.dart';
+import 'package:time_calendar/widgets/unified_tag_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 List<BoxShadow> _pinnedCardShadows() => [
@@ -86,10 +88,8 @@ const _kExpiredGrey = Color(0xFFC7C7CC);
 double _listCardDateRowTopOffset() =>
     (48 - (16 * 1.25 + 8 + 14 * 1.2)) / 2 + (16 * 1.25) + 8;
 
-double _listScrollBottomPadding(BuildContext context) {
-  final withSafe = MediaQuery.paddingOf(context).bottom + 100;
-  return withSafe > 160 ? withSafe : 160;
-}
+/// FAB bottom(16) + FAB height(56) + breathing space(8)
+const _kListScrollBottomPadding = 16.0 + 56.0 + 8.0;
 
 /// 每日分享人数累计（跨事件），按自然日 key 存储，次日自动换 key 即重置。
 class _ShareDailyQuota {
@@ -135,9 +135,6 @@ class _ListPageState extends State<ListPage> {
 
   late List<ListEvent> _events;
 
-  List<ReminderTag> _tags = [];
-  String? _activeFilterTagId;
-
   Timer? _deleteSnackDismissTimer;
   int _deleteSnackSeq = 0;
 
@@ -168,7 +165,7 @@ class _ListPageState extends State<ListPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await MemoryService.repairOrphanTagAssociations();
       if (!mounted) return;
-      final tags = await TagService.loadTags();
+      await TagBarState().loadTags();
       if (!mounted) return;
       final bootstrap = MemoryService.consumeBootstrapListEvents();
       if (bootstrap != null && bootstrap.isNotEmpty) {
@@ -185,7 +182,7 @@ class _ListPageState extends State<ListPage> {
         EventUsageService.updateCount(_events.length);
       }
       if (!mounted) return;
-      setState(() => _tags = tags);
+      setState(() {});
       if (!mounted) return;
       widget.onEventsChanged(_events);
       _reloadArchivedIds();
@@ -249,9 +246,10 @@ class _ListPageState extends State<ListPage> {
   }
 
   List<ListEvent> _sortedEvents() {
+    final filterTagId = TagBarState().selectedTagId;
     final source = _events.where((e) {
-      if (_activeFilterTagId == null) return true;
-      return e.tagId == _activeFilterTagId;
+      if (filterTagId == null) return true;
+      return e.tagId == filterTagId;
     }).toList();
 
     source.sort((a, b) {
@@ -471,7 +469,7 @@ class _ListPageState extends State<ListPage> {
       MaterialPageRoute(
         builder: (_) => EventAddPage(
           customReminderCountForNewEvent: _events.length,
-          initialTagId: _activeFilterTagId,
+          initialTagId: TagBarState().selectedTagId,
         ),
       ),
     );
@@ -526,100 +524,35 @@ class _ListPageState extends State<ListPage> {
             ),
           ),
         ),
-        Divider(height: 1, thickness: 1, color: Colors.grey.shade200),
       ],
     );
-  }
-
-  void _onTagPillTap(ReminderTag tag) {
-    setState(() {
-      if (_activeFilterTagId == tag.id) {
-        _activeFilterTagId = null;
-      } else {
-        _activeFilterTagId = tag.id;
-      }
-    });
   }
 
   Future<bool> _deleteTagFromEditor(ReminderTag tag) async {
     if (!mounted) return false;
     final ok = await confirmUnlinkDeleteTag(context, tag);
     if (!ok || !mounted) return false;
-    setState(() {
-      if (_activeFilterTagId == tag.id) _activeFilterTagId = null;
-    });
-    final list = await TagService.loadTags();
-    if (mounted) setState(() => _tags = list);
+    if (TagBarState().selectedTagId == tag.id) {
+      TagBarState().selectTag(null);
+    }
+    await TagBarState().loadTags();
+    if (mounted) setState(() {});
     return true;
   }
 
-  Future<void> _openAddTagSheet() async {
-    if (_tags.length >= TagService.maxTagCount) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('最多可创建 10 个标签')),
-      );
-      return;
-    }
-    final created = await showTagEditorSheet(
+  Future<void> _openTagManage() async {
+    await showTagManageSheet(
       context,
-      nextSortOrder: _tags.length,
-    );
-    if (created == null || !mounted) return;
-    final list = await TagService.loadTags();
-    setState(() {
-      _tags = list;
-      _activeFilterTagId = created.id;
-    });
-  }
-
-  Future<void> _openEditTagSheet(ReminderTag tag) async {
-    final updated = await showTagEditorSheet(
-      context,
-      initial: tag,
-      onDelete: _deleteTagFromEditor,
-    );
-    if (!mounted) return;
-    if (updated != null) {
-      final list = await TagService.loadTags();
-      setState(() => _tags = list);
-    } else {
-      final list = await TagService.loadTags();
-      setState(() => _tags = list);
-    }
-  }
-
-  Widget _buildAllTagChip() {
-    return TagCircleWidget.allFilterChip(
-      selected: _activeFilterTagId == null,
-      onTap: () => setState(() => _activeFilterTagId = null),
-    );
-  }
-
-  Widget _buildFilterChips() {
-    final sorted = List<ReminderTag>.from(_tags)
-      ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
-    return TagCircleWidget.partitionedFilterBar(
-      allChip: _buildAllTagChip(),
-      scrollChildren: [
-        for (final tag in sorted)
-          _TagFilterCircle(
-            tag: tag,
-            selected: _activeFilterTagId == tag.id,
-            onTap: () => _onTagPillTap(tag),
-            onLongPress: () => _openEditTagSheet(tag),
-          ),
-      ],
-      trailingPill: TagCircleWidget.scrollActionPill(
-        label: '新建',
-        onTap: _tags.length < TagService.maxTagCount ? _openAddTagSheet : null,
-      ),
+      onTagsChanged: () async {
+        await TagBarState().loadTags();
+        if (mounted) setState(() {});
+      },
+      onDeleteTag: _deleteTagFromEditor,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final cards = _sortedEvents();
-
     return Scaffold(
       backgroundColor: const Color(0xFFFAFBFC),
       floatingActionButton: SafeArea(
@@ -632,22 +565,15 @@ class _ListPageState extends State<ListPage> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildHeader(),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: TagCircleWidget.barHeight,
-            child: DecoratedBox(
-              decoration: const BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: Color(0xFFF1F5F9), width: 1),
-                ),
-              ),
-              child: _buildFilterChips(),
-            ),
-          ),
-          const SizedBox(height: 12),
+          UnifiedTagBar(onManagePressed: _openTagManage),
+          const SizedBox(height: 8),
           Expanded(
-            child: cards.isEmpty
-                ? Center(
+            child: ListenableBuilder(
+              listenable: TagBarState(),
+              builder: (context, _) {
+                final cards = _sortedEvents();
+                if (cards.isEmpty) {
+                  return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -675,118 +601,92 @@ class _ListPageState extends State<ListPage> {
                         ),
                       ],
                     ),
-                  )
-                : ListView.separated(
-                    physics: const ClampingScrollPhysics(),
-                    padding: EdgeInsets.fromLTRB(
-                      16,
-                      0,
-                      16,
-                      _listScrollBottomPadding(context),
-                    ),
-                    itemCount: cards.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final event = cards[index];
-                      final displayDate = effectiveDate(event);
-                      final diff = daysUntil(event);
-                      final expired = isEventExpired(event);
-                      final tag = TagService.getTagById(event.tagId);
-                      final accent = tag != null
-                          ? (tag.accentColor ??
-                              TagCircleWidget.kDefaultTagColor)
-                          : TagService.accentForDisplay(event.tagId);
-
-                      return _ListEventCard(
-                        event: event,
-                        tag: tag,
-                        accent: accent,
-                        displayDate: displayDate,
-                        daysDiff: diff,
-                        expiredVisual: expired,
-                        archivedDowngrade: _archivedIds.contains(event.id),
-                        weekdayTextBuilder: _weekdayZh,
-                        lunarLine: event.isLunarRecurring
-                            ? _lunarLine(displayDate)
-                            : null,
-                        cardShadows: _cardShadows,
-                        onTap: () {
-                          showEventDetailSheet(
-                            context,
-                            event,
-                            onEdit: () => _openEditSheet(event),
-                          );
-                        },
-                        onTogglePin: () => _togglePin(event.id),
-                        slideActionsBuilder: (_) {
-                          return [
-                            _buildSlideAction(
-                              backgroundColor: _pinActionColor(event),
-                              icon: event.isPinned
-                                  ? Icons.star_border
-                                  : Icons.star,
-                              label: event.isPinned ? '取消' : '置顶',
-                              roundLeft: true,
-                              roundRight: false,
-                              iconColor: Colors.white,
-                              onTap: () => _onSlideAction(
-                                event,
-                                SwipeAction.onTogglePin,
-                              ),
-                            ),
-                            _buildSlideAction(
-                              backgroundColor: _shareActionColor(event),
-                              icon: Icons.share_outlined,
-                              label: '分享',
-                              roundLeft: false,
-                              roundRight: false,
-                              onTap: () =>
-                                  _onSlideAction(event, SwipeAction.onShare),
-                            ),
-                            _buildSlideAction(
-                              backgroundColor: const Color(0xFFF04444),
-                              icon: Icons.delete_outline,
-                              label: '删除',
-                              roundLeft: false,
-                              roundRight: true,
-                              onTap: () =>
-                                  _onSlideAction(event, SwipeAction.onDelete),
-                            ),
-                          ];
-                        },
-                      );
-                    },
+                  );
+                }
+                return ListView.separated(
+                  physics: const ClampingScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(
+                    16,
+                    0,
+                    16,
+                    _kListScrollBottomPadding,
                   ),
+                  itemCount: cards.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final event = cards[index];
+                    final displayDate = effectiveDate(event);
+                    final diff = daysUntil(event);
+                    final expired = isEventExpired(event);
+                    final tag = TagService.getTagById(event.tagId);
+                    final accent = tag != null
+                        ? (tag.accentColor ?? TagCircleWidget.kDefaultTagColor)
+                        : TagService.accentForDisplay(event.tagId);
+
+                    return _ListEventCard(
+                      event: event,
+                      tag: tag,
+                      accent: accent,
+                      displayDate: displayDate,
+                      daysDiff: diff,
+                      expiredVisual: expired,
+                      archivedDowngrade: _archivedIds.contains(event.id),
+                      weekdayTextBuilder: _weekdayZh,
+                      lunarLine: event.isLunarRecurring
+                          ? _lunarLine(displayDate)
+                          : null,
+                      cardShadows: _cardShadows,
+                      onTap: () {
+                        showEventDetailSheet(
+                          context,
+                          event,
+                          onEdit: () => _openEditSheet(event),
+                        );
+                      },
+                      onTogglePin: () => _togglePin(event.id),
+                      slideActionsBuilder: (_) {
+                        return [
+                          _buildSlideAction(
+                            backgroundColor: _pinActionColor(event),
+                            icon: event.isPinned
+                                ? Icons.star_border
+                                : Icons.star,
+                            label: event.isPinned ? '取消' : '置顶',
+                            roundLeft: true,
+                            roundRight: false,
+                            iconColor: Colors.white,
+                            onTap: () => _onSlideAction(
+                              event,
+                              SwipeAction.onTogglePin,
+                            ),
+                          ),
+                          _buildSlideAction(
+                            backgroundColor: _shareActionColor(event),
+                            icon: Icons.share_outlined,
+                            label: '分享',
+                            roundLeft: false,
+                            roundRight: false,
+                            onTap: () =>
+                                _onSlideAction(event, SwipeAction.onShare),
+                          ),
+                          _buildSlideAction(
+                            backgroundColor: const Color(0xFFF04444),
+                            icon: Icons.delete_outline,
+                            label: '删除',
+                            roundLeft: false,
+                            roundRight: true,
+                            onTap: () =>
+                                _onSlideAction(event, SwipeAction.onDelete),
+                          ),
+                        ];
+                      },
+                    );
+                  },
+                );
+              },
+            ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _TagFilterCircle extends StatelessWidget {
-  const _TagFilterCircle({
-    required this.tag,
-    required this.selected,
-    required this.onTap,
-    required this.onLongPress,
-  });
-
-  final ReminderTag tag;
-  final bool selected;
-  final VoidCallback onTap;
-  final VoidCallback onLongPress;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      onLongPress: onLongPress,
-      behavior: HitTestBehavior.opaque,
-      child: TagCircleWidget(
-        tag: tag,
-        size: 48,
-        isSelected: selected,
       ),
     );
   }
