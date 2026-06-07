@@ -7,7 +7,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lunar/lunar.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:time_calendar/models/list_event.dart';
 import 'package:time_calendar/models/membership_tier.dart';
@@ -568,19 +567,27 @@ class _EventAddPageState extends State<EventAddPage> {
       );
       return;
     }
-    if (!await _ensurePhotosPermission()) return;
-
     final picker = ImagePicker();
-    final file = await picker.pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 1024,
-      maxHeight: 1024,
-    );
-    if (file == null || !mounted) return;
+    XFile? file;
+    try {
+      file = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024,
+        maxHeight: 1024,
+      );
+    } on PlatformException {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('无法访问相册，请在系统设置中开启权限')),
+      );
+      return;
+    }
+    if (!mounted) return;
+    if (file == null) return;
 
     final croppedPath = await Navigator.of(context).push<String>(
       MaterialPageRoute(
-        builder: (_) => PhotoCropPage(sourcePath: file.path),
+        builder: (_) => PhotoCropPage(sourcePath: file!.path),
       ),
     );
     if (croppedPath == null || !mounted) return;
@@ -735,38 +742,6 @@ class _EventAddPageState extends State<EventAddPage> {
           _buildPhotoAddEntry(onTap: _pickAndCropPhoto),
       ],
     );
-  }
-
-  Future<void> _showPermissionSettingsHint(String resourceLabel) async {
-    if (!mounted) return;
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        content: Text('请在系统设置中允许时光集访问$resourceLabel'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              openAppSettings();
-            },
-            child: const Text('去设置'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<bool> _ensurePhotosPermission() async {
-    var status = await Permission.photos.status;
-    if (status.isGranted || status.isLimited) return true;
-    status = await Permission.photos.request();
-    if (status.isGranted || status.isLimited) return true;
-    if (status.isPermanentlyDenied) {
-      await _showPermissionSettingsHint('相册');
-      return false;
-    }
-    return false;
   }
 
   @override
