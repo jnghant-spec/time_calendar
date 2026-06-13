@@ -9,6 +9,11 @@ enum SwipeAction {
   onDelete,
 }
 
+enum EventType {
+  birthday,
+  generic,
+}
+
 enum EventRepeatRule {
   none,
   daily,
@@ -52,6 +57,8 @@ class ListEvent {
     this.photoPaths = const [],
     this.pendingShareAfterAdd = false,
     this.note,
+    this.leapMonthPreference,
+    this.eventType = EventType.generic,
   });
 
   final String id;
@@ -80,6 +87,9 @@ class ListEvent {
   final bool pendingShareAfterAdd;
   /// 用户备注（添加/编辑页「备注」输入框）。
   final String? note;
+  /// 闰月生日提醒方式：0=自动匹配，1=仅正本月，2=闰月年过两个生日；仅农历闰月有效。
+  final int? leapMonthPreference;
+  final EventType eventType;
 
   /// 循环起始日（与 [baseDate] 同日，仅保留年月日语义）。
   DateTime get anchorDate => DateTime(baseDate.year, baseDate.month, baseDate.day);
@@ -102,6 +112,8 @@ class ListEvent {
     List<String>? photoPaths,
     bool? pendingShareAfterAdd,
     String? note,
+    int? leapMonthPreference,
+    EventType? eventType,
   }) {
     return ListEvent(
       id: id ?? this.id,
@@ -121,6 +133,8 @@ class ListEvent {
       photoPaths: photoPaths ?? this.photoPaths,
       pendingShareAfterAdd: pendingShareAfterAdd ?? this.pendingShareAfterAdd,
       note: note ?? this.note,
+      leapMonthPreference: leapMonthPreference ?? this.leapMonthPreference,
+      eventType: eventType ?? this.eventType,
     );
   }
 
@@ -142,6 +156,8 @@ class ListEvent {
         'photoPaths': jsonEncode(photoPaths),
         'pendingShareAfterAdd': pendingShareAfterAdd,
         if (note != null) 'note': note,
+        if (leapMonthPreference != null) 'leapMonthPreference': leapMonthPreference,
+        'eventType': eventType.name,
       };
 
   factory ListEvent.fromJson(Map<String, dynamic> json) {
@@ -172,6 +188,11 @@ class ListEvent {
       photoPaths: _decodePhotoPaths(json['photoPaths']),
       pendingShareAfterAdd: json['pendingShareAfterAdd'] as bool? ?? false,
       note: json['note'] as String?,
+      leapMonthPreference: (json['leapMonthPreference'] as num?)?.toInt(),
+      eventType: EventType.values.firstWhere(
+        (e) => e.name == json['eventType'],
+        orElse: () => EventType.generic,
+      ),
     );
   }
 }

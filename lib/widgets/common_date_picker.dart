@@ -422,7 +422,11 @@ class _AppLunarDatePickerModalState extends State<AppLunarDatePickerModal> {
   late FixedExtentScrollController _dayCtrl;
 
   List<LunarMonth> _sortedMonthsFor(int year) {
-    final months = List<LunarMonth>.from(LunarYear.fromYear(year).getMonths());
+    final deduped = <int, LunarMonth>{};
+    for (final lm in LunarYear.fromYear(year).getMonths()) {
+      deduped.putIfAbsent(lm.getMonth(), () => lm);
+    }
+    final months = deduped.values.toList();
     months.sort((a, b) {
       final absCmp = a.getMonth().abs().compareTo(b.getMonth().abs());
       if (absCmp != 0) return absCmp;

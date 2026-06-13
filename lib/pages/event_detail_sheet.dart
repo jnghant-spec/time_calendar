@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:time_calendar/main.dart' show appNavigatorKey;
 import 'package:time_calendar/models/list_event.dart';
 import 'package:time_calendar/pages/memory_store_sheet.dart';
@@ -25,12 +26,16 @@ class EventDetailSheet extends StatelessWidget {
   static const Color _muted = Color(0xFF64748B);
   static const Color _labelMuted = Color(0xFF94A3B8);
   static const Color _divider = Color(0xFFF1F5F9);
-  static const Color _star = Color(0xFFFFB800);
   static const Color _lunarBg = Color(0xFFFFF7ED);
   static const Color _lunarFg = Color(0xFFF97316);
   static const Color _themeBlue = Color(0xFF1A73E8);
   static const Color _sheetBg = Color(0xFFFFFFFF);
   static const Color _infoCardBg = Color(0xFFFAFBFC);
+
+  /// 与 [EventAddPage] 纪念照片预览区一致（100:133）。
+  static const double _kEventPhotoBoxWidth = 100;
+  static const double _kEventPhotoBoxHeight = 133;
+  static const double _kEventPhotoBoxRadius = 16;
 
   static String _repeatLabel(EventRepeatRule r) {
     switch (r) {
@@ -47,20 +52,22 @@ class EventDetailSheet extends StatelessWidget {
     }
   }
 
-  static String _reminderLabel(EventReminderType t) {
-    switch (t) {
-      case EventReminderType.advanceAndSameDay:
-        return '前置+当天';
-      case EventReminderType.advanceOnly:
-        return '仅前置';
-      case EventReminderType.sameDayOnly:
-        return '仅当天';
-    }
-  }
+  static bool _showAdvanceReminder(EventReminderType t) =>
+      t == EventReminderType.advanceAndSameDay ||
+      t == EventReminderType.advanceOnly;
 
   static bool _showSameDayReminder(EventReminderType t) =>
       t == EventReminderType.advanceAndSameDay ||
       t == EventReminderType.sameDayOnly;
+
+  Widget _pinnedTitleStar() {
+    return SvgPicture.asset(
+      'assets/images/ic_star.svg',
+      width: 28,
+      height: 28,
+      fit: BoxFit.contain,
+    );
+  }
 
   Widget _infoChip(double width, String label, String value) {
     return SizedBox(
@@ -111,11 +118,12 @@ class EventDetailSheet extends StatelessWidget {
         .where((p) => File(p).existsSync())
         .take(9)
         .toList();
-    final thumbWidth = (mq.size.width - 40 - 16) / 3;
-
+    final advanceLine = _showAdvanceReminder(event.reminderType)
+        ? event.advanceTimeHm
+        : '无';
     final sameDayLine = _showSameDayReminder(event.reminderType)
         ? event.sameDayTimeHm
-        : '—';
+        : '无';
 
     return PopScope(
       onPopInvokedWithResult: (didPop, _) {
@@ -134,27 +142,37 @@ class EventDetailSheet extends StatelessWidget {
               children: [
                 SizedBox(
                   height: 56,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      const Text(
-                        '事件详情',
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w600,
-                          color: _titleBarText,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        const Text(
+                          '事件详情',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w600,
+                            color: _titleBarText,
+                          ),
                         ),
-                      ),
-                      Positioned(
-                        right: 0,
-                        top: 0,
-                        bottom: 0,
-                        child: IconButton(
-                          icon: const Icon(Icons.close, color: _labelMuted),
-                          onPressed: () => Navigator.of(context).pop(),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () => Navigator.of(context).pop(),
+                            child: const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: Icon(
+                                Icons.close,
+                                size: 24,
+                                color: _labelMuted,
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
                 Container(height: 1, color: _divider),
@@ -185,8 +203,8 @@ class EventDetailSheet extends StatelessWidget {
                                 ),
                               ),
                               if (event.isPinned) ...[
-                                const SizedBox(width: 6),
-                                const Icon(Icons.star, size: 16, color: _star),
+                                const SizedBox(width: 8),
+                                _pinnedTitleStar(),
                               ],
                             ],
                           ),
@@ -245,8 +263,8 @@ class EventDetailSheet extends StatelessWidget {
                               ),
                               _infoChip(
                                 gridItemWidth,
-                                '提醒',
-                                _reminderLabel(event.reminderType),
+                                '前置提醒',
+                                advanceLine,
                               ),
                               _infoChip(gridItemWidth, '当天提醒', sameDayLine),
                             ],
@@ -270,6 +288,7 @@ class EventDetailSheet extends StatelessWidget {
                                 Wrap(
                                   spacing: 8,
                                   runSpacing: 8,
+                                  alignment: WrapAlignment.start,
                                   children: [
                                     for (
                                       var i = 0;
@@ -286,16 +305,14 @@ class EventDetailSheet extends StatelessWidget {
                                         },
                                         child: ClipRRect(
                                           borderRadius: BorderRadius.circular(
-                                            8,
+                                            _kEventPhotoBoxRadius,
                                           ),
                                           child: SizedBox(
-                                            width: thumbWidth,
-                                            child: AspectRatio(
-                                              aspectRatio: 1,
-                                              child: Image.file(
-                                                File(photoPathsExisting[i]),
-                                                fit: BoxFit.cover,
-                                              ),
+                                            width: _kEventPhotoBoxWidth,
+                                            height: _kEventPhotoBoxHeight,
+                                            child: Image.file(
+                                              File(photoPathsExisting[i]),
+                                              fit: BoxFit.cover,
                                             ),
                                           ),
                                         ),

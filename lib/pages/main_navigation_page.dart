@@ -91,7 +91,7 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
     setState(() {});
   }
 
-  final List<String> _labels = const ['日历', '清单', '时光集', '我的'];
+  final List<String> _labels = const ['日历', '提醒', '时光集', '我的'];
 
   static const Color _tabSelected = Color(0xFF1A73E8);
   static const Color _tabIdle = Color(0xFF94A3B8);

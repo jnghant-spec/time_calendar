@@ -6,9 +6,14 @@ import 'package:time_calendar/widgets/tag_circle_widget.dart';
 
 /// 清单页 / 时光集页统一的标签筛选栏（不含标题、搜索或视图切换）。
 class UnifiedTagBar extends StatelessWidget {
-  const UnifiedTagBar({super.key, this.onManagePressed});
+  const UnifiedTagBar({
+    super.key,
+    this.onManagePressed,
+    this.horizontalPadding = 0,
+  });
 
   final VoidCallback? onManagePressed;
+  final double horizontalPadding;
 
   static const Color _pageBg = Color(0xFFFAFBFC);
   static const Color _divider = Color(0xFFF1F5F9);
@@ -43,62 +48,77 @@ class UnifiedTagBar extends StatelessWidget {
             children: [
               const _BarDivider(),
               Expanded(
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Positioned.fill(
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        physics: const BouncingScrollPhysics(),
-                        clipBehavior: Clip.none,
-                        child: Padding(
-                          padding: const EdgeInsets.only(
-                            left: _scrollInset,
-                            right: _scrollInset,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Positioned(
+                        left: 0,
+                        top: 0,
+                        bottom: 0,
+                        right: _fixedSlotWidth,
+                        child: ClipRect(
+                          clipBehavior: Clip.hardEdge,
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            physics: const BouncingScrollPhysics(),
+                            clipBehavior: Clip.hardEdge,
+                            child: Padding(
+                              padding: const EdgeInsets.only(
+                                left: _scrollInset,
+                                right: _scrollInset,
+                              ),
+                              child: Row(
+                                children: [
+                                  for (var i = 0; i < tags.length; i++) ...[
+                                    if (i > 0)
+                                      const SizedBox(width: _tagSpacing),
+                                    _TagItem(
+                                      tag: tags[i],
+                                      selected: selectedId == tags[i].id,
+                                      onTap: () => state.selectTag(tags[i].id),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
                           ),
-                          child: Row(
-                            children: [
-                              for (var i = 0; i < tags.length; i++) ...[
-                                if (i > 0) const SizedBox(width: _tagSpacing),
-                                _TagItem(
-                                  tag: tags[i],
-                                  selected: selectedId == tags[i].id,
-                                  onTap: () => state.selectTag(tags[i].id),
-                                ),
-                              ],
-                            ],
+                        ),
+                      ),
+                      Positioned(
+                        left: 0,
+                        top: 0,
+                        bottom: 0,
+                        width: _fixedSlotWidth,
+                        child: ColoredBox(
+                          color: _pageBg,
+                          child: Align(
+                            alignment: Alignment.center,
+                            child: _AllTagItem(
+                              selected: selectedId == null,
+                              onTap: () => state.selectTag(null),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    Positioned(
-                      left: 0,
-                      top: 0,
-                      bottom: 0,
-                      width: _fixedSlotWidth,
-                      child: Container(
-                        color: _pageBg,
-                        alignment: Alignment.center,
-                        child: _AllTagItem(
-                          selected: selectedId == null,
-                          onTap: () => state.selectTag(null),
+                      Positioned(
+                        right: 0,
+                        top: 0,
+                        bottom: 0,
+                        width: _fixedSlotWidth,
+                        child: ColoredBox(
+                          color: _pageBg,
+                          child: Align(
+                            alignment: Alignment.center,
+                            child: _ManageTagItem(
+                              onPressed: onManagePressed,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                    Positioned(
-                      right: 0,
-                      top: 0,
-                      bottom: 0,
-                      width: _fixedSlotWidth,
-                      child: Container(
-                        color: _pageBg,
-                        alignment: Alignment.center,
-                        child: _ManageTagItem(
-                          onPressed: onManagePressed,
-                        ),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               const _BarDivider(),

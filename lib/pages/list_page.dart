@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:lunar/lunar.dart';
 import 'package:time_calendar/models/list_event.dart';
@@ -17,7 +18,6 @@ import 'package:time_calendar/services/tag_service.dart';
 import 'package:time_calendar/theme/app_theme.dart';
 import 'package:time_calendar/utils/event_date_utils.dart';
 import 'package:time_calendar/widgets/confirm_delete_dialog.dart';
-import 'package:time_calendar/widgets/event_photo_paths_preview.dart';
 import 'package:time_calendar/widgets/membership_soft_paywall.dart';
 import 'package:time_calendar/widgets/pinned_star_badge.dart';
 import 'package:time_calendar/widgets/tag_circle_widget.dart';
@@ -87,6 +87,148 @@ const _kExpiredGrey = Color(0xFFC7C7CC);
 
 double _listCardDateRowTopOffset() =>
     (48 - (16 * 1.25 + 8 + 14 * 1.2)) / 2 + (16 * 1.25) + 8;
+
+double _measureListCardTextWidth(String text, TextStyle style) {
+  final painter = TextPainter(
+    text: TextSpan(text: text, style: style),
+    textDirection: TextDirection.ltr,
+    maxLines: 1,
+  )..layout();
+  return painter.width;
+}
+
+double _listCardCountdownReservedWidth(int daysDiff, bool expired) {
+  if (expired) {
+    final n = daysDiff.abs();
+    final numberWidth = _measureListCardTextWidth(
+      '$n',
+      const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+    );
+    final unitWidth = _measureListCardTextWidth(
+      '天前',
+      const TextStyle(fontSize: 12, fontWeight: FontWeight.w400),
+    );
+    return numberWidth + 4 + unitWidth;
+  }
+  if (daysDiff == 0) {
+    return _measureListCardTextWidth(
+      '今天',
+      const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+    );
+  }
+  final n = daysDiff.abs();
+  final unit = daysDiff > 0 ? '天后' : '天前';
+  final numberWidth = _measureListCardTextWidth(
+    '$n',
+    const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+  );
+  final unitWidth = _measureListCardTextWidth(
+    unit,
+    const TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
+  );
+  return numberWidth + 4 + unitWidth;
+}
+
+double _measureLunarTagWidth(String lunarLine) {
+  const horizontalPadding = 4.0;
+  return horizontalPadding +
+      _measureListCardTextWidth(
+        lunarLine,
+        const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          height: 1.2,
+        ),
+      );
+}
+
+class _ListCardDateRow extends StatelessWidget {
+  const _ListCardDateRow({
+    required this.displayDate,
+    required this.weekdayTextBuilder,
+    required this.lunarLine,
+    required this.dateStyle,
+    required this.expiredVisual,
+    required this.mutedArchived,
+    required this.daysDiff,
+  });
+
+  final DateTime displayDate;
+  final String Function(int weekday) weekdayTextBuilder;
+  final String? lunarLine;
+  final TextStyle dateStyle;
+  final bool expiredVisual;
+  final bool mutedArchived;
+  final int daysDiff;
+
+  static const double _weekdayGap = 4;
+  static const double _lunarGap = 2;
+  static const double _countdownRightInset = 6;
+
+  @override
+  Widget build(BuildContext context) {
+    final solarText =
+        '${displayDate.year}-${displayDate.month.toString().padLeft(2, '0')}-${displayDate.day.toString().padLeft(2, '0')}';
+    final weekdayText = '周${weekdayTextBuilder(displayDate.weekday)}';
+    final countdownReserve =
+        _listCardCountdownReservedWidth(daysDiff, expiredVisual) +
+            _countdownRightInset;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final dateAreaWidth = constraints.maxWidth - countdownReserve;
+        final solarWidth = _measureListCardTextWidth(solarText, dateStyle);
+        final weekdayWidth = _measureListCardTextWidth(weekdayText, dateStyle);
+        final lunarWidth = lunarLine != null
+            ? _lunarGap + 4 + _measureLunarTagWidth(lunarLine!)
+            : 0;
+        final showWeekday =
+            solarWidth + _weekdayGap + weekdayWidth + lunarWidth <=
+                dateAreaWidth - 2;
+
+        return Row(
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(solarText, style: dateStyle, maxLines: 1),
+                if (showWeekday) ...[
+                  const SizedBox(width: _weekdayGap),
+                  Text(weekdayText, style: dateStyle, maxLines: 1),
+                ],
+              ],
+            ),
+            if (lunarLine != null) ...[
+              const SizedBox(width: _lunarGap),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+                decoration: BoxDecoration(
+                  color: expiredVisual || mutedArchived
+                      ? Colors.grey.shade100
+                      : _kLunarTagBg,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  lunarLine!,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: expiredVisual || mutedArchived
+                        ? _kExpiredGrey
+                        : _kLunarTagFg,
+                    height: 1.2,
+                  ),
+                  maxLines: 1,
+                ),
+              ),
+            ],
+            SizedBox(width: countdownReserve),
+          ],
+        );
+      },
+    );
+  }
+}
 
 /// FAB bottom(16) + FAB height(56) + breathing space(8)
 const _kListScrollBottomPadding = 16.0 + 56.0 + 8.0;
@@ -513,7 +655,7 @@ class _ListPageState extends State<ListPage> {
             child: Row(
               children: [
                 Text(
-                  '所有清单',
+                  '所有提醒',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w700,
                     color: const Color(0xFF0F172A),
@@ -565,7 +707,10 @@ class _ListPageState extends State<ListPage> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildHeader(),
-          UnifiedTagBar(onManagePressed: _openTagManage),
+          UnifiedTagBar(
+            onManagePressed: _openTagManage,
+            horizontalPadding: 16,
+          ),
           const SizedBox(height: 8),
           Expanded(
             child: ListenableBuilder(
@@ -584,7 +729,7 @@ class _ListPageState extends State<ListPage> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          '暂无事件',
+                          '暂无提醒',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
@@ -617,6 +762,7 @@ class _ListPageState extends State<ListPage> {
                     final event = cards[index];
                     final displayDate = effectiveDate(event);
                     final diff = daysUntil(event);
+                    final subline = eventSubline(event, diff);
                     final expired = isEventExpired(event);
                     final tag = TagService.getTagById(event.tagId);
                     final accent = tag != null
@@ -629,6 +775,7 @@ class _ListPageState extends State<ListPage> {
                       accent: accent,
                       displayDate: displayDate,
                       daysDiff: diff,
+                      subline: subline,
                       expiredVisual: expired,
                       archivedDowngrade: _archivedIds.contains(event.id),
                       weekdayTextBuilder: _weekdayZh,
@@ -1067,6 +1214,7 @@ class _ListEventCard extends StatelessWidget {
     required this.accent,
     required this.displayDate,
     required this.daysDiff,
+    this.subline,
     required this.expiredVisual,
     required this.archivedDowngrade,
     required this.weekdayTextBuilder,
@@ -1082,6 +1230,7 @@ class _ListEventCard extends StatelessWidget {
   final Color accent;
   final DateTime displayDate;
   final int daysDiff;
+  final String? subline;
   final bool expiredVisual;
   final bool archivedDowngrade;
   final String Function(int weekday) weekdayTextBuilder;
@@ -1156,85 +1305,15 @@ class _ListEventCard extends StatelessWidget {
                             style: titleStyle,
                           ),
                           const SizedBox(height: 8),
-                          Row(
-                            mainAxisSize: MainAxisSize.max,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  '${displayDate.year}-${displayDate.month.toString().padLeft(2, '0')}-${displayDate.day.toString().padLeft(2, '0')} 周${weekdayTextBuilder(displayDate.weekday)}',
-                                  style: dateStyle,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              if (lunarLine != null) ...[
-                                const SizedBox(width: 2),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 2,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: expiredVisual || mutedArchived
-                                        ? Colors.grey.shade100
-                                        : _kLunarTagBg,
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    lunarLine!,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                      color: expiredVisual || mutedArchived
-                                          ? _kExpiredGrey
-                                          : _kLunarTagFg,
-                                      height: 1.2,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                              const SizedBox(width: 78),
-                            ],
+                          _ListCardDateRow(
+                            displayDate: displayDate,
+                            weekdayTextBuilder: weekdayTextBuilder,
+                            lunarLine: lunarLine,
+                            dateStyle: dateStyle,
+                            expiredVisual: expiredVisual,
+                            mutedArchived: mutedArchived,
+                            daysDiff: daysDiff,
                           ),
-                          if (event.photoPaths.isNotEmpty) ...[
-                            const SizedBox(height: 4),
-                            GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () {
-                                if (!event.photoPaths.any(
-                                  (p) => File(p).existsSync(),
-                                )) {
-                                  return;
-                                }
-                                showEventPhotoPathsPreview(
-                                  context,
-                                  photoPaths: event.photoPaths,
-                                  initialIndex: 0,
-                                );
-                              },
-                              child: SizedBox(
-                                height: 20,
-                                child: Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.photo_library,
-                                      size: 14,
-                                      color: Color(0xFF94A3B8),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      '${event.photoPaths.length}张',
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        color: Color(0xFF94A3B8),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
                           if (mutedArchived) ...[
                             const SizedBox(height: 6),
                             const Text(
@@ -1254,10 +1333,15 @@ class _ListEventCard extends StatelessWidget {
                   ],
                 ),
                 if (event.isPinned)
-                  const Positioned(
+                  Positioned(
                     top: kPinnedStarBadgeTop,
                     right: kPinnedStarBadgeRight,
-                    child: PinnedStarBadge(),
+                    child: SvgPicture.asset(
+                      'assets/images/ic_star.svg',
+                      width: 24,
+                      height: 24,
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 if (daysDiff == 0)
                   Positioned(
@@ -1267,6 +1351,7 @@ class _ListEventCard extends StatelessWidget {
                     child: Center(
                       child: _ListCardCountdown(
                         daysDiff: daysDiff,
+                        subline: subline,
                         accent: accent,
                         expired: expiredVisual,
                       ),
@@ -1275,9 +1360,10 @@ class _ListEventCard extends StatelessWidget {
                 else
                   Positioned(
                     right: 6,
-                    top: _listCardDateRowTopOffset() - 17.0,
+                    top: _listCardDateRowTopOffset() - 17.0 - (subline != null ? 2.0 : 0.0),
                     child: _ListCardCountdown(
                       daysDiff: daysDiff,
+                      subline: subline,
                       accent: accent,
                       expired: expiredVisual,
                     ),
@@ -1295,20 +1381,87 @@ class _ListEventCard extends StatelessWidget {
 class _ListCardCountdown extends StatelessWidget {
   const _ListCardCountdown({
     required this.daysDiff,
+    this.subline,
     required this.accent,
     required this.expired,
   });
 
   final int daysDiff;
+  final String? subline;
   final Color accent;
   final bool expired;
+
+  static const TextStyle _sublineStyle = TextStyle(
+    fontSize: 12,
+    color: Color(0xFF94A3B8),
+    fontWeight: FontWeight.w500,
+    height: 1.1,
+  );
+
+  Widget _wrapWithSubline(Widget mainLine) {
+    if (subline == null) return mainLine;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        mainLine,
+        SizedBox(height: daysDiff == 0 ? 2 : 1),
+        Text(subline!, style: _sublineStyle, textAlign: TextAlign.right),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     if (expired) {
       final n = daysDiff.abs();
       final tagColor = Colors.grey.shade500;
-      return Row(
+      return _wrapWithSubline(
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Text(
+              '$n',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: tagColor,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              '天前',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w400,
+                color: tagColor.withValues(alpha: 0.5),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final numberColor = Color.lerp(accent, Colors.black, 0.15)!;
+    if (daysDiff == 0) {
+      return _wrapWithSubline(
+        Text(
+          '今天',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: numberColor,
+          ),
+        ),
+      );
+    }
+
+    final n = daysDiff.abs();
+    final unit = daysDiff > 0 ? '天后' : '天前';
+    return _wrapWithSubline(
+      Row(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.baseline,
         textBaseline: TextBaseline.alphabetic,
@@ -1316,61 +1469,22 @@ class _ListCardCountdown extends StatelessWidget {
           Text(
             '$n',
             style: TextStyle(
-              fontSize: 18,
+              fontSize: 20,
               fontWeight: FontWeight.w700,
-              color: tagColor,
+              color: numberColor,
             ),
           ),
           const SizedBox(width: 4),
           Text(
-            '天前',
+            unit,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: 14,
               fontWeight: FontWeight.w400,
-              color: tagColor.withValues(alpha: 0.5),
+              color: accent,
             ),
           ),
         ],
-      );
-    }
-
-    final numberColor = Color.lerp(accent, Colors.black, 0.15)!;
-    if (daysDiff == 0) {
-      return Text(
-        '今天',
-        style: TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.w700,
-          color: numberColor,
-        ),
-      );
-    }
-
-    final n = daysDiff.abs();
-    final unit = daysDiff > 0 ? '天后' : '天前';
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.baseline,
-      textBaseline: TextBaseline.alphabetic,
-      children: [
-        Text(
-          '$n',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            color: numberColor,
-          ),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          unit,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w400,
-            color: accent,
-          ),
-        ),
-      ],
+      ),
     );
   }
 }

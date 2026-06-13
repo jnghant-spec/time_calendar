@@ -25,6 +25,11 @@ const Color _kTitleColor = Color(0xFF0F172A);
 const Color _kCloseGrey = Color(0xFF64748B);
 const Color _kBorderInput = Color(0xFFECEFF5);
 const Color _kHint = Color(0xFF94A3B8);
+const double _kTitleInputHeight = 48.0;
+
+/// 与周视图卡片 [WeekViewEventCard] 左侧照片区 `_photoW`:`_photoH` 一致（100:133）。
+const double _kEventPhotoBoxWidth = 100;
+const double _kEventPhotoBoxHeight = 133;
 const List<BoxShadow> _kInputShadow = [
   BoxShadow(color: Color(0x0D111827), blurRadius: 20, offset: Offset(0, 8)),
 ];
@@ -531,8 +536,10 @@ class _EventAddPageState extends State<EventAddPage> {
   late int _lunarYear;
   late int _lunarMonthSigned;
   late int _lunarDay;
+  int? leapMonthPreference;
 
   EventRepeatRule _repeat = EventRepeatRule.yearly;
+  EventType _eventType = EventType.generic;
   EventReminderType _reminder = EventReminderType.advanceAndSameDay;
   EventAdvanceDaysOption _advanceDays = EventAdvanceDaysOption.oneDay;
 
@@ -544,8 +551,11 @@ class _EventAddPageState extends State<EventAddPage> {
   MembershipTier _membershipTier = MembershipTier.free;
 
   String? _eventPhotoPath;
+  bool _hasAutoFocused = false;
 
   bool get _isEditMode => widget.initialEvent != null;
+
+  bool get _showLeapMonthPreference => !_solarMode && _lunarMonthSigned < 0;
 
   bool get _hasEventPhoto =>
       _eventPhotoPath != null && _eventPhotoPath!.isNotEmpty;
@@ -583,14 +593,22 @@ class _EventAddPageState extends State<EventAddPage> {
       return;
     }
     if (!mounted) return;
-    if (file == null) return;
+    if (file == null) {
+      FocusScope.of(context).unfocus();
+      return;
+    }
 
     final croppedPath = await Navigator.of(context).push<String>(
       MaterialPageRoute(
         builder: (_) => PhotoCropPage(sourcePath: file!.path),
       ),
     );
-    if (croppedPath == null || !mounted) return;
+    if (!mounted) return;
+    if (croppedPath == null) {
+      FocusScope.of(context).unfocus();
+      return;
+    }
+    FocusScope.of(context).unfocus();
     setState(() => _eventPhotoPath = croppedPath);
   }
 
@@ -629,6 +647,7 @@ class _EventAddPageState extends State<EventAddPage> {
                     ),
                     onTap: () {
                       Navigator.pop(ctx);
+                      if (mounted) FocusScope.of(context).unfocus();
                       setState(() => _eventPhotoPath = null);
                     },
                   ),
@@ -650,6 +669,7 @@ class _EventAddPageState extends State<EventAddPage> {
         ),
       ),
     );
+    if (mounted) FocusScope.of(context).unfocus();
   }
 
   Future<String?> _persistEventPhoto(String eventId, String? sourcePath) async {
@@ -668,16 +688,25 @@ class _EventAddPageState extends State<EventAddPage> {
     return destPath;
   }
 
+  Widget _eventPhotoBox({required Widget child}) {
+    return Align(
+      alignment: Alignment.center,
+      child: SizedBox(
+        width: _kEventPhotoBoxWidth,
+        height: _kEventPhotoBoxHeight,
+        child: child,
+      ),
+    );
+  }
+
   Widget _buildPhotoAddEntry({required VoidCallback onTap}) {
-    return CustomPaint(
-      painter: _DashedRectPainter(color: const Color(0xFFE2E8F0)),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: const SizedBox(
-          height: 160,
-          width: double.infinity,
-          child: Column(
+    return _eventPhotoBox(
+      child: CustomPaint(
+        painter: _DashedRectPainter(color: const Color(0xFFE2E8F0)),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: const Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(Icons.photo_library_outlined, size: 24, color: _kHint),
@@ -691,22 +720,29 @@ class _EventAddPageState extends State<EventAddPage> {
   }
 
   Widget _buildPhotoPreview() {
-    return GestureDetector(
-      onTap: _showPhotoReplaceSheet,
+    return _eventPhotoBox(
       child: Stack(
-        alignment: Alignment.bottomRight,
+        fit: StackFit.expand,
+        clipBehavior: Clip.antiAlias,
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: Image.file(
-              File(_eventPhotoPath!),
-              height: 160,
-              width: double.infinity,
-              fit: BoxFit.cover,
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: _showPhotoReplaceSheet,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.file(
+                  File(_eventPhotoPath!),
+                  width: double.infinity,
+                  height: double.infinity,
+                  fit: BoxFit.cover,
+                  alignment: Alignment.center,
+                ),
+              ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(8),
+          Positioned(
+            right: 4,
+            bottom: 4,
             child: GestureDetector(
               onTap: _showPhotoReplaceSheet,
               child: Container(
@@ -769,12 +805,14 @@ class _EventAddPageState extends State<EventAddPage> {
         _lunarDay = lunar.getDay();
       }
       _repeat = initial.repeatRule;
+      _eventType = initial.eventType;
       _reminder = initial.reminderType;
       _advanceDays = initial.advanceDaysOption;
       _advanceTime = _parseTimeHm(initial.advanceTimeHm, fallbackTime);
       _sameDayTime = _parseTimeHm(initial.sameDayTimeHm, fallbackTime);
       _shareEnabled = initial.pendingShareAfterAdd;
       _eventPhotoPath = initial.photoPaths.isNotEmpty ? initial.photoPaths.first : null;
+      leapMonthPreference = initial.leapMonthPreference;
     } else {
       _selectedTagId = widget.initialTagId ?? '';
       final lunar = Lunar.fromDate(_solarDate);
@@ -782,6 +820,7 @@ class _EventAddPageState extends State<EventAddPage> {
       _lunarMonthSigned = lunar.getMonth();
       _lunarDay = lunar.getDay();
     }
+    _syncLeapMonthPreference();
     _titleCtrl.addListener(() => setState(() {}));
     MembershipService.currentTier().then((t) {
       if (mounted) {
@@ -815,7 +854,9 @@ class _EventAddPageState extends State<EventAddPage> {
       });
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _titleFocusNode.requestFocus();
+      if (!mounted || _hasAutoFocused) return;
+      _titleFocusNode.requestFocus();
+      _hasAutoFocused = true;
     });
   }
 
@@ -918,6 +959,62 @@ class _EventAddPageState extends State<EventAddPage> {
   String _fmtTime(TimeOfDay t) =>
       '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
+  Widget _leapMonthPreferencePill(String label, int value) {
+    final isSelected = leapMonthPreference == value;
+    return GestureDetector(
+      onTap: () => setState(() => leapMonthPreference = value),
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        height: 36,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF1A73E8) : const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF1A73E8) : const Color(0xFFE2E8F0),
+            width: 1,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: isSelected ? FontWeight.w500 : FontWeight.w400,
+              color: isSelected ? const Color(0xFFFFFFFF) : const Color(0xFF64748B),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLeapMonthPreferenceSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          '闰月生日提醒方式',
+          style: TextStyle(
+            color: Color(0xFF1F2937),
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _leapMonthPreferencePill('平年正常月，闰年闰月', 0),
+            _leapMonthPreferencePill('只在正常月过', 1),
+            _leapMonthPreferencePill('闰年正、闰月都过', 2),
+          ],
+        ),
+      ],
+    );
+  }
+
   Widget _optionPill(String label, bool isSelected, VoidCallback onTap) {
   return GestureDetector(
     onTap: onTap,
@@ -959,6 +1056,7 @@ class _EventAddPageState extends State<EventAddPage> {
           initialDate: DateTime(_solarDate.year, _solarDate.month, _solarDate.day),
           onCancel: () => Navigator.pop(ctx),
           onConfirm: (picked) {
+            if (mounted) FocusScope.of(context).unfocus();
             setState(() => _solarDate = picked);
             _syncLunarFromSolar(_solarDate);
             Navigator.pop(ctx);
@@ -966,6 +1064,7 @@ class _EventAddPageState extends State<EventAddPage> {
         );
       },
     );
+    if (mounted) FocusScope.of(context).unfocus();
   }
 
   void _syncLunarFromSolar(DateTime d) {
@@ -973,6 +1072,14 @@ class _EventAddPageState extends State<EventAddPage> {
     _lunarYear = lunar.getYear();
     _lunarMonthSigned = lunar.getMonth();
     _lunarDay = lunar.getDay();
+  }
+
+  void _syncLeapMonthPreference() {
+    if (_solarMode || _lunarMonthSigned >= 0) {
+      leapMonthPreference = null;
+    } else {
+      leapMonthPreference ??= 0;
+    }
   }
 
   Future<void> _pickLunarDate() async {
@@ -988,6 +1095,7 @@ class _EventAddPageState extends State<EventAddPage> {
           initialDay: _lunarDay,
           onCancel: () => Navigator.pop(ctx),
           onConfirm: (year, monthSigned, dayLunar) {
+            if (mounted) FocusScope.of(context).unfocus();
             setState(() {
               _lunarYear = year;
               _lunarMonthSigned = monthSigned;
@@ -995,12 +1103,14 @@ class _EventAddPageState extends State<EventAddPage> {
               final lunar = Lunar.fromYmd(year, monthSigned, dayLunar);
               final s = lunar.getSolar();
               _solarDate = DateTime(s.getYear(), s.getMonth(), s.getDay());
+              _syncLeapMonthPreference();
             });
             Navigator.pop(ctx);
           },
         );
       },
     );
+    if (mounted) FocusScope.of(context).unfocus();
   }
 
   Future<void> _pickTime({required bool advance}) async {
@@ -1015,6 +1125,7 @@ class _EventAddPageState extends State<EventAddPage> {
           initial: initial,
           onCancel: () => Navigator.pop(ctx),
           onConfirm: (t) {
+            if (mounted) FocusScope.of(context).unfocus();
             setState(() {
               if (advance) {
                 _advanceTime = t;
@@ -1027,6 +1138,7 @@ class _EventAddPageState extends State<EventAddPage> {
         );
       },
     );
+    if (mounted) FocusScope.of(context).unfocus();
   }
 
   Future<void> _submit() async {
@@ -1107,6 +1219,8 @@ class _EventAddPageState extends State<EventAddPage> {
       photoPaths: photoPaths,
       pendingShareAfterAdd: _shareEnabled,
       note: note,
+      leapMonthPreference: _showLeapMonthPreference ? leapMonthPreference : null,
+      eventType: _eventType,
     );
     nav.pop(event);
     if (_shareEnabled) {
@@ -1265,6 +1379,7 @@ class _EventAddPageState extends State<EventAddPage> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 280),
             child: Container(
+              height: _kTitleInputHeight,
               decoration: const BoxDecoration(
                 borderRadius: BorderRadius.all(Radius.circular(18)),
                 boxShadow: _kInputShadow,
@@ -1274,8 +1389,11 @@ class _EventAddPageState extends State<EventAddPage> {
                 focusNode: _titleFocusNode,
                 maxLines: 1,
                 textAlignVertical: TextAlignVertical.center,
+                onTapOutside: (_) => _titleFocusNode.unfocus(),
                 style: const TextStyle(fontSize: 16, height: 1.25, color: _kTitleColor),
-                decoration: _eventFieldDecoration('输入事件标题…'),
+                decoration: _eventFieldDecoration('输入事件标题…').copyWith(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+                ),
               ),
             ),
           ),
@@ -1284,52 +1402,19 @@ class _EventAddPageState extends State<EventAddPage> {
         GestureDetector(
           onTap: () => setState(() => _pinned = !_pinned),
           behavior: HitTestBehavior.opaque,
-          child: SizedBox(
-            width: 48,
-            height: 48,
-            child: _pinned
-                ? Container(
-                    width: 48,
-                    height: 48,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      color: const Color(0xFFFFFBEB),
-                      border: Border.all(
-                        color: const Color(0xFFFFB800),
-                        width: 1.5,
-                      ),
-                    ),
-                    child: SvgPicture.asset(
-                      'assets/images/ic_star.svg',
-                      width: 32,
-                      height: 32,
-                    ),
-                  )
-                : Container(
-                    width: 48,
-                    height: 48,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      color: const Color(0xFFF8FAFC),
-                      border: Border.all(
-                        color: const Color(0xFFE2E8F0),
-                        width: 1.0,
-                      ),
-                    ),
-                    child: SvgPicture.asset(
-                      'assets/images/ic_star.svg',
-                      width: 32,
-                      height: 32,
-                      colorFilter: const ColorFilter.matrix(<double>[
-                        0.2126, 0.7152, 0.0722, 0, 0,
-                        0.2126, 0.7152, 0.0722, 0, 0,
-                        0.2126, 0.7152, 0.0722, 0, 0,
-                        0, 0, 0, 1, 0,
-                      ]),
-                    ),
-                  ),
+          child: SvgPicture.asset(
+            'assets/images/ic_star.svg',
+            width: _kTitleInputHeight,
+            height: _kTitleInputHeight,
+            fit: BoxFit.contain,
+            colorFilter: _pinned
+                ? null
+                : const ColorFilter.matrix(<double>[
+                    0.2126, 0.7152, 0.0722, 0, 0,
+                    0.2126, 0.7152, 0.0722, 0, 0,
+                    0.2126, 0.7152, 0.0722, 0, 0,
+                    0, 0, 0, 1, 0,
+                  ]),
           ),
         ),
       ],
@@ -1338,8 +1423,47 @@ class _EventAddPageState extends State<EventAddPage> {
 
   @override
   Widget build(BuildContext context) {
+    const buttonHeight = 56.0;
+    const scrollBottomPadding = 24.0;
+
     return Scaffold(
       backgroundColor: const Color(0xFFFAFBFC),
+      bottomNavigationBar: ColoredBox(
+        color: const Color(0xFFFAFBFC),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+            child: Opacity(
+              opacity: _canSave ? 1 : 0.5,
+              child: SizedBox(
+                width: double.infinity,
+                height: buttonHeight,
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: _kThemeBlue,
+                    disabledBackgroundColor: _kHint,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  onPressed: _canSave ? () => _submit() : null,
+                  child: Text(
+                    _isEditMode
+                        ? '保存修改'
+                        : (_shareEnabled ? '保存并分享' : '添加事件'),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         behavior: HitTestBehavior.translucent,
@@ -1373,7 +1497,7 @@ class _EventAddPageState extends State<EventAddPage> {
             ),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, scrollBottomPadding),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -1422,6 +1546,7 @@ class _EventAddPageState extends State<EventAddPage> {
                             onTap: () => setState(() {
                               _solarMode = true;
                               _syncLunarFromSolar(_solarDate);
+                              _syncLeapMonthPreference();
                             }),
                           ),
                         ),
@@ -1447,6 +1572,7 @@ class _EventAddPageState extends State<EventAddPage> {
                               setState(() {
                                 _solarMode = false;
                                 _syncLunarFromSolar(_solarDate);
+                                _syncLeapMonthPreference();
                               });
                             },
                           ),
@@ -1487,7 +1613,21 @@ class _EventAddPageState extends State<EventAddPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    AnimatedSize(
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeInOut,
+                      alignment: Alignment.topCenter,
+                      child: _showLeapMonthPreference
+                          ? Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 16),
+                                _buildLeapMonthPreferenceSection(),
+                                const SizedBox(height: 16),
+                              ],
+                            )
+                          : const SizedBox(height: 12),
+                    ),
                     Wrap(
                       direction: Axis.horizontal,
                       spacing: 8,
@@ -1495,15 +1635,53 @@ class _EventAddPageState extends State<EventAddPage> {
                       alignment: WrapAlignment.start,
                       crossAxisAlignment: WrapCrossAlignment.start,
                       children: [
-                        _optionPill('不重复', _repeat == EventRepeatRule.none, () => setState(() => _repeat = EventRepeatRule.none)),
-                        _optionPill('每天', _repeat == EventRepeatRule.daily, () => setState(() => _repeat = EventRepeatRule.daily)),
-                        _optionPill('每周', _repeat == EventRepeatRule.weekly, () => setState(() => _repeat = EventRepeatRule.weekly)),
-                        _optionPill('每月', _repeat == EventRepeatRule.monthly, () => setState(() => _repeat = EventRepeatRule.monthly)),
-                        _optionPill('每年', _repeat == EventRepeatRule.yearly, () => setState(() => _repeat = EventRepeatRule.yearly)),
+                        _optionPill('不重复', _repeat == EventRepeatRule.none, () => setState(() {
+                          _repeat = EventRepeatRule.none;
+                          _eventType = EventType.generic;
+                        })),
+                        _optionPill('每天', _repeat == EventRepeatRule.daily, () => setState(() {
+                          _repeat = EventRepeatRule.daily;
+                          _eventType = EventType.generic;
+                        })),
+                        _optionPill('每周', _repeat == EventRepeatRule.weekly, () => setState(() {
+                          _repeat = EventRepeatRule.weekly;
+                          _eventType = EventType.generic;
+                        })),
+                        _optionPill('每月', _repeat == EventRepeatRule.monthly, () => setState(() {
+                          _repeat = EventRepeatRule.monthly;
+                          _eventType = EventType.generic;
+                        })),
+                        _optionPill('每年', _repeat == EventRepeatRule.yearly, () => setState(() {
+                          _repeat = EventRepeatRule.yearly;
+                          _eventType = EventType.birthday;
+                        })),
                       ],
                     ),
                     const SizedBox(height: 20),
-                    _sectionIconTitle(icon: Icons.notifications_none_outlined, title: '提醒策略'),
+                    if (_repeat == EventRepeatRule.yearly)
+                      Row(
+                        children: [
+                          _sectionIconTitle(icon: Icons.notifications_none_outlined, title: '提醒策略'),
+                          const Spacer(),
+                          const Text(
+                            '标记为生日',
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: _kTitleColor),
+                          ),
+                          const SizedBox(width: 8),
+                          Switch.adaptive(
+                            value: _eventType == EventType.birthday,
+                            onChanged: (v) => setState(() => _eventType = v ? EventType.birthday : EventType.generic),
+                            thumbColor: WidgetStateProperty.resolveWith(
+                              (s) => s.contains(WidgetState.selected) ? Colors.white : null,
+                            ),
+                            trackColor: WidgetStateProperty.resolveWith(
+                              (s) => s.contains(WidgetState.selected) ? _kThemeBlue : null,
+                            ),
+                          ),
+                        ],
+                      )
+                    else
+                      _sectionIconTitle(icon: Icons.notifications_none_outlined, title: '提醒策略'),
                     const SizedBox(height: 10),
                     Wrap(
                       direction: Axis.horizontal,
@@ -1610,36 +1788,7 @@ class _EventAddPageState extends State<EventAddPage> {
                         ],
                       ),
                     ),
-                    SizedBox(height: 80 + MediaQuery.paddingOf(context).bottom),
                   ],
-                ),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.fromLTRB(20, 0, 20, 16 + MediaQuery.paddingOf(context).bottom),
-              child: Opacity(
-                opacity: _canSave ? 1 : 0.5,
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: FilledButton(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: _kThemeBlue,
-                      disabledBackgroundColor: _kHint,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
-                    onPressed: _canSave ? () => _submit() : null,
-                    child: Text(
-                      _isEditMode
-                          ? '保存修改'
-                          : (_shareEnabled ? '保存并分享' : '添加事件'),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
                 ),
               ),
             ),

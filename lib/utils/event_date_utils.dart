@@ -79,6 +79,69 @@ List<DateTime> occurrenceDatesInGregorianMonth(
   return _keepOnOrAfterAnchor(event, raw);
 }
 
+DateTime? _lunarYmdToGregorian(int lunarYear, int month, int day) {
+  try {
+    final lun = Lunar.fromYmd(lunarYear, month, day);
+    final solar = lun.getSolar();
+    return DateTime(solar.getYear(), solar.getMonth(), solar.getDay());
+  } catch (_) {
+    return null;
+  }
+}
+
+LunarMonth? _findLeapMonthEntry(int lunarYear, int monthSigned) {
+  for (final monthEntry in LunarYear.fromYear(lunarYear).getMonths()) {
+    if (monthEntry.getMonth() == monthSigned) {
+      return monthEntry;
+    }
+  }
+  return null;
+}
+
+/// 闰月生日：按 [leapMonthPreference] 收集某一农历年的公历候选发生日。
+List<DateTime> _leapMonthOccurrencesForLunarYear(
+  int lunarYear,
+  int monthSigned,
+  int day,
+  int leapMonthPreference,
+) {
+  final candidates = <DateTime>[];
+  final normalMonth = monthSigned.abs();
+  final leapMonth = _findLeapMonthEntry(lunarYear, monthSigned);
+  final hasValidLeapMonth = leapMonth != null && day <= leapMonth.getDayCount();
+
+  void addNormal() {
+    final g = _lunarYmdToGregorian(lunarYear, normalMonth, day);
+    if (g != null) candidates.add(g);
+  }
+
+  void addLeap() {
+    if (!hasValidLeapMonth) return;
+    final g = _lunarYmdToGregorian(lunarYear, monthSigned, day);
+    if (g != null) candidates.add(g);
+  }
+
+  switch (leapMonthPreference) {
+    case 1:
+      addNormal();
+      break;
+    case 2:
+      addNormal();
+      addLeap();
+      break;
+    case 0:
+    default:
+      if (hasValidLeapMonth) {
+        addLeap();
+      } else {
+        addNormal();
+      }
+      break;
+  }
+
+  return candidates;
+}
+
 List<DateTime> _lunarRepeatOccurrencesInGregorianMonth(
   ListEvent event,
   int viewYear,
@@ -94,12 +157,32 @@ List<DateTime> _lunarRepeatOccurrencesInGregorianMonth(
     for (final lunarYear in [viewYear - 1, viewYear, viewYear + 1]) {
       if (lunarYear < 1900 || lunarYear > 2100) continue;
       try {
-        final lunar = Lunar.fromYmd(lunarYear, lm, ld);
-        final solar = lunar.getSolar();
-        final g = DateTime(solar.getYear(), solar.getMonth(), solar.getDay());
-        if (g.year == viewYear && g.month == viewMonth) {
-          final key = '${g.year}-${g.month}-${g.day}';
-          if (seen.add(key)) out.add(g);
+        if (lm >= 0) {
+          final lunar = Lunar.fromYmd(lunarYear, lm, ld);
+          final solar = lunar.getSolar();
+          final g = DateTime(
+            solar.getYear(),
+            solar.getMonth(),
+            solar.getDay(),
+          );
+          if (g.year == viewYear && g.month == viewMonth) {
+            final key = '${g.year}-${g.month}-${g.day}';
+            if (seen.add(key)) out.add(g);
+          }
+        } else {
+          final pref = event.leapMonthPreference ?? 0;
+          final yearCandidates = _leapMonthOccurrencesForLunarYear(
+            lunarYear,
+            lm,
+            ld,
+            pref,
+          );
+          for (final g in yearCandidates) {
+            if (g.year == viewYear && g.month == viewMonth) {
+              final key = '${g.year}-${g.month}-${g.day}';
+              if (seen.add(key)) out.add(g);
+            }
+          }
         }
       } catch (_) {}
     }
@@ -141,18 +224,40 @@ DateTime effectiveDate(ListEvent event) {
       final lunar = Lunar.fromDate(base);
       final month = lunar.getMonth();
       final day = lunar.getDay();
-      DateTime? best;
+      final pref = event.leapMonthPreference ?? 0;
+      final candidates = <DateTime>[];
       for (var ly = start.year - 1; ly <= start.year + 5; ly++) {
         try {
-          final lun = Lunar.fromYmd(ly, month, day);
-          final solar = lun.getSolar();
-          final g = DateTime(solar.getYear(), solar.getMonth(), solar.getDay());
-          if (!g.isBefore(a) && !g.isBefore(start)) {
-            if (best == null || g.isBefore(best)) best = g;
+          if (month >= 0) {
+            final lun = Lunar.fromYmd(ly, month, day);
+            final solar = lun.getSolar();
+            final g = DateTime(
+              solar.getYear(),
+              solar.getMonth(),
+              solar.getDay(),
+            );
+            if (!g.isBefore(a) && !g.isBefore(start)) {
+              candidates.add(g);
+            }
+          } else {
+            final yearCandidates = _leapMonthOccurrencesForLunarYear(
+              ly,
+              month,
+              day,
+              pref,
+            );
+            for (final g in yearCandidates) {
+              if (!g.isBefore(a) && !g.isBefore(start)) {
+                candidates.add(g);
+              }
+            }
           }
         } catch (_) {}
       }
-      if (best != null) return best;
+      if (candidates.isNotEmpty) {
+        candidates.sort();
+        return candidates.reduce((x, y) => x.isBefore(y) ? x : y);
+      }
     } catch (_) {}
     return DateTime(base.year, base.month, base.day);
   }
@@ -216,6 +321,45 @@ int daysUntil(ListEvent event) {
   final target = effectiveDate(event);
   final targetDate = _dateOnly(target);
   return targetDate.difference(today).inDays;
+}
+
+/// 清单卡片倒计时下方的副文案（循环事件专用）。
+String? eventSubline(ListEvent event, int daysDiff) {
+  final today = _dateOnly(DateTime.now());
+  final baseDate = _dateOnly(event.baseDate);
+
+  if (event.repeatRule == EventRepeatRule.none) {
+    return null;
+  }
+
+  if (event.repeatRule == EventRepeatRule.yearly) {
+    if (daysDiff < 0) return null;
+    final age = effectiveDate(event).year - event.baseDate.year;
+    if (event.eventType == EventType.birthday) {
+      if (daysDiff == 0) return '满$age岁';
+      if (daysDiff > 0) return '将满$age岁';
+    } else {
+      if (daysDiff == 0) return '满$age周年';
+      if (daysDiff > 0) return '将满$age周年';
+    }
+    return null;
+  }
+
+  if (event.repeatRule == EventRepeatRule.daily) {
+    return '已坚持${today.difference(baseDate).inDays}天';
+  }
+
+  if (event.repeatRule == EventRepeatRule.weekly) {
+    return '已坚持${today.difference(baseDate).inDays ~/ 7}周';
+  }
+
+  if (event.repeatRule == EventRepeatRule.monthly) {
+    var months = (today.year - baseDate.year) * 12 + (today.month - baseDate.month);
+    if (today.day < baseDate.day) months--;
+    return '已坚持$months月';
+  }
+
+  return null;
 }
 
 /// 周一～周日 → 「一」…「日」（用于清单/详情日期文案）。
