@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:time_calendar/models/calendar_festival.dart';
 import 'package:time_calendar/models/list_event.dart';
 import 'package:time_calendar/services/tag_service.dart';
@@ -82,6 +83,23 @@ class WeekViewEventCard extends StatelessWidget {
 
   static const double _photoW = 100;
   static const double _photoH = 133;
+
+  static bool _shouldShowPartnerShareMarker(String tagId) =>
+      TagService.shouldShowPartnerShareMarker(tagId);
+
+  static Widget _partnerShareTitleMarker(String tagId) {
+    if (!_shouldShowPartnerShareMarker(tagId)) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: SvgPicture.asset(
+        'assets/images/ic_couple_hearts.svg',
+        width: 16,
+        height: 16,
+      ),
+    );
+  }
 
   static String _trimNote(String? note) => note?.trim() ?? '';
 
@@ -278,15 +296,24 @@ class WeekViewEventCard extends StatelessWidget {
                     Row(
                       children: [
                         Expanded(
-                          child: Text(
-                            title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: _titleColor,
-                            ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    color: _titleColor,
+                                  ),
+                                ),
+                              ),
+                              _partnerShareTitleMarker(tagId),
+                            ],
                           ),
                         ),
                         if (pinned) ...[

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:time_calendar/models/reminder_tag.dart';
 import 'package:time_calendar/pages/tag_photo_crop_page.dart';
@@ -11,6 +12,9 @@ import 'package:time_calendar/widgets/tag_circle_widget.dart';
 const Color _titleColor = Color(0xFF1F2937);
 const Color _muted = Color(0xFF94A3B8);
 const Color _themeBlue = Color(0xFF1A73E8);
+const Color _switchInactiveTrack = Color(0xFFE5E7EB);
+const Color _partnerStatusMuted = Color(0xFF9CA3AF);
+const Color _partnerSharedRed = Color(0xFFE01D1D);
 const Color _deleteRed = Color(0xFFEF4444);
 const Color _dangerRed = Color(0xFFFF4D4D);
 const Color _nameHintAmber = Color(0xFFF59E0B);
@@ -217,6 +221,7 @@ class _TagEditorSheetState extends State<TagEditorSheet> {
   String? _photoPath;
   String? _iconName;
   bool _saving = false;
+  late bool _isPartnerTag;
 
   bool get _isEdit => widget.initial != null;
 
@@ -242,6 +247,7 @@ class _TagEditorSheetState extends State<TagEditorSheet> {
       _colorIndex = 0;
       _iconName = TagCircleWidget.defaultIconKey;
     }
+    _isPartnerTag = initial?.isPartnerTag ?? false;
     _nameCtrl.addListener(() => setState(() {}));
   }
 
@@ -280,7 +286,8 @@ class _TagEditorSheetState extends State<TagEditorSheet> {
             _iconKeyForCompare(
               hasPhoto: initialHasPhoto,
               iconName: initial.iconName,
-            );
+            ) ||
+        _isPartnerTag != initial.isPartnerTag;
   }
 
   bool get _canSave => _nameOk && _hasChanges && !_saving;
@@ -328,6 +335,7 @@ class _TagEditorSheetState extends State<TagEditorSheet> {
           clearPhotoPath: _photoPath == null && initial.photoPath != null,
           clearIconName: _hasActivePhoto ||
               (_iconName == null && initial.iconName != null),
+          isPartnerTag: _isPartnerTag,
         );
         await TagService.updateTag(tag);
       } else {
@@ -342,6 +350,7 @@ class _TagEditorSheetState extends State<TagEditorSheet> {
           photoPath: _photoPath,
           iconName: _hasActivePhoto ? null : _resolveIconKey(_iconName),
           isSystemTag: false,
+          isPartnerTag: _isPartnerTag,
         );
         await TagService.addTag(tag);
       }
@@ -544,6 +553,37 @@ class _TagEditorSheetState extends State<TagEditorSheet> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _partnerShareSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            const Expanded(
+              child: Text(
+                '设为伴侣共享标签',
+                style: TextStyle(fontSize: 16, color: _titleColor),
+              ),
+            ),
+            Switch(
+              value: _isPartnerTag,
+              onChanged: (value) => setState(() => _isPartnerTag = value),
+              activeTrackColor: _themeBlue,
+              activeThumbColor: Colors.white,
+              inactiveTrackColor: _switchInactiveTrack,
+              inactiveThumbColor: Colors.white,
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          '开启后，该标签下的提醒与时光集将自动同步给伴侣',
+          style: TextStyle(fontSize: 12, color: _partnerStatusMuted),
+        ),
+      ],
     );
   }
 
@@ -752,6 +792,8 @@ class _TagEditorSheetState extends State<TagEditorSheet> {
                     ),
                     const SizedBox(height: 8),
                     _colorPalette(),
+                    const SizedBox(height: 16),
+                    _partnerShareSection(),
                     if (_isEdit) ...[
                       const SizedBox(height: 24),
                       SizedBox(
@@ -1020,6 +1062,40 @@ class _ManageTagListTile extends StatelessWidget {
   final ReminderTag tag;
   final VoidCallback onTap;
 
+  Widget _buildPartnerStatus() {
+    if (!tag.isPartnerTag) return const SizedBox.shrink();
+
+    if (TagService.isPartnerRelationAccepted()) {
+      final partnerName = TagService.getPartnerRelation().partnerName ?? '伴侣';
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SvgPicture.asset(
+            'assets/images/ic_couple_hearts.svg',
+            width: 16,
+            height: 16,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            '已与$partnerName共享',
+            style: const TextStyle(
+              fontSize: 12,
+              color: _partnerSharedRed,
+            ),
+          ),
+        ],
+      );
+    }
+
+    return const Text(
+      '待绑定伴侣',
+      style: TextStyle(
+        fontSize: 12,
+        color: _partnerStatusMuted,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Material(
@@ -1047,6 +1123,8 @@ class _ManageTagListTile extends StatelessWidget {
                     ),
                   ),
                 ),
+                const SizedBox(width: 8),
+                _buildPartnerStatus(),
               ],
             ),
           ),

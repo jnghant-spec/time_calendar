@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:time_calendar/models/partner_relation.dart';
 import 'package:time_calendar/models/reminder_tag.dart';
 import 'package:time_calendar/services/memory_service.dart';
 import 'package:time_calendar/widgets/tag_circle_widget.dart';
@@ -15,12 +16,14 @@ class TagService {
   TagService._();
 
   static const String prefsKey = 'reminder_tags_v1';
+  static const String partnerRelationPrefsKey = 'partner_relation_v1';
   static const int maxTagCount = 10;
 
   /// 解除标签关联后提醒/事件集使用的占位 id（模型字段仍为 String）。
   static const String uncategorizedTagId = '';
 
   static List<ReminderTag>? _cache;
+  static PartnerRelation? _partnerRelationCache;
 
   /// 由 [MainNavigationPage] 注入，用于统计/解除清单提醒关联。
   static int Function(String tagId)? reminderCountForTag;
@@ -48,6 +51,7 @@ class TagService {
         sortOrder: 1,
         isDefault: true,
         createdAt: now,
+        isPartnerTag: true,
       ),
       ReminderTag(
         id: 'goal',
@@ -77,9 +81,27 @@ class TagService {
     _cache = List<ReminderTag>.from(tags);
   }
 
+  static void _loadPartnerRelationFromPrefs(SharedPreferences prefs) {
+    final raw = prefs.getString(partnerRelationPrefsKey);
+    if (raw == null || raw.isEmpty) {
+      _partnerRelationCache =
+          const PartnerRelation(status: PartnerStatus.none);
+      return;
+    }
+    try {
+      _partnerRelationCache = PartnerRelation.fromJson(
+        Map<String, dynamic>.from(jsonDecode(raw) as Map),
+      );
+    } catch (_) {
+      _partnerRelationCache =
+          const PartnerRelation(status: PartnerStatus.none);
+    }
+  }
+
   /// 首次为空时写入 4 个默认标签并返回排序后的列表。
   static Future<List<ReminderTag>> loadTags() async {
     final prefs = await SharedPreferences.getInstance();
+    _loadPartnerRelationFromPrefs(prefs);
     final raw = prefs.getString(prefsKey);
     if (raw == null || raw.isEmpty) {
       final seed = _seedDefaults();
@@ -216,6 +238,34 @@ class TagService {
     if (t != null) return t.iconBgColor;
     return _kMissingAccent.withValues(alpha: 0.15);
   }
+
+  static bool isPartnerTag(String tagId) =>
+      getTagById(tagId)?.isPartnerTag ?? false;
+
+  static List<ReminderTag> getPartnerTags() {
+    final c = _cache;
+    if (c == null) return const [];
+    return c.where((t) => t.isPartnerTag).toList();
+  }
+
+  static PartnerRelation getPartnerRelation() =>
+      _partnerRelationCache ??
+      const PartnerRelation(status: PartnerStatus.none);
+
+  static Future<void> setPartnerRelation(PartnerRelation relation) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      partnerRelationPrefsKey,
+      jsonEncode(relation.toJson()),
+    );
+    _partnerRelationCache = relation;
+  }
+
+  static bool isPartnerRelationAccepted() =>
+      getPartnerRelation().status == PartnerStatus.accepted;
+
+  static bool shouldShowPartnerShareMarker(String tagId) =>
+      isPartnerTag(tagId) && isPartnerRelationAccepted();
 
   static String newTagId() =>
       'tag_${DateTime.now().microsecondsSinceEpoch}_${Random().nextInt(1 << 30)}';

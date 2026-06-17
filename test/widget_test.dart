@@ -14,7 +14,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('日历'), findsOneWidget);
-    expect(find.text('清单'), findsOneWidget);
+    expect(find.text('提醒'), findsOneWidget);
     expect(find.text('时光集'), findsOneWidget);
     expect(find.text('我的'), findsOneWidget);
   });

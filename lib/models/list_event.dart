@@ -59,6 +59,8 @@ class ListEvent {
     this.note,
     this.leapMonthPreference,
     this.eventType = EventType.generic,
+    this.lastModifiedByName,
+    this.lastModifiedAt,
   });
 
   final String id;
@@ -90,6 +92,10 @@ class ListEvent {
   /// 闰月生日提醒方式：0=自动匹配，1=仅正本月，2=闰月年过两个生日；仅农历闰月有效。
   final int? leapMonthPreference;
   final EventType eventType;
+  /// 伴侣共享场景下最后修改者称呼。
+  final String? lastModifiedByName;
+  /// 伴侣共享场景下最后修改时间。
+  final DateTime? lastModifiedAt;
 
   /// 循环起始日（与 [baseDate] 同日，仅保留年月日语义）。
   DateTime get anchorDate => DateTime(baseDate.year, baseDate.month, baseDate.day);
@@ -114,6 +120,10 @@ class ListEvent {
     String? note,
     int? leapMonthPreference,
     EventType? eventType,
+    String? lastModifiedByName,
+    DateTime? lastModifiedAt,
+    bool clearLastModifiedByName = false,
+    bool clearLastModifiedAt = false,
   }) {
     return ListEvent(
       id: id ?? this.id,
@@ -135,6 +145,11 @@ class ListEvent {
       note: note ?? this.note,
       leapMonthPreference: leapMonthPreference ?? this.leapMonthPreference,
       eventType: eventType ?? this.eventType,
+      lastModifiedByName: clearLastModifiedByName
+          ? null
+          : (lastModifiedByName ?? this.lastModifiedByName),
+      lastModifiedAt:
+          clearLastModifiedAt ? null : (lastModifiedAt ?? this.lastModifiedAt),
     );
   }
 
@@ -158,6 +173,10 @@ class ListEvent {
         if (note != null) 'note': note,
         if (leapMonthPreference != null) 'leapMonthPreference': leapMonthPreference,
         'eventType': eventType.name,
+        if (lastModifiedByName != null && lastModifiedByName!.isNotEmpty)
+          'lastModifiedByName': lastModifiedByName,
+        if (lastModifiedAt != null)
+          'lastModifiedAt': lastModifiedAt!.toIso8601String(),
       };
 
   factory ListEvent.fromJson(Map<String, dynamic> json) {
@@ -193,6 +212,10 @@ class ListEvent {
         (e) => e.name == json['eventType'],
         orElse: () => EventType.generic,
       ),
+      lastModifiedByName: json['lastModifiedByName'] as String?,
+      lastModifiedAt: json['lastModifiedAt'] != null
+          ? DateTime.tryParse(json['lastModifiedAt'] as String)
+          : null,
     );
   }
 }

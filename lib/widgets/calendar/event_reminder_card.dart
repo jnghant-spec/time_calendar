@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:time_calendar/services/tag_service.dart';
 import 'package:time_calendar/widgets/calendar/calendar_models.dart';
 import 'package:time_calendar/widgets/pinned_star_badge.dart';
 
@@ -39,6 +41,23 @@ class EventReminderCard extends StatelessWidget {
   final EventReminderData event;
   final VoidCallback? onTogglePin;
   final VoidCallback? onCardTap;
+
+  static bool _shouldShowPartnerShareMarker(String tagId) =>
+      TagService.shouldShowPartnerShareMarker(tagId);
+
+  static Widget _partnerShareTitleMarker(String tagId) {
+    if (!_shouldShowPartnerShareMarker(tagId)) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: SvgPicture.asset(
+        'assets/images/ic_couple_hearts.svg',
+        width: 16,
+        height: 16,
+      ),
+    );
+  }
 
   static String _stripLunarMarker(String raw) =>
       raw.replaceAll(_kLunarDateLineMarker, '').trim();
@@ -340,17 +359,26 @@ class EventReminderCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           Expanded(
-                            child: Text(
-                              event.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: titleSize,
-                                fontWeight: FontWeight.w700,
-                                color: _titleColorCal,
-                                height: 1.25,
-                                letterSpacing: -0.31,
-                              ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    event.title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: titleSize,
+                                      fontWeight: FontWeight.w700,
+                                      color: _titleColorCal,
+                                      height: 1.25,
+                                      letterSpacing: -0.31,
+                                    ),
+                                  ),
+                                ),
+                                _partnerShareTitleMarker(event.tagId),
+                              ],
                             ),
                           ),
                           if (event.isFestival) ...[

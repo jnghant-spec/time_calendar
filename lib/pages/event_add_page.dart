@@ -371,6 +371,9 @@ void showShareSheetAfterEventAdd(BuildContext parentContext) {
     context: parentContext,
     isScrollControlled: true,
     backgroundColor: Colors.white,
+    constraints: BoxConstraints(
+      maxHeight: MediaQuery.sizeOf(parentContext).height * 0.90,
+    ),
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
@@ -819,6 +822,9 @@ class _EventAddPageState extends State<EventAddPage> {
       _lunarYear = lunar.getYear();
       _lunarMonthSigned = lunar.getMonth();
       _lunarDay = lunar.getDay();
+      if (_repeat == EventRepeatRule.yearly) {
+        _eventType = EventType.birthday;
+      }
     }
     _syncLeapMonthPreference();
     _titleCtrl.addListener(() => setState(() {}));
@@ -1451,7 +1457,7 @@ class _EventAddPageState extends State<EventAddPage> {
                   child: Text(
                     _isEditMode
                         ? '保存修改'
-                        : (_shareEnabled ? '保存并分享' : '添加事件'),
+                        : (_shareEnabled ? '保存并分享' : '添加提醒'),
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -1485,7 +1491,7 @@ class _EventAddPageState extends State<EventAddPage> {
                     ),
                   ),
                   const Text(
-                    '添加事件',
+                    '添加提醒',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
@@ -1654,31 +1660,39 @@ class _EventAddPageState extends State<EventAddPage> {
                         _optionPill('每年', _repeat == EventRepeatRule.yearly, () => setState(() {
                           _repeat = EventRepeatRule.yearly;
                           _eventType = EventType.birthday;
+                          _syncLeapMonthPreference();
                         })),
                       ],
                     ),
                     const SizedBox(height: 20),
                     if (_repeat == EventRepeatRule.yearly)
-                      Row(
-                        children: [
-                          _sectionIconTitle(icon: Icons.notifications_none_outlined, title: '提醒策略'),
-                          const Spacer(),
-                          const Text(
-                            '标记为生日',
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: _kTitleColor),
-                          ),
-                          const SizedBox(width: 8),
-                          Switch.adaptive(
-                            value: _eventType == EventType.birthday,
-                            onChanged: (v) => setState(() => _eventType = v ? EventType.birthday : EventType.generic),
-                            thumbColor: WidgetStateProperty.resolveWith(
-                              (s) => s.contains(WidgetState.selected) ? Colors.white : null,
+                      SizedBox(
+                        height: 40,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            _sectionIconTitle(icon: Icons.notifications_none_outlined, title: '提醒策略'),
+                            const Spacer(),
+                            const Text(
+                              '标记为生日',
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: _kTitleColor),
                             ),
-                            trackColor: WidgetStateProperty.resolveWith(
-                              (s) => s.contains(WidgetState.selected) ? _kThemeBlue : null,
+                            const SizedBox(width: 8),
+                            Transform.scale(
+                              scale: 0.75,
+                              child: Switch.adaptive(
+                                value: _eventType == EventType.birthday,
+                                onChanged: (v) => setState(() => _eventType = v ? EventType.birthday : EventType.generic),
+                                thumbColor: WidgetStateProperty.resolveWith(
+                                  (s) => s.contains(WidgetState.selected) ? Colors.white : null,
+                                ),
+                                trackColor: WidgetStateProperty.resolveWith(
+                                  (s) => s.contains(WidgetState.selected) ? _kThemeBlue : null,
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       )
                     else
                       _sectionIconTitle(icon: Icons.notifications_none_outlined, title: '提醒策略'),
@@ -1920,18 +1934,22 @@ class _DashedRectPainter extends CustomPainter {
 }
 
 Widget _sectionIconTitle({required IconData icon, required String title}) {
-  return Row(
-    children: [
-      Icon(icon, size: 16, color: _kCloseGrey),
-      const SizedBox(width: 6),
-      Text(
-        title,
-        style: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: _kTitleColor,
+  return SizedBox(
+    height: 40,
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Icon(icon, size: 16, color: _kCloseGrey),
+        const SizedBox(width: 6),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: _kTitleColor,
+          ),
         ),
-      ),
-    ],
+      ],
+    ),
   );
 }

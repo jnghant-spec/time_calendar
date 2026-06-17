@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -8,8 +9,10 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:lunar/lunar.dart';
 import 'package:time_calendar/models/list_event.dart';
 import 'package:time_calendar/models/reminder_tag.dart';
+import 'package:time_calendar/models/share_contact.dart';
 import 'package:time_calendar/pages/event_add_page.dart';
 import 'package:time_calendar/pages/event_detail_sheet.dart';
+import 'package:time_calendar/services/event_service.dart';
 import 'package:time_calendar/services/event_usage_service.dart';
 import 'package:time_calendar/services/membership_service.dart';
 import 'package:time_calendar/services/memory_service.dart';
@@ -17,6 +20,7 @@ import 'package:time_calendar/services/tag_bar_state.dart';
 import 'package:time_calendar/services/tag_service.dart';
 import 'package:time_calendar/theme/app_theme.dart';
 import 'package:time_calendar/utils/event_date_utils.dart';
+import 'package:time_calendar/utils/partner_test_data.dart';
 import 'package:time_calendar/widgets/confirm_delete_dialog.dart';
 import 'package:time_calendar/widgets/membership_soft_paywall.dart';
 import 'package:time_calendar/widgets/pinned_star_badge.dart';
@@ -233,23 +237,6 @@ class _ListCardDateRow extends StatelessWidget {
 /// FAB bottom(16) + FAB height(56) + breathing space(8)
 const _kListScrollBottomPadding = 16.0 + 56.0 + 8.0;
 
-/// 每日分享人数累计（跨事件），按自然日 key 存储，次日自动换 key 即重置。
-class _ShareDailyQuota {
-  static String _keyFor(DateTime d) =>
-      'share_daily_${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-
-  static Future<int> getTodayCount() async {
-    final p = await SharedPreferences.getInstance();
-    return p.getInt(_keyFor(DateTime.now())) ?? 0;
-  }
-
-  static Future<void> addToToday(int n) async {
-    if (n <= 0) return;
-    final p = await SharedPreferences.getInstance();
-    final k = _keyFor(DateTime.now());
-    await p.setInt(k, (p.getInt(k) ?? 0) + n);
-  }
-}
 
 class ListPage extends StatefulWidget {
   const ListPage({
@@ -328,6 +315,17 @@ class _ListPageState extends State<ListPage> {
       if (!mounted) return;
       widget.onEventsChanged(_events);
       _reloadArchivedIds();
+      // TODO: 测试完成后删除此行
+      await PartnerTestData.generate();
+      if (!mounted) return;
+      await TagBarState().loadTags();
+      if (!mounted) return;
+      final refreshed = await EventService.loadAllEvents();
+      _events = refreshed;
+      widget.onEventsChanged(_events);
+      EventUsageService.updateCount(_events.length);
+      if (!mounted) return;
+      setState(() {});
     });
     _reloadArchivedIds();
   }
@@ -489,8 +487,11 @@ class _ListPageState extends State<ListPage> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.90,
+      ),
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (sheetContext) {
         return Padding(
@@ -839,13 +840,32 @@ class _ListPageState extends State<ListPage> {
   }
 }
 
-/// 清单页底部分享 Sheet（手机号多选、校验、结果展示、每日限额）。
+
+/// 每日分享人数累计（跨事件），按自然日 key 存储，次日自动换 key 即重置。
+class _ShareDailyQuota {
+  static String _keyFor(DateTime d) =>
+      'share_daily_${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  static Future<int> getTodayCount() async {
+    final p = await SharedPreferences.getInstance();
+    return p.getInt(_keyFor(DateTime.now())) ?? 0;
+  }
+
+  static Future<void> addToToday(int n) async {
+    if (n <= 0) return;
+    final p = await SharedPreferences.getInstance();
+    final k = _keyFor(DateTime.now());
+    await p.setInt(k, (p.getInt(k) ?? 0) + n);
+  }
+}
+
 class _ShareResultEntry {
   const _ShareResultEntry({required this.phone, required this.registered});
   final String phone;
   final bool registered;
 }
 
+/// 清单页底部分享 Sheet。
 class _ShareEventSheet extends StatefulWidget {
   const _ShareEventSheet({required this.parentContext});
 
@@ -856,79 +876,325 @@ class _ShareEventSheet extends StatefulWidget {
 }
 
 class _ShareEventSheetState extends State<_ShareEventSheet> {
-  final List<TextEditingController> _controllers = [];
+  static const _kThemeBlue = Color(0xFF1A73E8);
+  static const _kBorderColor = Color(0xFFE2E8F0);
+  static const _kTitleColor = Color(0xFF0F172A);
+  static const _kMutedGrey = Color(0xFF94A3B8);
+  static const _kPrefsContacts = 'tc.share_management.contacts_v1';
+  static const _kMaxShare = 5;
+  static const _kMaxShareSnack =
+      '本 app 现阶段仅支持同一事件单次分享给 5 人，如需分享超过 5 人，请再次点击分享';
+  static const _kAvatarColors = <int>[
+    0xFF8B5CF6,
+    0xFFF59E0B,
+    0xFFEF4444,
+    0xFF10B981,
+    0xFF06B6D4,
+    0xFFEC4899,
+    0xFF6366F1,
+    0xFF14B8A6,
+  ];
+  static final _phoneMobile = RegExp(r'^1[3-9]\d{9}$');
+
+  final List<ShareContact> _selectedContacts = [];
+  List<ShareContact> _appContacts = [];
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _nicknameController = TextEditingController();
+  final FocusNode _nicknameFocusNode = FocusNode();
+  final PageController _gridPageController = PageController();
+  int _gridPageIndex = 0;
+
+  bool _showNicknameInput = false;
+  String _currentPhoneForNickname = '';
 
   bool _resultsPhase = false;
   List<_ShareResultEntry> _results = [];
   int _registeredCount = 0;
   int _smsCount = 0;
 
-  static const BoxDecoration _phoneDecorationNeutral = BoxDecoration(
-    color: Colors.white,
-    borderRadius: BorderRadius.all(Radius.circular(18)),
-    boxShadow: [
-      BoxShadow(color: Color(0x0D111827), blurRadius: 20, offset: Offset(0, 8)),
-    ],
-    border: Border.fromBorderSide(BorderSide(color: Color(0xFFECEFF5))),
-  );
+  bool get _canConfirm => _selectedContacts.isNotEmpty && !_resultsPhase;
 
-  static final BoxDecoration _phoneDecorationError = _phoneDecorationNeutral
-      .copyWith(border: Border.all(color: Color(0xFFF04444)));
+  bool get _phoneValid => _phoneMobile.hasMatch(_phoneController.text.trim());
+
+  bool get _isFull => _selectedContacts.length >= _kMaxShare;
 
   @override
   void initState() {
     super.initState();
-    final c = TextEditingController();
-    c.addListener(() => setState(() {}));
-    _controllers.add(c);
+    _phoneController.addListener(() => setState(() {}));
+    _loadAppContacts();
   }
 
   @override
   void dispose() {
-    for (final c in _controllers) {
-      c.dispose();
-    }
+    _phoneController.dispose();
+    _nicknameController.dispose();
+    _nicknameFocusNode.dispose();
+    _gridPageController.dispose();
     super.dispose();
   }
 
-  bool _hasFieldError(String text) {
-    if (text.isEmpty) return false;
-    return !RegExp(r'^\d{11}$').hasMatch(text);
+  void _showMaxShareSnackBar() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text(_kMaxShareSnack)),
+    );
   }
 
-  bool _allEnteredPhonesValid() {
-    final phones = _controllers
-        .map((c) => c.text.trim())
-        .where((s) => s.isNotEmpty)
-        .toList();
-    if (phones.isEmpty) return false;
-    return phones.every((p) => RegExp(r'^\d{11}$').hasMatch(p));
+  Future<void> _loadAppContacts() async {
+    final contacts = <ShareContact>[];
+    try {
+      final p = await SharedPreferences.getInstance();
+      final raw = p.getString(_kPrefsContacts);
+      if (raw != null && raw.isNotEmpty) {
+        final list = jsonDecode(raw) as List<dynamic>;
+        for (final e in list) {
+          if (e is Map<String, dynamic>) {
+            contacts.add(ShareContact.fromJson(e));
+          } else if (e is Map) {
+            contacts.add(
+              ShareContact.fromJson(
+                e.map((k, v) => MapEntry(k.toString(), v)),
+              ),
+            );
+          }
+        }
+      }
+    } catch (_) {}
+    if (mounted) {
+      setState(() => _appContacts = contacts);
+    }
   }
 
-  void _tryAddField() {
-    if (_controllers.length >= 5) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('该事件单次最多可分享给 5 人')));
+  Future<void> _persistContact(ShareContact contact) async {
+    final updated = [
+      contact,
+      ..._appContacts.where((c) => c.phone != contact.phone),
+    ];
+    final p = await SharedPreferences.getInstance();
+    await p.setString(
+      _kPrefsContacts,
+      jsonEncode(updated.map((e) => e.toJson()).toList()),
+    );
+    if (mounted) {
+      setState(() => _appContacts = updated);
+    }
+  }
+
+  bool _isSelected(ShareContact contact) =>
+      _selectedContacts.any((c) => c.phone == contact.phone);
+
+  bool _isAtMaxShare() => _selectedContacts.length >= _kMaxShare;
+
+  bool _tryAddSelected(ShareContact contact) {
+    if (_isSelected(contact)) return true;
+    if (_isAtMaxShare()) {
+      _showMaxShareSnackBar();
+      return false;
+    }
+    setState(() => _selectedContacts.add(contact));
+    return true;
+  }
+
+  void _removeSelected(ShareContact contact) {
+    setState(() {
+      _selectedContacts.removeWhere((c) => c.phone == contact.phone);
+    });
+  }
+
+  void _toggleContact(ShareContact contact) {
+    if (_isSelected(contact)) {
+      _removeSelected(contact);
       return;
     }
-    final c = TextEditingController();
-    c.addListener(() => setState(() {}));
-    setState(() => _controllers.add(c));
+    _tryAddSelected(contact);
   }
 
-  void _removeField(int index) {
-    if (_controllers.length <= 1) return;
-    _controllers[index].dispose();
-    setState(() => _controllers.removeAt(index));
+  Color _avatarColor(int index) => Color(_kAvatarColors[index % _kAvatarColors.length]);
+
+  int _colorIndexForContact(ShareContact contact) {
+    final appIndex = _appContacts.indexWhere((c) => c.phone == contact.phone);
+    if (appIndex >= 0) return appIndex;
+    final phone = contact.phone;
+    var hash = 0;
+    for (var i = 0; i < phone.length; i++) {
+      hash = (hash + phone.codeUnitAt(i)) % _kAvatarColors.length;
+    }
+    return hash;
+  }
+
+  static const double _kAvatarInnerSize = 56;
+  static const double _kAvatarOuterSelectedSize = 64;
+
+  bool _isDirectShareNumber(String name) => RegExp(r'^\d{4}$').hasMatch(name);
+
+  String _avatarDisplayText(ShareContact contact) {
+    final name = contact.name.trim();
+    if (name.isNotEmpty) {
+      if (name.length >= 2) return name.substring(0, 2);
+      return name;
+    }
+    final phone = contact.phone.trim();
+    if (phone.length >= 4) return phone.substring(phone.length - 4);
+    if (phone.isNotEmpty) return phone;
+    return '?';
+  }
+
+  bool _avatarTextIsPhoneDigits(ShareContact contact, String text) {
+    return contact.name.trim().isEmpty && RegExp(r'^\d+$').hasMatch(text);
+  }
+
+  Widget _buildColoredAvatar({
+    required Color color,
+    required ShareContact contact,
+  }) {
+    final text = _avatarDisplayText(contact);
+    final fontSize = _avatarTextIsPhoneDigits(contact, text) ? 14.0 : 16.0;
+    return Container(
+      width: _kAvatarInnerSize,
+      height: _kAvatarInnerSize,
+      alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+      ),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          text,
+          style: TextStyle(
+            fontSize: fontSize,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSelectedAvatar({
+    required Color color,
+    required ShareContact contact,
+  }) {
+    final isDirectShare = _isDirectShareNumber(contact.name.trim());
+    final text =
+        isDirectShare ? contact.name.trim() : _avatarDisplayText(contact);
+    final fontSize = isDirectShare ? 12.0 : 16.0;
+
+    return Container(
+      width: _kAvatarInnerSize,
+      height: _kAvatarInnerSize,
+      alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+      ),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          text,
+          style: TextStyle(
+            fontSize: fontSize,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGridAvatar({
+    required Color color,
+    required ShareContact contact,
+    required bool selected,
+  }) {
+    if (!selected) {
+      return SizedBox(
+        width: _kAvatarOuterSelectedSize,
+        height: _kAvatarOuterSelectedSize,
+        child: Center(
+          child: _buildColoredAvatar(color: color, contact: contact),
+        ),
+      );
+    }
+    return SizedBox(
+      width: _kAvatarOuterSelectedSize,
+      height: _kAvatarOuterSelectedSize,
+      child: Container(
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.white,
+          border: Border.all(color: _kThemeBlue, width: 2),
+        ),
+        child: _buildColoredAvatar(color: color, contact: contact),
+      ),
+    );
+  }
+
+  void _directShare() {
+    if (_showNicknameInput) {
+      setState(() => _showNicknameInput = false);
+    }
+    if (!_phoneValid) return;
+    if (_isAtMaxShare()) {
+      _showMaxShareSnackBar();
+      return;
+    }
+    final phone = _phoneController.text.trim();
+    final suffix = phone.substring(phone.length - 4);
+    final contact = ShareContact(name: suffix, phone: phone);
+    if (_tryAddSelected(contact)) {
+      _phoneController.clear();
+    }
+  }
+
+  void _addAsAppContactAndShare() {
+    if (!_phoneValid) return;
+    final phone = _phoneController.text.trim();
+    setState(() {
+      _showNicknameInput = true;
+      _currentPhoneForNickname = phone;
+      _nicknameController.clear();
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _nicknameFocusNode.requestFocus();
+    });
+  }
+
+  void _cancelNicknameInput() {
+    setState(() => _showNicknameInput = false);
+  }
+
+  Future<void> _confirmNicknameInput() async {
+    final name = _nicknameController.text.trim();
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请输入称呼')),
+      );
+      return;
+    }
+    if (_isAtMaxShare()) {
+      _showMaxShareSnackBar();
+      return;
+    }
+    final contact = ShareContact(name: name, phone: _currentPhoneForNickname);
+    await _persistContact(contact);
+    await _loadAppContacts();
+    if (!mounted) return;
+    if (_tryAddSelected(contact)) {
+      setState(() {
+        _showNicknameInput = false;
+        _phoneController.clear();
+        _nicknameController.clear();
+      });
+    }
   }
 
   Future<void> _submitShare() async {
-    if (!_allEnteredPhonesValid()) return;
-    final phones = _controllers
-        .map((c) => c.text.trim())
-        .where((s) => s.isNotEmpty)
-        .toList();
+    if (!_canConfirm) return;
+    final phones = _selectedContacts.map((c) => c.phone).toList();
 
     final daily = await _ShareDailyQuota.getTodayCount();
     if (!mounted) return;
@@ -952,8 +1218,7 @@ class _ShareEventSheetState extends State<_ShareEventSheet> {
     var reg = 0;
     var sms = 0;
     for (final p in phones) {
-      final last = int.tryParse(p.substring(p.length - 1)) ?? 0;
-      final registered = last.isOdd;
+      final registered = _appContacts.any((c) => c.phone == p);
       results.add(_ShareResultEntry(phone: p, registered: registered));
       if (registered) {
         reg++;
@@ -978,31 +1243,174 @@ class _ShareEventSheetState extends State<_ShareEventSheet> {
     final k = _smsCount;
     Navigator.of(context).pop();
     if (!widget.parentContext.mounted) return;
-    ScaffoldMessenger.of(
-      widget.parentContext,
-    ).showSnackBar(SnackBar(content: Text('已分享给 $n 位，$m 位等待确认，$k 位将收到短信（免费）')));
+    ScaffoldMessenger.of(widget.parentContext).showSnackBar(
+      SnackBar(content: Text('已分享给 $n 位，$m 位等待确认，$k 位将收到短信（免费）')),
+    );
   }
 
-  Widget _phoneField(int index) {
-    final c = _controllers[index];
-    final err = _hasFieldError(c.text);
-    return Container(
-      decoration: err ? _phoneDecorationError : _phoneDecorationNeutral,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: Row(
+  Widget _buildSelectedContacts() {
+    if (_selectedContacts.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          height: 64,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            shrinkWrap: true,
+            itemCount: _selectedContacts.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 8),
+            itemBuilder: (context, index) {
+              final contact = _selectedContacts[index];
+              return GestureDetector(
+                onTap: () => _removeSelected(contact),
+                behavior: HitTestBehavior.opaque,
+                child: SizedBox(
+                  width: _kAvatarInnerSize,
+                  height: 64,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    alignment: Alignment.center,
+                    children: [
+                      _buildSelectedAvatar(
+                        color: _avatarColor(_colorIndexForContact(contact)),
+                        contact: contact,
+                      ),
+                      Positioned(
+                        top: -6,
+                        right: -6,
+                        child: Container(
+                          width: 20,
+                          height: 20,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: _kBorderColor, width: 0.7),
+                          ),
+                          child: const Icon(Icons.close, size: 16, color: _kTitleColor),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 12),
+      ],
+    );
+  }
+
+  Widget _buildGridCell(ShareContact contact, int colorIndex) {
+    final selected = _isSelected(contact);
+    final disabled = _isFull && !selected;
+    final nameColor = selected
+        ? _kThemeBlue
+        : (disabled ? Colors.grey.shade400 : _kTitleColor);
+
+    return GestureDetector(
+      onTap: disabled ? null : () => _toggleContact(contact),
+      behavior: HitTestBehavior.opaque,
+      child: Opacity(
+        opacity: disabled ? 0.5 : 1.0,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildGridAvatar(
+              color: _avatarColor(colorIndex),
+              contact: contact,
+              selected: selected,
+            ),
+            const SizedBox(height: 4),
+            SizedBox(
+              height: 22,
+              width: double.infinity,
+              child: Text(
+                contact.name.trim().isNotEmpty ? contact.name : contact.phone,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  height: 1.0,
+                  color: nameColor,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContactGridPage(
+    List<ShareContact> pageItems,
+    int startIndex, {
+    bool shrinkWrap = true,
+  }) {
+    return GridView.count(
+      crossAxisCount: 4,
+      childAspectRatio: 0.88,
+      mainAxisSpacing: 4.0,
+      crossAxisSpacing: 12.0,
+      padding: EdgeInsets.zero,
+      shrinkWrap: shrinkWrap,
+      physics: const NeverScrollableScrollPhysics(),
+      children: List.generate(pageItems.length, (i) {
+        return _buildGridCell(pageItems[i], startIndex + i);
+      }),
+    );
+  }
+
+  Widget _buildContactGrid() {
+    if (_appContacts.isEmpty) return const SizedBox.shrink();
+
+    if (_appContacts.length <= 8) {
+      return _buildContactGridPage(_appContacts, 0);
+    }
+
+    final pageCount = (_appContacts.length / 8).ceil();
+    return SizedBox(
+      height: 210,
+      child: Column(
         children: [
-          const Icon(Icons.phone, color: Color(0xFF9CA3AF), size: 22),
-          const SizedBox(width: 8),
           Expanded(
-            child: TextField(
-              controller: c,
-              keyboardType: TextInputType.phone,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              decoration: const InputDecoration(
-                hintText: '请输入手机号',
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.symmetric(vertical: 14),
+            child: PageView.builder(
+              controller: _gridPageController,
+              onPageChanged: (index) => setState(() => _gridPageIndex = index),
+              itemCount: pageCount,
+              itemBuilder: (context, pageIndex) {
+                final start = pageIndex * 8;
+                final pageItems = _appContacts.skip(start).take(8).toList();
+                return _buildContactGridPage(
+                  pageItems,
+                  start,
+                  shrinkWrap: false,
+                );
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: SizedBox(
+              height: 16,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(pageCount, (index) {
+                  final active = index == _gridPageIndex;
+                  return Container(
+                    width: 6,
+                    height: 6,
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    decoration: BoxDecoration(
+                      color: active ? _kThemeBlue : const Color(0xFFE2E8F0),
+                      shape: BoxShape.circle,
+                    ),
+                  );
+                }),
               ),
             ),
           ),
@@ -1011,154 +1419,375 @@ class _ShareEventSheetState extends State<_ShareEventSheet> {
     );
   }
 
+  Widget _buildPhoneInput() {
+    final borderColor = _isFull ? Colors.grey.shade300 : _kBorderColor;
+    final hintColor = _isFull ? Colors.grey.shade400 : const Color(0xFFCBD5E1);
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: borderColor, width: 0.7),
+        color: _isFull ? Colors.grey.shade50 : Colors.white,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Row(
+        children: [
+          Container(
+            width: 72,
+            alignment: Alignment.center,
+            color: Colors.transparent,
+            child: Text(
+              '+86',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: _isFull ? Colors.grey.shade400 : _kMutedGrey,
+              ),
+            ),
+          ),
+          Container(width: 0.7, height: 48, color: borderColor),
+          Expanded(
+            child: TextField(
+              controller: _phoneController,
+              enabled: !_isFull,
+              keyboardType: TextInputType.phone,
+              maxLength: 11,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: InputDecoration(
+                hintText: '输入手机号',
+                hintStyle: TextStyle(color: hintColor),
+                border: InputBorder.none,
+                isDense: true,
+                counterText: '',
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNicknameInput() {
+    final hintColor = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6);
+    final inputBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(18),
+      borderSide: const BorderSide(color: _kBorderColor, width: 0.7),
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 12),
+        Text(
+          '为 +86 $_currentPhoneForNickname 设置称呼',
+          style: TextStyle(fontSize: 14, color: hintColor),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _nicknameController,
+                focusNode: _nicknameFocusNode,
+                maxLines: 1,
+                decoration: InputDecoration(
+                  hintText: '称呼',
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  border: inputBorder,
+                  enabledBorder: inputBorder,
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(18),
+                    borderSide: const BorderSide(color: _kThemeBlue, width: 0.7),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            TextButton(
+              onPressed: _cancelNicknameInput,
+              child: const Text('取消'),
+            ),
+            const SizedBox(width: 8),
+            FilledButton(
+              onPressed: _confirmNicknameInput,
+              style: FilledButton.styleFrom(
+                backgroundColor: _kThemeBlue,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text('确定'),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOutlineAction({
+    required String label,
+    required IconData icon,
+    required VoidCallback? onPressed,
+  }) {
+    final cs = Theme.of(context).colorScheme;
+    final disabledColor = cs.onSurface.withValues(alpha: 0.3);
+    return OutlinedButton(
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        foregroundColor: _kThemeBlue,
+        disabledForegroundColor: disabledColor,
+        side: BorderSide(
+          color: onPressed != null ? _kThemeBlue : disabledColor,
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 16),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResultsPhase() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 200),
+          child: ListView.builder(
+            shrinkWrap: true,
+            primary: false,
+            itemCount: _results.length,
+            itemBuilder: (context, i) {
+              final r = _results[i];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      r.registered ? Icons.check_circle : Icons.sms_outlined,
+                      color: r.registered
+                          ? const Color(0xFF10B981)
+                          : const Color(0xFFF97316),
+                      size: 22,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            r.phone,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            r.registered
+                                ? '已发送至对方账号，等待确认'
+                                : '已发送邀请短信（免费）',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          height: 48,
+          child: FilledButton(
+            onPressed: _finishSheet,
+            style: FilledButton.styleFrom(
+              backgroundColor: _kThemeBlue,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            child: const Text(
+              '完成',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final atMaxFields = _controllers.length >= 5;
-    final showMaxHint = atMaxFields;
-
     return SafeArea(
       top: false,
       child: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                '分享给…',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 16),
-              if (!_resultsPhase) ...[
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _controllers.length,
-                  itemBuilder: (context, index) {
-                    final c = _controllers[index];
-                    final err = _hasFieldError(c.text);
-                    final isLast = index == _controllers.length - 1;
-                    return Padding(
-                      padding: EdgeInsets.only(
-                        bottom: index == _controllers.length - 1 ? 0 : 12,
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      '分享给…',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: _kTitleColor,
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Expanded(child: _phoneField(index)),
-                              if (_controllers.length >= 2)
-                                IconButton(
-                                  icon: const Icon(Icons.delete_outline),
-                                  color: Colors.grey.shade600,
-                                  onPressed: () => _removeField(index),
-                                ),
-                              if (isLast)
-                                IconButton(
-                                  icon: const Icon(Icons.add),
-                                  color: atMaxFields
-                                      ? Colors.grey
-                                      : Theme.of(context).colorScheme.primary,
-                                  onPressed: atMaxFields ? null : _tryAddField,
-                                ),
-                            ],
-                          ),
-                          if (err)
-                            const Padding(
-                              padding: EdgeInsets.only(top: 6, left: 4),
-                              child: Text(
-                                '请输入正确的 11 位手机号',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFFF04444),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-                if (showMaxHint) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    '该事件单次最多可分享给 5 人',
-                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    icon: const Icon(Icons.close, color: _kMutedGrey, size: 22),
                   ),
                 ],
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: _allEnteredPhonesValid() ? _submitShare : null,
-                    child: const Text('确认分享'),
+              ),
+              if (_resultsPhase)
+                _buildResultsPhase()
+              else ...[
+                _buildSelectedContacts(),
+                const Text(
+                  'App 内联系人',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: _kTitleColor,
                   ),
                 ),
-              ] else ...[
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 200),
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    primary: false,
-                    itemCount: _results.length,
-                    itemBuilder: (context, i) {
-                      final r = _results[i];
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Icon(
-                              r.registered
-                                  ? Icons.check_circle
-                                  : Icons.sms_outlined,
-                              color: r.registered
-                                  ? const Color(0xFF10B981)
-                                  : const Color(0xFFF97316),
-                              size: 22,
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    r.phone,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    r.registered
-                                        ? '已发送至对方账号，等待确认'
-                                        : '已发送邀请短信（免费）',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: Colors.grey.shade700,
-                                    ),
-                                  ),
-                                ],
+                const SizedBox(height: 12),
+                _buildContactGrid(),
+                const SizedBox(height: 12),
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () {},
+                    borderRadius: BorderRadius.circular(12),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.person_add_alt_1_outlined, size: 20, color: _kTitleColor),
+                          const SizedBox(width: 10),
+                          const Expanded(
+                            child: Text(
+                              '从手机通讯录选择',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                color: _kTitleColor,
                               ),
                             ),
-                          ],
-                        ),
-                      );
-                    },
+                          ),
+                          const Icon(Icons.chevron_right, size: 20, color: _kMutedGrey),
+                        ],
+                      ),
+                    ),
                   ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  '手动输入手机号',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: _kTitleColor,
+                  ),
+                ),
+                if (_isFull) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    '已选满 5 人，如需添加请先删除已选联系人',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.grey.shade500,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 12),
+                _buildPhoneInput(),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildOutlineAction(
+                        label: '添加联系人并分享',
+                        icon: Icons.person_add_outlined,
+                        onPressed: _isFull
+                            ? null
+                            : (_phoneValid ? _addAsAppContactAndShare : null),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildOutlineAction(
+                        label: '直接分享',
+                        icon: Icons.send_outlined,
+                        onPressed: _isFull
+                            ? null
+                            : (_phoneValid ? _directShare : null),
+                      ),
+                    ),
+                  ],
+                ),
+                if (_showNicknameInput && !_isFull) _buildNicknameInput(),
+                const SizedBox(height: 12),
+                const Text(
+                  '该事件单次最多可分享给 5 人',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 13, color: _kMutedGrey),
                 ),
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
+                  height: 48,
                   child: FilledButton(
-                    onPressed: _finishSheet,
-                    child: const Text('完成'),
+                    onPressed: _canConfirm ? _submitShare : null,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: _kThemeBlue,
+                      disabledBackgroundColor: const Color(0xFFE2E8F0),
+                      disabledForegroundColor: _kMutedGrey,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: Text(
+                      '确认分享',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: _canConfirm ? Colors.white : _kMutedGrey,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -1240,6 +1869,23 @@ class _ListEventCard extends StatelessWidget {
   final VoidCallback onTogglePin;
   final List<Widget> Function(BuildContext slidableContext) slideActionsBuilder;
 
+  static bool _shouldShowPartnerShareMarker(String tagId) =>
+      TagService.shouldShowPartnerShareMarker(tagId);
+
+  static Widget _partnerShareTitleMarker(String tagId) {
+    if (!_shouldShowPartnerShareMarker(tagId)) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: SvgPicture.asset(
+        'assets/images/ic_couple_hearts.svg',
+        width: 16,
+        height: 16,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final mutedArchived = archivedDowngrade;
@@ -1298,11 +1944,20 @@ class _ListEventCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
-                            event.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: titleStyle,
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  event.title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: titleStyle,
+                                ),
+                              ),
+                              _partnerShareTitleMarker(event.tagId),
+                            ],
                           ),
                           const SizedBox(height: 8),
                           _ListCardDateRow(

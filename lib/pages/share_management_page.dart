@@ -6,6 +6,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:time_calendar/models/partner_relation.dart';
+import 'package:time_calendar/models/share_contact.dart';
+import 'package:time_calendar/services/tag_service.dart';
 import 'package:time_calendar/services/user_session.dart';
 import 'package:time_calendar/widgets/numeric_keypad.dart';
 
@@ -25,6 +28,9 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
   static const _coupleCardBg = Color(0xFFFDF2F8);
   static const _tipBg = Color(0xFFFCE7F3);
   static const _tipText = Color(0xFFEC4899);
+  static const _themeBlue = Color(0xFF1A73E8);
+  static const _switchInactiveTrack = Color(0xFFE5E7EB);
+  static const _dangerRed = Color(0xFFEF4444);
   static final _phoneMobile = RegExp(r'^1[3-9]\d{9}$');
 
   final TextEditingController _nameController = TextEditingController();
@@ -35,6 +41,8 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
   bool _phoneKeypadOpen = false;
 
   final List<ShareContact> _contacts = [];
+  PartnerRelation _partnerRelation =
+      const PartnerRelation(status: PartnerStatus.none);
   String? _partnerPhone;
   bool _partnerAutoShare = true;
   bool _acceptOthers = true;
@@ -110,6 +118,7 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
 
   Future<void> _bootstrap() async {
     await UserSession.instance.ensureInitialized();
+    await TagService.loadTags();
     _partnerAutoShare = UserSession.instance.autoShareEnabled;
     _acceptOthers = UserSession.instance.acceptOthersShareDefault;
     final p = await SharedPreferences.getInstance();
@@ -131,10 +140,20 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
       } catch (_) {}
     }
     _partnerPhone = p.getString(_kPrefsPartnerPhone);
+    _partnerRelation = TagService.getPartnerRelation();
+    _syncPartnerPhoneFromRelation();
     _reconcilePartner();
     if (mounted) {
       setState(() => _loaded = true);
     }
+  }
+
+  void _syncPartnerPhoneFromRelation() {
+    final id = _partnerRelation.partnerContactId;
+    if (_partnerRelation.status == PartnerStatus.none || id == null) {
+      return;
+    }
+    _partnerPhone = id;
   }
 
   void _reconcilePartner() {
@@ -224,9 +243,19 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
           turnOffAuto = true;
         }
       }
+      if (_partnerRelation.partnerContactId == c.phone &&
+          _partnerRelation.status != PartnerStatus.none) {
+        _partnerRelation = const PartnerRelation(status: PartnerStatus.none);
+      }
     });
     if (turnOffAuto) {
       await UserSession.instance.setAutoShareEnabled(false);
+    }
+    if (_partnerRelation.status == PartnerStatus.none &&
+        TagService.getPartnerRelation().status != PartnerStatus.none) {
+      await TagService.setPartnerRelation(
+        const PartnerRelation(status: PartnerStatus.none),
+      );
     }
     await _persistLocal();
   }
@@ -295,10 +324,129 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
   }
 
+  Future<void> _resetPartnerRelation() async {
+    await TagService.setPartnerRelation(
+      const PartnerRelation(status: PartnerStatus.none),
+    );
+    var turnOffAuto = false;
+    setState(() {
+      _partnerRelation = TagService.getPartnerRelation();
+      _partnerPhone = null;
+      if (_partnerAutoShare) {
+        _partnerAutoShare = false;
+        turnOffAuto = true;
+      }
+    });
+    if (turnOffAuto) {
+      await UserSession.instance.setAutoShareEnabled(false);
+    }
+    await _persistLocal();
+  }
+
+  Future<void> _cancelPartnerInvite() async {
+    await _resetPartnerRelation();
+  }
+
+  Future<void> _unbindPartner() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('解除伴侣关系'),
+        content: const Text('解除后，伴侣类标签下的提醒与时光集将停止双向同步，本地数据仍会保留。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('解除关系', style: TextStyle(color: _dangerRed)),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    await _resetPartnerRelation();
+  }
+
+  Future<void> _showPartnerPicker() async {
+    if (_contacts.isEmpty) {
+      _toast('请先添加常用共享联系人');
+      return;
+    }
+    final selected = await showModalBottomSheet<ShareContact>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final bottom = MediaQuery.paddingOf(ctx).bottom;
+        return ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          child: Material(
+            color: Colors.white,
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(20, 16, 20, 16 + bottom),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      '选择伴侣联系人',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1F2937),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxHeight: MediaQuery.sizeOf(ctx).height * 0.4,
+                      ),
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: _contacts.length,
+                        separatorBuilder: (_, _) => const Divider(height: 1),
+                        itemBuilder: (context, index) {
+                          final c = _contacts[index];
+                          return ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(c.name),
+                            subtitle: Text(c.phone),
+                            onTap: () => Navigator.pop(ctx, c),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+    if (selected == null || !mounted) return;
+    await TagService.setPartnerRelation(
+      PartnerRelation(
+        status: PartnerStatus.pending,
+        partnerContactId: selected.phone,
+        partnerName: selected.name,
+      ),
+    );
+    setState(() {
+      _partnerRelation = TagService.getPartnerRelation();
+      _partnerPhone = selected.phone;
+    });
+    await _persistLocal();
+  }
+
   Future<void> _onPartnerAutoChanged(bool v) async {
     if (v) {
-      if (_partnerPhone == null || _contacts.isEmpty) {
-        _toast('请先选择伴侣共享联系人');
+      if (_partnerRelation.status != PartnerStatus.accepted ||
+          _partnerPhone == null) {
+        _toast('请先建立伴侣关系');
         return;
       }
       setState(() => _partnerAutoShare = true);
@@ -382,6 +530,8 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                _buildPartnerRelationSection(context, cs, textTheme),
+                const SizedBox(height: 20),
                 _sectionTitle(context, '常用共享联系人'),
                 const SizedBox(height: 16),
                 _buildAddArea(cs, textTheme),
@@ -402,8 +552,6 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
                     );
                   },
                 ),
-                const SizedBox(height: 20),
-                _buildCoupleSection(context, cs, textTheme),
                 const SizedBox(height: 20),
                 _sectionTitle(context, '共享通用设置'),
                 const SizedBox(height: 16),
@@ -572,17 +720,16 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
     );
   }
 
-  String? get _validPartnerValue {
-    if (_partnerPhone == null) return null;
-    if (!_contacts.any((c) => c.phone == _partnerPhone)) return null;
-    return _partnerPhone;
-  }
-
-  Widget _buildCoupleSection(
+  Widget _buildPartnerRelationSection(
     BuildContext context,
     ColorScheme cs,
     TextTheme textTheme,
   ) {
+    final relation = _partnerRelation;
+    final partnerName = relation.partnerName?.trim().isNotEmpty == true
+        ? relation.partnerName!.trim()
+        : '伴侣';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -595,7 +742,7 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
             ),
             const SizedBox(width: 6),
             Text(
-              '伴侣类事件共享',
+              '伴侣共享',
               style: _sectionTitleTextStyle(context),
             ),
           ],
@@ -611,121 +758,151 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
               width: 0.7,
             ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                '伴侣共享联系人',
-                style: textTheme.bodyLarge?.copyWith(
-                  color: cs.onSurface,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 6),
-              DropdownButtonFormField<String>(
-                value: _validPartnerValue, // ignore: deprecated_member_use
-                isExpanded: true,
-                items: _contacts
-                    .map(
-                      (c) => DropdownMenuItem(
-                        value: c.phone,
-                        child: Text(
-                          '${c.name}(${c.phone})',
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    )
-                    .toList(),
-                onChanged: _contacts.isEmpty
-                    ? null
-                    : (v) {
-                        setState(() => _partnerPhone = v);
-                        _persistLocal();
-                      },
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: cs.outline, width: 0.7),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color: const Color(0xFF89888D).withValues(alpha: 0.5),
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: cs.primary, width: 1),
-                  ),
-                ),
-                hint: Text(
-                  _contacts.isEmpty ? '请先添加常用共享联系人' : '请选择',
-                  style: textTheme.bodyLarge?.copyWith(
-                    color: cs.onSurfaceVariant,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          child: switch (relation.status) {
+            PartnerStatus.none => Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '自动共享',
-                          style: textTheme.bodyLarge?.copyWith(
-                            color: cs.onSurface,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '伴侣类事件变动时自动同步给对方',
-                          style: textTheme.bodySmall?.copyWith(
-                            color: cs.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Switch.adaptive(
-                    value: _partnerAutoShare,
-                    onChanged: _onPartnerAutoChanged,
-                    activeTrackColor: cs.primary,
-                    activeThumbColor: cs.onPrimary,
-                  ),
-                ],
-              ),
-              if (_partnerAutoShare) ...[
-                const SizedBox(height: 10),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _tipBg,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '开启后，TA 将能实时感受到你的每一份陪伴与牵挂。',
+                  Text(
+                    '设置一位伴侣联系人后，可共享伴侣类标签下的提醒与时光集。',
                     style: textTheme.bodySmall?.copyWith(
-                      color: _tipText,
+                      color: cs.onSurfaceVariant,
                       height: 1.5,
                     ),
                   ),
-                ),
-              ],
-            ],
-          ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    height: 48,
+                    child: FilledButton(
+                      onPressed: _showPartnerPicker,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: _themeBlue,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: const Text(
+                        '设置伴侣',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            PartnerStatus.pending => Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Text(
+                      '等待 $partnerName 接受邀请',
+                      style: textTheme.bodyLarge?.copyWith(
+                        color: cs.onSurface,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: _cancelPartnerInvite,
+                    child: Text(
+                      '取消邀请',
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            PartnerStatus.accepted => Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '已与 $partnerName 共享',
+                          style: textTheme.bodyLarge?.copyWith(
+                            color: cs.onSurface,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      SvgPicture.asset(
+                        'assets/images/ic_couple_hearts.svg',
+                        width: 16,
+                        height: 16,
+                      ),
+                      const SizedBox(width: 12),
+                      TextButton(
+                        onPressed: _unbindPartner,
+                        child: const Text(
+                          '解除关系',
+                          style: TextStyle(color: _dangerRed),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '自动共享',
+                              style: textTheme.bodyLarge?.copyWith(
+                                color: cs.onSurface,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '伴侣类事件变动时自动同步给对方',
+                              style: textTheme.bodySmall?.copyWith(
+                                color: cs.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Switch.adaptive(
+                        value: _partnerAutoShare,
+                        onChanged: _onPartnerAutoChanged,
+                        activeTrackColor: cs.primary,
+                        activeThumbColor: cs.onPrimary,
+                        inactiveTrackColor: _switchInactiveTrack,
+                        inactiveThumbColor: Colors.white,
+                      ),
+                    ],
+                  ),
+                  if (_partnerAutoShare) ...[
+                    const SizedBox(height: 10),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _tipBg,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '开启后，TA 将能实时感受到你的每一份陪伴与牵挂。',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: _tipText,
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+          },
         ),
       ],
     );
@@ -770,30 +947,12 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
               onChanged: _onAcceptOthersChanged,
               activeTrackColor: cs.primary,
               activeThumbColor: cs.onPrimary,
+              inactiveTrackColor: _switchInactiveTrack,
+              inactiveThumbColor: Colors.white,
             ),
           ],
         ),
       ),
-    );
-  }
-}
-
-class ShareContact {
-  ShareContact({required this.name, required this.phone});
-
-  final String name;
-  final String phone;
-
-  Map<String, dynamic> toJson() => {'name': name, 'phone': phone};
-
-  factory ShareContact.fromJson(Map<String, dynamic> m) {
-    final phoneRaw = m['phone'];
-    final phoneStr = phoneRaw is int
-        ? '$phoneRaw'
-        : (phoneRaw as String? ?? '');
-    return ShareContact(
-      name: m['name']?.toString() ?? '',
-      phone: phoneStr,
     );
   }
 }

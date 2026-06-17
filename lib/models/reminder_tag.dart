@@ -13,6 +13,7 @@ class ReminderTag {
     this.photoPath,
     this.iconName,
     this.isSystemTag = false,
+    this.isPartnerTag = false,
   });
 
   final String id;
@@ -28,6 +29,8 @@ class ReminderTag {
   final String? iconName;
   /// 系统预置标签（如「生日」）：可编辑，不可删除。
   final bool isSystemTag;
+  /// 伴侣类标签：可与其他用户共享。
+  final bool isPartnerTag;
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -40,6 +43,7 @@ class ReminderTag {
         if (photoPath != null) 'photoPath': photoPath,
         if (iconName != null && iconName!.isNotEmpty) 'iconName': iconName,
         if (isSystemTag) 'isSystemTag': true,
+        if (isPartnerTag) 'isPartnerTag': true,
       };
 
   factory ReminderTag.fromJson(Map<String, dynamic> m) {
@@ -57,6 +61,7 @@ class ReminderTag {
       photoPath: m['photoPath'] as String?,
       iconName: m['iconName'] as String?,
       isSystemTag: m['isSystemTag'] as bool? ?? id == 'birthday',
+      isPartnerTag: m['isPartnerTag'] as bool? ?? false,
     );
   }
 
@@ -71,6 +76,7 @@ class ReminderTag {
     String? photoPath,
     String? iconName,
     bool? isSystemTag,
+    bool? isPartnerTag,
     bool clearPhotoPath = false,
     bool clearIconName = false,
     bool clearAccentColor = false,
@@ -86,6 +92,7 @@ class ReminderTag {
       photoPath: clearPhotoPath ? null : (photoPath ?? this.photoPath),
       iconName: clearIconName ? null : (iconName ?? this.iconName),
       isSystemTag: isSystemTag ?? this.isSystemTag,
+      isPartnerTag: isPartnerTag ?? this.isPartnerTag,
     );
   }
 }

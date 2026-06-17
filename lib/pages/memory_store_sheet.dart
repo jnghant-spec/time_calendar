@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:time_calendar/models/list_event.dart';
 import 'package:time_calendar/models/memory_collection.dart';
 import 'package:time_calendar/pages/memory_create_sheet.dart';
@@ -140,6 +141,20 @@ class _MemoryStoreSheetState extends State<MemoryStoreSheet> {
     );
   }
 
+  Widget _partnerShareTitleMarker(String tagId) {
+    if (!TagService.shouldShowPartnerShareMarker(tagId)) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: SvgPicture.asset(
+        'assets/images/ic_couple_hearts.svg',
+        width: 16,
+        height: 16,
+      ),
+    );
+  }
+
   Widget _collectionRow(MemoryCollection c) {
     final selected = _selectedId == c.id;
     return InkWell(
@@ -151,14 +166,23 @@ class _MemoryStoreSheetState extends State<MemoryStoreSheet> {
             _collectionCover(c),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(
-                c.name,
-                style: const TextStyle(
-                  fontSize: 15,
-                  color: MemoryStoreSheet._titleColor,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Flexible(
+                    child: Text(
+                      c.name,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        color: MemoryStoreSheet._titleColor,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  _partnerShareTitleMarker(c.tagId),
+                ],
               ),
             ),
             const SizedBox(width: 12),

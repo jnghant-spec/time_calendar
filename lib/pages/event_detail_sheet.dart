@@ -6,6 +6,7 @@ import 'package:time_calendar/main.dart' show appNavigatorKey;
 import 'package:time_calendar/models/list_event.dart';
 import 'package:time_calendar/pages/memory_store_sheet.dart';
 import 'package:time_calendar/services/tag_service.dart';
+import 'package:time_calendar/services/user_session.dart';
 import 'package:time_calendar/utils/event_date_utils.dart';
 import 'package:time_calendar/widgets/event_photo_paths_preview.dart';
 
@@ -29,6 +30,7 @@ class EventDetailSheet extends StatelessWidget {
   static const Color _lunarBg = Color(0xFFFFF7ED);
   static const Color _lunarFg = Color(0xFFF97316);
   static const Color _themeBlue = Color(0xFF1A73E8);
+  static const Color _modifiedHint = Color(0xFF9CA3AF);
   static const Color _sheetBg = Color(0xFFFFFFFF);
   static const Color _infoCardBg = Color(0xFFFAFBFC);
 
@@ -66,6 +68,35 @@ class EventDetailSheet extends StatelessWidget {
       width: 28,
       height: 28,
       fit: BoxFit.contain,
+    );
+  }
+
+  static String _formatModifiedAt(DateTime dt) {
+    final hour = dt.hour.toString().padLeft(2, '0');
+    final minute = dt.minute.toString().padLeft(2, '0');
+    return '${dt.month}月${dt.day}日 $hour:$minute';
+  }
+
+  String? _partnerModifiedLabel(ListEvent event) {
+    final name = event.lastModifiedByName?.trim();
+    final at = event.lastModifiedAt;
+    if (name == null || name.isEmpty || at == null) return null;
+    final currentName = UserSession.instance.nickname.trim();
+    if (name == currentName) return null;
+    return '$name ${_formatModifiedAt(at)} 修改';
+  }
+
+  Widget _partnerShareTitleMarker(String tagId) {
+    if (!TagService.shouldShowPartnerShareMarker(tagId)) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: SvgPicture.asset(
+        'assets/images/ic_couple_hearts.svg',
+        width: 16,
+        height: 16,
+      ),
     );
   }
 
@@ -124,6 +155,7 @@ class EventDetailSheet extends StatelessWidget {
     final sameDayLine = _showSameDayReminder(event.reminderType)
         ? event.sameDayTimeHm
         : '无';
+    final modifiedLabel = _partnerModifiedLabel(event);
 
     return PopScope(
       onPopInvokedWithResult: (didPop, _) {
@@ -193,13 +225,22 @@ class EventDetailSheet extends StatelessWidget {
                               ),
                               const SizedBox(width: 12),
                               Expanded(
-                                child: Text(
-                                  event.title,
-                                  style: const TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w600,
-                                    color: _titleBarText,
-                                  ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        event.title,
+                                        style: const TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w600,
+                                          color: _titleBarText,
+                                        ),
+                                      ),
+                                    ),
+                                    _partnerShareTitleMarker(event.tagId),
+                                  ],
                                 ),
                               ),
                               if (event.isPinned) ...[
@@ -214,12 +255,27 @@ class EventDetailSheet extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                formatGregorianDateLongZh(displayDay),
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  color: _muted,
-                                ),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      formatGregorianDateLongZh(displayDay),
+                                      style: const TextStyle(
+                                        fontSize: 15,
+                                        color: _muted,
+                                      ),
+                                    ),
+                                  ),
+                                  if (modifiedLabel != null)
+                                    Text(
+                                      modifiedLabel,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: _modifiedHint,
+                                      ),
+                                    ),
+                                ],
                               ),
                               if (event.isLunarRecurring) ...[
                                 const SizedBox(height: 6),

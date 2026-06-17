@@ -11,6 +11,7 @@ import 'package:time_calendar/pages/memory_photo_stream_sheet.dart';
 import 'package:time_calendar/pages/photo_viewer_page.dart';
 import 'package:time_calendar/services/memory_service.dart';
 import 'package:time_calendar/services/tag_bar_state.dart';
+import 'package:time_calendar/services/tag_service.dart';
 import 'package:time_calendar/utils/event_date_utils.dart';
 import 'package:time_calendar/widgets/confirm_delete_dialog.dart';
 import 'package:time_calendar/widgets/tag_circle_widget.dart';
@@ -358,6 +359,32 @@ class _MemoryPageState extends State<MemoryPage> {
     );
   }
 
+  Widget _collectionTitle(String name, String tagId, {required TextStyle style}) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Flexible(
+          child: Text(
+            name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: style,
+          ),
+        ),
+        if (TagService.shouldShowPartnerShareMarker(tagId))
+          Padding(
+            padding: const EdgeInsets.only(left: 4),
+            child: SvgPicture.asset(
+              'assets/images/ic_couple_hearts.svg',
+              width: 16,
+              height: 16,
+            ),
+          ),
+      ],
+    );
+  }
+
   Widget _cardInfoColumn(
     MemoryCollection c,
     List<MemoryEvent> ev, {
@@ -377,10 +404,9 @@ class _MemoryPageState extends State<MemoryPage> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              _collectionTitle(
                 c.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+                c.tagId,
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
@@ -438,10 +464,9 @@ class _MemoryPageState extends State<MemoryPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
+          _collectionTitle(
             c.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+            c.tagId,
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
