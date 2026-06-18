@@ -201,6 +201,10 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
       _toast('该手机号已在列表中');
       return;
     }
+    if (_contacts.any((c) => c.name.trim() == name.trim())) {
+      _toast('该称呼已存在');
+      return;
+    }
     setState(() {
       _contacts.insert(0, ShareContact(name: name, phone: phone));
       _partnerPhone ??= phone;
@@ -742,7 +746,7 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
             ),
             const SizedBox(width: 6),
             Text(
-              '伴侣共享',
+              '亲密关系共享',
               style: _sectionTitleTextStyle(context),
             ),
           ],
@@ -839,7 +843,7 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
                       TextButton(
                         onPressed: _unbindPartner,
                         child: const Text(
-                          '解除关系',
+                          '解除绑定',
                           style: TextStyle(color: _dangerRed),
                         ),
                       ),
@@ -861,7 +865,7 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              '伴侣类事件变动时自动同步给对方',
+                              '亲密关系类事件变动时自动同步给另一半',
                               style: textTheme.bodySmall?.copyWith(
                                 color: cs.onSurfaceVariant,
                               ),

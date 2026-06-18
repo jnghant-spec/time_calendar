@@ -564,7 +564,7 @@ class _TagEditorSheetState extends State<TagEditorSheet> {
           children: [
             const Expanded(
               child: Text(
-                '设为伴侣共享标签',
+                '设为亲密关系共享标签',
                 style: TextStyle(fontSize: 16, color: _titleColor),
               ),
             ),
@@ -580,7 +580,7 @@ class _TagEditorSheetState extends State<TagEditorSheet> {
         ),
         const SizedBox(height: 4),
         const Text(
-          '开启后，该标签下的提醒与时光集将自动同步给伴侣',
+          '开启后，该标签下的提醒与时光集将自动同步给另一半',
           style: TextStyle(fontSize: 12, color: _partnerStatusMuted),
         ),
       ],
@@ -1088,7 +1088,7 @@ class _ManageTagListTile extends StatelessWidget {
     }
 
     return const Text(
-      '待绑定伴侣',
+      '待绑定另一半',
       style: TextStyle(
         fontSize: 12,
         color: _partnerStatusMuted,
