@@ -417,10 +417,18 @@ class _ShareEventSheetState extends State<ShareEventSheet> {
     final n = _results.length;
     final m = _registeredCount;
     final k = _smsCount;
+    final String message;
+    if (k == 0) {
+      message = '已分享给 $n 人，等待确认';
+    } else if (m == 0) {
+      message = '已分享给 $n 人，短信发送中（免费）';
+    } else {
+      message = '已分享 $n 人：$m 人 App 内，$k 人短信（免费）';
+    }
     Navigator.of(context).pop();
     if (!widget.parentContext.mounted) return;
     ScaffoldMessenger.of(widget.parentContext).showSnackBar(
-      SnackBar(content: Text('已分享给 $n 位，$m 位等待确认，$k 位将收到短信（免费）')),
+      SnackBar(content: Text(message)),
     );
   }
 
@@ -431,7 +439,19 @@ class _ShareEventSheetState extends State<ShareEventSheet> {
         SizedBox(
           height: _kSelectedAreaHeight,
           child: _selectedContacts.isEmpty
-              ? null
+              ? Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    '请选择联系人',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.4),
+                    ),
+                  ),
+                )
               : SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
@@ -761,6 +781,97 @@ class _ShareEventSheetState extends State<ShareEventSheet> {
     );
   }
 
+  Widget _buildResultRow(_ShareResultEntry r) {
+    final contact = _appContacts.firstWhere(
+      (c) => c.phone == r.phone,
+      orElse: () => ShareContact(name: '', phone: r.phone),
+    );
+    final name = contact.name.trim();
+    final primaryText = name.isNotEmpty
+        ? name
+        : '尾号 ${r.phone.substring(r.phone.length - 4)}';
+    final maskedPhone =
+        '${r.phone.substring(0, 3)}****${r.phone.substring(r.phone.length - 4)}';
+    final statusText = r.registered
+        ? '已发送至对方账号，等待确认'
+        : '已发送邀请短信（免费）';
+    final statusColor = r.registered ? _kThemeBlue : _kMutedGrey;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                primaryText,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: _kTitleColor,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                maskedPhone,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: _kMutedGrey,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                statusText,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey.shade700,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        SizedBox(
+          width: 64,
+          child: Align(
+            alignment: Alignment.center,
+            child: Tooltip(
+              message: r.registered
+                  ? '通过App内消息发送'
+                  : '通过短信邀请发送',
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Icon(
+                    r.registered
+                        ? Icons.chat_bubble_outline
+                        : Icons.mail_outline,
+                    size: 16,
+                    color: statusColor,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    r.registered ? 'App内' : '短信',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: statusColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildResultsPhase() {
     if (_results.isEmpty) {
       return Padding(
@@ -790,59 +901,22 @@ class _ShareEventSheetState extends State<ShareEventSheet> {
     }
 
     return Column(
+      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: 200),
-          child: ListView.builder(
-            shrinkWrap: true,
-            primary: false,
-            itemCount: _results.length,
-            itemBuilder: (context, i) {
-              final r = _results[i];
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      r.registered ? Icons.check_circle : Icons.sms_outlined,
-                      color: r.registered
-                          ? const Color(0xFF10B981)
-                          : const Color(0xFFF97316),
-                      size: 22,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            r.phone,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            r.registered
-                                ? '已发送至对方账号，等待确认'
-                                : '已发送邀请短信（免费）',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey.shade700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
+        for (var i = 0; i < _results.length; i++) ...[
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _buildResultRow(_results[i]),
           ),
-        ),
+          if (i < _results.length - 1)
+            const Divider(
+              height: 1,
+              color: Color(0xFFF1F5F9),
+              indent: 16,
+              endIndent: 16,
+            ),
+        ],
         const SizedBox(height: 16),
         Padding(
           padding: const EdgeInsets.only(bottom: 16),
