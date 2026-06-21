@@ -376,10 +376,17 @@ class _ShareEventSheetState extends State<ShareEventSheet> {
       _showMaxShareSnackBar();
       return;
     }
-    final contact = ShareContact(name: name, phone: _currentPhoneForNickname);
-    await _persistContact(contact);
-    if (!mounted) return;
-    if (_tryAddSelected(contact)) {
+    final phone = _currentPhoneForNickname;
+    final existingIndex = _appContacts.indexWhere((c) => c.phone == phone);
+    final ShareContact contactToSelect;
+    if (existingIndex >= 0) {
+      contactToSelect = _appContacts[existingIndex];
+    } else {
+      contactToSelect = ShareContact(name: name, phone: phone);
+      await _persistContact(contactToSelect);
+      if (!mounted) return;
+    }
+    if (_tryAddSelected(contactToSelect)) {
       setState(() {
         _showNicknameInput = false;
         _phoneController.clear();

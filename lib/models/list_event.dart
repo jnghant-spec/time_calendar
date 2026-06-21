@@ -61,6 +61,7 @@ class ListEvent {
     this.eventType = EventType.generic,
     this.lastModifiedByName,
     this.lastModifiedAt,
+    this.historicalPartnerName,
   });
 
   final String id;
@@ -96,6 +97,8 @@ class ListEvent {
   final String? lastModifiedByName;
   /// 伴侣共享场景下最后修改时间。
   final DateTime? lastModifiedAt;
+  /// 关系解除后保留的历史伴侣称呼（用于「曾与 XX 共享」展示）。
+  final String? historicalPartnerName;
 
   /// 循环起始日（与 [baseDate] 同日，仅保留年月日语义）。
   DateTime get anchorDate => DateTime(baseDate.year, baseDate.month, baseDate.day);
@@ -122,8 +125,10 @@ class ListEvent {
     EventType? eventType,
     String? lastModifiedByName,
     DateTime? lastModifiedAt,
+    String? historicalPartnerName,
     bool clearLastModifiedByName = false,
     bool clearLastModifiedAt = false,
+    bool clearHistoricalPartnerName = false,
   }) {
     return ListEvent(
       id: id ?? this.id,
@@ -150,6 +155,9 @@ class ListEvent {
           : (lastModifiedByName ?? this.lastModifiedByName),
       lastModifiedAt:
           clearLastModifiedAt ? null : (lastModifiedAt ?? this.lastModifiedAt),
+      historicalPartnerName: clearHistoricalPartnerName
+          ? null
+          : (historicalPartnerName ?? this.historicalPartnerName),
     );
   }
 
@@ -177,6 +185,9 @@ class ListEvent {
           'lastModifiedByName': lastModifiedByName,
         if (lastModifiedAt != null)
           'lastModifiedAt': lastModifiedAt!.toIso8601String(),
+        if (historicalPartnerName != null &&
+            historicalPartnerName!.isNotEmpty)
+          'historicalPartnerName': historicalPartnerName,
       };
 
   factory ListEvent.fromJson(Map<String, dynamic> json) {
@@ -216,6 +227,7 @@ class ListEvent {
       lastModifiedAt: json['lastModifiedAt'] != null
           ? DateTime.tryParse(json['lastModifiedAt'] as String)
           : null,
+      historicalPartnerName: json['historicalPartnerName'] as String?,
     );
   }
 }

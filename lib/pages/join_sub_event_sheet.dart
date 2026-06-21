@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:time_calendar/models/memory_collection.dart';
 import 'package:time_calendar/models/memory_event.dart';
@@ -15,7 +16,7 @@ const Color _errorRed = Color(0xFFEF4444);
 
 enum _JoinTileState { current, alreadyJoined, joinable }
 
-/// 选择目标事件集并直接关联加入子事件。
+/// 选择目标事件集并复制子事件为独立副本后加入。
 Future<void> showJoinSubEventSheet(
   BuildContext context, {
   required MemoryEvent event,
@@ -69,23 +70,41 @@ class _JoinSubEventSheetState extends State<_JoinSubEventSheet> {
     for (final c in collections) {
       grouped[c.id] = await MemoryService.getEventsSorted(c.id);
     }
+    final joinedWithCopies = joinedIds.toSet();
+    for (final c in collections) {
+      if (c.id == widget.currentCollectionId) continue;
+      final events = grouped[c.id] ?? [];
+      if (events.any((e) => _isIndependentCopy(e))) {
+        joinedWithCopies.add(c.id);
+      }
+    }
     if (!mounted) return;
     setState(() {
       _collections = collections;
       _eventsByCollection = grouped;
-      _joinedCollectionIds = joinedIds.toSet();
+      _joinedCollectionIds = joinedWithCopies;
       _loading = false;
     });
   }
 
+  bool _isIndependentCopy(MemoryEvent candidate) {
+    if (candidate.id == widget.event.id) return false;
+    final source = widget.event;
+    return candidate.title == source.title &&
+        candidate.date == source.date &&
+        candidate.location == source.location &&
+        listEquals(candidate.photoPaths, source.photoPaths);
+  }
+
+  MemoryEvent _duplicateSubEvent(MemoryEvent source) {
+    return source.copyWith(
+      id: MemoryService.generateId('mev'),
+      photoPaths: List<String>.from(source.photoPaths),
+    );
+  }
+
   List<MemoryCollection> get _targetCollections =>
       _collections.where((c) => c.id != widget.currentCollectionId).toList();
-
-  bool get _allOthersJoined {
-    final others = _targetCollections;
-    if (others.isEmpty) return false;
-    return others.every((c) => _joinedCollectionIds.contains(c.id));
-  }
 
   _JoinTileState _tileState(String collectionId) {
     if (collectionId == widget.currentCollectionId) {
@@ -95,6 +114,37 @@ class _JoinSubEventSheetState extends State<_JoinSubEventSheet> {
       return _JoinTileState.alreadyJoined;
     }
     return _JoinTileState.joinable;
+  }
+
+  Future<void> _joinToTarget(MemoryCollection target) async {
+    if (_tileState(target.id) == _JoinTileState.current) return;
+    try {
+      final copy = _duplicateSubEvent(widget.event);
+      await MemoryService.addEventToCollection(copy, target.id);
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
+      Navigator.pop(context);
+      messenger.showSnackBar(
+        SnackBar(
+          content: const Text('已加入，此事件现在可独立编辑'),
+          backgroundColor: _successGreen,
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      );
+      widget.onJoined?.call();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('加入失败，请重试'),
+          backgroundColor: _errorRed,
+        ),
+      );
+    }
   }
 
   String? _coverPath(MemoryCollection c) {
@@ -110,50 +160,6 @@ class _JoinSubEventSheetState extends State<_JoinSubEventSheet> {
       if (p != null) return p;
     }
     return null;
-  }
-
-  Future<void> _joinToTarget(MemoryCollection target) async {
-    if (_tileState(target.id) != _JoinTileState.joinable) return;
-    try {
-      await MemoryService.joinSubEvent(widget.event.id, target.id);
-      if (!mounted) return;
-      final messenger = ScaffoldMessenger.of(context);
-      Navigator.pop(context);
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            '「${widget.event.title}」已加入「${target.name}」',
-          ),
-          backgroundColor: _successGreen,
-          duration: const Duration(seconds: 2),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-        ),
-      );
-      widget.onJoined?.call();
-    } on SubEventAlreadyInCollectionException catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _joinedCollectionIds = {..._joinedCollectionIds, target.id};
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('该事件已在此事件集中'),
-          backgroundColor: _warningAmber,
-          duration: Duration(seconds: 2),
-        ),
-      );
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('加入失败，请重试'),
-          backgroundColor: _errorRed,
-        ),
-      );
-    }
   }
 
   @override
@@ -203,6 +209,19 @@ class _JoinSubEventSheetState extends State<_JoinSubEventSheet> {
             const Text(
               '选择要加入的事件集',
               style: TextStyle(fontSize: 14, color: _muted),
+            ),
+            const SizedBox(height: 8),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                '加入后，此事件将在新事件集中独立存在，修改不会影响原事件集',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: _warningAmber,
+                  height: 1.4,
+                ),
+              ),
             ),
             const SizedBox(height: 8),
             const Divider(height: 1, thickness: 1, color: _dividerColor),
@@ -258,24 +277,14 @@ class _JoinSubEventSheetState extends State<_JoinSubEventSheet> {
                                 '共 ${ev.length} 个事件 · $photoCount 张照片',
                             coverPath: _coverPath(c),
                             state: state,
-                            onTap: state == _JoinTileState.joinable
-                                ? () => _joinToTarget(c)
-                                : null,
+                            onTap: state == _JoinTileState.current
+                                ? null
+                                : () => _joinToTarget(c),
                           );
                         },
                       ),
                     ),
-                    if (_allOthersJoined)
-                      Padding(
-                        padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottom),
-                        child: const Text(
-                          '该事件已加入所有事件集',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 14, color: _muted),
-                        ),
-                      )
-                    else
-                      SizedBox(height: bottom),
+                    SizedBox(height: bottom),
                   ],
                 ),
               ),
@@ -404,7 +413,7 @@ class _CollectionJoinTile extends StatelessWidget {
       ),
     );
 
-    if (isJoinable) {
+    if (isJoinable || isJoined) {
       return Material(
         color: Colors.white,
         child: InkWell(

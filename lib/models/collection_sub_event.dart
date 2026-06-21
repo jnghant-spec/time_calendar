@@ -26,7 +26,10 @@ class CollectionSubEvent {
       collectionId: collectionId ?? this.collectionId,
       subEventId: subEventId ?? this.subEventId,
       sortOrder: sortOrder ?? this.sortOrder,
-      addedAt: addedAt ?? this.addedAt,
+      addedAt: addedAt ??
+          DateTime.fromMillisecondsSinceEpoch(
+            this.addedAt.millisecondsSinceEpoch,
+          ),
     );
   }
 

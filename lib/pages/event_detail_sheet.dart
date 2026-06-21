@@ -6,8 +6,8 @@ import 'package:time_calendar/main.dart' show appNavigatorKey;
 import 'package:time_calendar/models/list_event.dart';
 import 'package:time_calendar/pages/memory_store_sheet.dart';
 import 'package:time_calendar/services/tag_service.dart';
-import 'package:time_calendar/services/user_session.dart';
 import 'package:time_calendar/utils/event_date_utils.dart';
+import 'package:time_calendar/utils/partner_share_detail_ui.dart';
 import 'package:time_calendar/widgets/event_photo_paths_preview.dart';
 
 /// 清单页事件详情底部弹层。
@@ -71,33 +71,14 @@ class EventDetailSheet extends StatelessWidget {
     );
   }
 
-  static String _formatModifiedAt(DateTime dt) {
-    final hour = dt.hour.toString().padLeft(2, '0');
-    final minute = dt.minute.toString().padLeft(2, '0');
-    return '${dt.month}月${dt.day}日 $hour:$minute';
-  }
-
-  String? _partnerModifiedLabel(ListEvent event) {
-    final name = event.lastModifiedByName?.trim();
-    final at = event.lastModifiedAt;
-    if (name == null || name.isEmpty || at == null) return null;
-    final currentName = UserSession.instance.nickname.trim();
-    if (name == currentName) return null;
-    return '$name ${_formatModifiedAt(at)} 修改';
-  }
-
-  Widget _partnerShareTitleMarker(String tagId) {
-    if (!TagService.shouldShowPartnerShareMarker(tagId)) {
-      return const SizedBox.shrink();
+  Future<void> _handleEditPress(BuildContext context) async {
+    if (shouldShowInactivePartnerEditAlert(event)) {
+      final proceed = await showInactivePartnerEditDialog(context);
+      if (!proceed) return;
     }
-    return Padding(
-      padding: const EdgeInsets.only(left: 4),
-      child: SvgPicture.asset(
-        'assets/images/ic_couple_hearts.svg',
-        width: 16,
-        height: 16,
-      ),
-    );
+    if (!context.mounted) return;
+    Navigator.of(context).pop();
+    onEdit?.call();
   }
 
   Widget _infoChip(double width, String label, String value) {
@@ -155,7 +136,11 @@ class EventDetailSheet extends StatelessWidget {
     final sameDayLine = _showSameDayReminder(event.reminderType)
         ? event.sameDayTimeHm
         : '无';
-    final modifiedLabel = _partnerModifiedLabel(event);
+    final modifiedLabel = buildPartnerModifiedLabel(
+      lastModifiedByName: event.lastModifiedByName,
+      lastModifiedAt: event.lastModifiedAt,
+    );
+    final partnerShareInfo = resolvePartnerShareDetail(event);
 
     return PopScope(
       onPopInvokedWithResult: (didPop, _) {
@@ -239,7 +224,7 @@ class EventDetailSheet extends StatelessWidget {
                                         ),
                                       ),
                                     ),
-                                    _partnerShareTitleMarker(event.tagId),
+                                    buildPartnerShareTitleMarker(partnerShareInfo),
                                   ],
                                 ),
                               ),
@@ -276,6 +261,14 @@ class EventDetailSheet extends StatelessWidget {
                                       ),
                                     ),
                                 ],
+                              ),
+                              buildPartnerShareStatusRow(
+                                partnerShareInfo,
+                                textStyle: const TextStyle(
+                                  fontSize: 12,
+                                  color: _modifiedHint,
+                                  height: 20 / 12,
+                                ),
                               ),
                               if (event.isLunarRecurring) ...[
                                 const SizedBox(height: 6),
@@ -441,10 +434,7 @@ class EventDetailSheet extends StatelessWidget {
                                         borderRadius: BorderRadius.circular(16),
                                       ),
                                     ),
-                                    onPressed: () {
-                                      Navigator.of(context).pop();
-                                      onEdit?.call();
-                                    },
+                                    onPressed: () => _handleEditPress(context),
                                     child: const Text(
                                       '修改事件设置',
                                       style: TextStyle(

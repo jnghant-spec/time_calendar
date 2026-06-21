@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform;
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb, defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
@@ -8,6 +8,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:time_calendar/models/partner_relation.dart';
 import 'package:time_calendar/models/share_contact.dart';
+import 'package:time_calendar/services/event_service.dart';
 import 'package:time_calendar/services/tag_service.dart';
 import 'package:time_calendar/services/user_session.dart';
 import 'package:time_calendar/widgets/numeric_keypad.dart';
@@ -29,9 +30,21 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
   static const _tipBg = Color(0xFFFCE7F3);
   static const _tipText = Color(0xFFEC4899);
   static const _themeBlue = Color(0xFF1A73E8);
+  static const _errorRed = Color(0xFFEF4444);
   static const _switchInactiveTrack = Color(0xFFE5E7EB);
-  static const _dangerRed = Color(0xFFEF4444);
+  static const _mutedGrey = Color(0xFF9CA3AF);
+  static const _titleGrey = Color(0xFF1F2937);
   static final _phoneMobile = RegExp(r'^1[3-9]\d{9}$');
+  static const _kAvatarColors = <int>[
+    0xFF8B5CF6,
+    0xFFF59E0B,
+    0xFFEF4444,
+    0xFF10B981,
+    0xFF06B6D4,
+    0xFFEC4899,
+    0xFF6366F1,
+    0xFF14B8A6,
+  ];
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
@@ -47,6 +60,7 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
   bool _partnerAutoShare = true;
   bool _acceptOthers = true;
   bool _loaded = false;
+  bool _debugToolsExpanded = false;
 
   bool get _canAdd {
     return _nameController.text.trim().isNotEmpty &&
@@ -198,7 +212,7 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
       return;
     }
     if (_contacts.any((c) => c.phone == phone)) {
-      _toast('该手机号已在列表中');
+      _toast('该联系人已存在');
       return;
     }
     if (_contacts.any((c) => c.name.trim() == name.trim())) {
@@ -237,6 +251,12 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
       },
     );
     if (ok != true || !mounted) return;
+    final shouldResetPartner =
+        _partnerRelation.partnerContactId == c.phone &&
+        _partnerRelation.status != PartnerStatus.none;
+    if (shouldResetPartner) {
+      await _archivePartnerNameToEvents();
+    }
     var turnOffAuto = false;
     setState(() {
       _contacts.removeWhere((e) => e.phone == c.phone);
@@ -328,7 +348,189 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
   }
 
+  Future<void> _debugSetPartnerStatus(PartnerStatus status) async {
+    final current = _partnerRelation;
+    await TagService.setPartnerRelation(
+      PartnerRelation(
+        status: status,
+        partnerContactId: current.partnerContactId,
+        partnerName: current.partnerName,
+      ),
+    );
+    if (!mounted) return;
+    setState(() {
+      _partnerRelation = TagService.getPartnerRelation();
+      _syncPartnerPhoneFromRelation();
+      _reconcilePartner();
+    });
+  }
+
+  Future<void> _debugClearAllContacts() async {
+    await ShareContact.clearAllContacts();
+    if (!mounted) return;
+    setState(() {
+      _contacts.clear();
+      _reconcilePartner();
+    });
+    await _persistLocal();
+  }
+
+  Widget _debugToolButton(String label, Future<void> Function() onTap) {
+    return SizedBox(
+      height: 36,
+      width: double.infinity,
+      child: OutlinedButton(
+        onPressed: () => onTap(),
+        style: OutlinedButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: _titleGrey,
+          side: const BorderSide(color: Color(0xFFE5E7EB), width: 1),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          textStyle: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w400,
+          ),
+          padding: EdgeInsets.zero,
+        ),
+        child: Text(label),
+      ),
+    );
+  }
+
+  Widget _buildDebugTestTools() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 20),
+        InkWell(
+          onTap: () => setState(() => _debugToolsExpanded = !_debugToolsExpanded),
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              children: [
+                const Text(
+                  '测试工具',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: _mutedGrey,
+                  ),
+                ),
+                const Spacer(),
+                Icon(
+                  _debugToolsExpanded
+                      ? Icons.keyboard_arrow_up
+                      : Icons.keyboard_arrow_down,
+                  size: 20,
+                  color: _mutedGrey,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (_debugToolsExpanded) ...[
+          const SizedBox(height: 8),
+          _debugToolButton(
+            '设为 none（无关系）',
+            () => _debugSetPartnerStatus(PartnerStatus.none),
+          ),
+          const SizedBox(height: 8),
+          _debugToolButton(
+            '设为 pending（等待中）',
+            () => _debugSetPartnerStatus(PartnerStatus.pending),
+          ),
+          const SizedBox(height: 8),
+          _debugToolButton(
+            '设为 accepted（已接受）',
+            () => _debugSetPartnerStatus(PartnerStatus.accepted),
+          ),
+          const SizedBox(height: 8),
+          _debugToolButton(
+            '设为 rejected（已拒绝）',
+            () => _debugSetPartnerStatus(PartnerStatus.rejected),
+          ),
+          const SizedBox(height: 8),
+          _debugToolButton('清空所有联系人', _debugClearAllContacts),
+        ],
+      ],
+    );
+  }
+
+  /// TODO(后端): 发送伴侣邀请短信或同步推送。
+  Future<bool> _attemptPartnerInviteOrSync() async {
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    return true;
+  }
+
+  Future<void> _retryPartnerSync() async {
+    final cleared = _partnerRelation.copyWith(syncFailed: false);
+    await TagService.setPartnerRelation(cleared);
+    if (!mounted) return;
+    setState(() => _partnerRelation = TagService.getPartnerRelation());
+
+    final ok = await _attemptPartnerInviteOrSync();
+    if (!mounted) return;
+    if (ok) {
+      return;
+    }
+    final failed = TagService.getPartnerRelation().copyWith(syncFailed: true);
+    await TagService.setPartnerRelation(failed);
+    if (!mounted) return;
+    setState(() => _partnerRelation = TagService.getPartnerRelation());
+    _toast('同步失败，请稍后重试');
+  }
+
+  Future<void> _sendPartnerInviteAfterPick(ShareContact selected) async {
+    await TagService.setPartnerRelation(
+      PartnerRelation(
+        status: PartnerStatus.pending,
+        partnerContactId: selected.phone,
+        partnerName: selected.name,
+        syncFailed: false,
+      ),
+    );
+    if (!mounted) return;
+    setState(() {
+      _partnerRelation = TagService.getPartnerRelation();
+      _partnerPhone = selected.phone;
+    });
+    await _persistLocal();
+
+    final ok = await _attemptPartnerInviteOrSync();
+    if (!mounted) return;
+    if (!ok) {
+      final failed = TagService.getPartnerRelation().copyWith(syncFailed: true);
+      await TagService.setPartnerRelation(failed);
+      if (!mounted) return;
+      setState(() => _partnerRelation = TagService.getPartnerRelation());
+    }
+  }
+
+  Future<void> _archivePartnerNameToEvents() async {
+    final currentPartnerName = _partnerRelation.partnerName?.trim();
+    if (currentPartnerName == null || currentPartnerName.isEmpty) return;
+
+    final partnerTagIds =
+        TagService.getPartnerTags().map((t) => t.id).toSet();
+    if (partnerTagIds.isEmpty) return;
+
+    final events = await EventService.loadAllEvents();
+    var changed = false;
+    for (var i = 0; i < events.length; i++) {
+      final e = events[i];
+      if (!partnerTagIds.contains(e.tagId)) continue;
+      events[i] = e.copyWith(historicalPartnerName: currentPartnerName);
+      changed = true;
+    }
+    if (changed) {
+      await EventService.saveAllEvents(events);
+    }
+  }
+
   Future<void> _resetPartnerRelation() async {
+    await _archivePartnerNameToEvents();
     await TagService.setPartnerRelation(
       const PartnerRelation(status: PartnerStatus.none),
     );
@@ -351,99 +553,86 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
     await _resetPartnerRelation();
   }
 
-  Future<void> _unbindPartner() async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('解除伴侣关系'),
-        content: const Text('解除后，伴侣类标签下的提醒与时光集将停止双向同步，本地数据仍会保留。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('取消'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('解除关系', style: TextStyle(color: _dangerRed)),
-          ),
-        ],
-      ),
-    );
-    if (ok != true || !mounted) return;
-    await _resetPartnerRelation();
-  }
-
-  Future<void> _showPartnerPicker() async {
-    if (_contacts.isEmpty) {
-      _toast('请先添加常用共享联系人');
-      return;
-    }
+  Future<void> _showPartnerPickerSheet() async {
     final selected = await showModalBottomSheet<ShareContact>(
       context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        final bottom = MediaQuery.paddingOf(ctx).bottom;
-        return ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          child: Material(
-            color: Colors.white,
-            child: SafeArea(
-              top: false,
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(20, 16, 20, 16 + bottom),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Text(
-                      '选择伴侣联系人',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF1F2937),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxHeight: MediaQuery.sizeOf(ctx).height * 0.4,
-                      ),
-                      child: ListView.separated(
-                        shrinkWrap: true,
-                        itemCount: _contacts.length,
-                        separatorBuilder: (_, _) => const Divider(height: 1),
-                        itemBuilder: (context, index) {
-                          final c = _contacts[index];
-                          return ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            title: Text(c.name),
-                            subtitle: Text(c.phone),
-                            onTap: () => Navigator.pop(ctx, c),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.8,
+      ),
+      builder: (sheetContext) {
+        return _PartnerPickerSheet(
+          contacts: List<ShareContact>.unmodifiable(_contacts),
+          selectedPhone: _partnerPhone,
+          avatarBuilder: _buildContactAvatar,
         );
       },
     );
+
     if (selected == null || !mounted) return;
-    await TagService.setPartnerRelation(
-      PartnerRelation(
-        status: PartnerStatus.pending,
-        partnerContactId: selected.phone,
-        partnerName: selected.name,
+    if (_partnerRelation.status != PartnerStatus.none) {
+      await _archivePartnerNameToEvents();
+    }
+    await _sendPartnerInviteAfterPick(selected);
+  }
+
+  Color _avatarColor(int index) =>
+      Color(_kAvatarColors[index % _kAvatarColors.length]);
+
+  int _colorIndexForContact(ShareContact contact) {
+    final idx = _contacts.indexWhere((c) => c.phone == contact.phone);
+    if (idx >= 0) return idx;
+    final phone = contact.phone;
+    if (phone.isEmpty) return 0;
+    var hash = 0;
+    for (var i = 0; i < phone.length; i++) {
+      hash = (hash + phone.codeUnitAt(i)) % _kAvatarColors.length;
+    }
+    return hash;
+  }
+
+  Widget _buildContactAvatar(
+    ShareContact contact, {
+    required double size,
+  }) {
+    final idx = _colorIndexForContact(contact);
+    return Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      padding: EdgeInsets.symmetric(horizontal: size * 0.12),
+      decoration: BoxDecoration(
+        color: _avatarColor(idx),
+        shape: BoxShape.circle,
+      ),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          contact.avatarText,
+          style: TextStyle(
+            fontSize: size * 0.33,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
       ),
     );
-    setState(() {
-      _partnerRelation = TagService.getPartnerRelation();
-      _partnerPhone = selected.phone;
-    });
-    await _persistLocal();
+  }
+
+  ShareContact? _boundPartnerContact() {
+    final phone = _partnerPhone ?? _partnerRelation.partnerContactId;
+    if (phone == null || phone.isEmpty) return null;
+    for (final c in _contacts) {
+      if (c.phone == phone) return c;
+    }
+    return ShareContact(
+      name: _partnerRelation.partnerName ?? '',
+      phone: phone,
+    );
   }
 
   Future<void> _onPartnerAutoChanged(bool v) async {
@@ -458,6 +647,15 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
       setState(() => _partnerAutoShare = false);
     }
     await UserSession.instance.setAutoShareEnabled(_partnerAutoShare);
+    if (!mounted) return;
+    final name = _partnerRelation.partnerName?.trim().isNotEmpty == true
+        ? _partnerRelation.partnerName!.trim()
+        : '另一半';
+    if (_partnerAutoShare) {
+      _toast('已开启实时同步，后续修改将自动推送');
+    } else {
+      _toast('已关闭实时同步，$name 不会自动收到你的修改');
+    }
   }
 
   Future<void> _onAcceptOthersChanged(bool v) async {
@@ -535,6 +733,7 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                 _buildPartnerRelationSection(context, cs, textTheme),
+                if (kDebugMode) _buildDebugTestTools(),
                 const SizedBox(height: 20),
                 _sectionTitle(context, '常用共享联系人'),
                 const SizedBox(height: 16),
@@ -767,17 +966,18 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    '设置一位伴侣联系人后，可共享伴侣类标签下的提醒与时光集。',
-                    style: textTheme.bodySmall?.copyWith(
-                      color: cs.onSurfaceVariant,
-                      height: 1.5,
+                    '你还没有设置亲密关系联系人',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: _mutedGrey,
                     ),
                   ),
                   const SizedBox(height: 16),
                   SizedBox(
                     height: 48,
                     child: FilledButton(
-                      onPressed: _showPartnerPicker,
+                      onPressed: _showPartnerPickerSheet,
                       style: FilledButton.styleFrom(
                         backgroundColor: _themeBlue,
                         foregroundColor: Colors.white,
@@ -786,7 +986,7 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
                         ),
                       ),
                       child: const Text(
-                        '设置伴侣',
+                        '从联系人中选择',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
@@ -825,26 +1025,53 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Expanded(
-                        child: Text(
-                          '已与 $partnerName 共享',
-                          style: textTheme.bodyLarge?.copyWith(
-                            color: cs.onSurface,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                      SvgPicture.asset(
-                        'assets/images/ic_couple_hearts.svg',
-                        width: 16,
-                        height: 16,
+                      _buildContactAvatar(
+                        _boundPartnerContact() ??
+                            ShareContact(
+                              name: partnerName,
+                              phone: _partnerPhone ?? '',
+                            ),
+                        size: 48,
                       ),
                       const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              partnerName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: _titleGrey,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              (_boundPartnerContact()?.maskedPhone ??
+                                  ShareContact(
+                                    name: '',
+                                    phone: _partnerPhone ?? '',
+                                  ).maskedPhone),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: _mutedGrey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                       TextButton(
-                        onPressed: _unbindPartner,
+                        onPressed: _showPartnerPickerSheet,
                         child: const Text(
-                          '解除绑定',
-                          style: TextStyle(color: _dangerRed),
+                          '更换',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: _themeBlue,
+                          ),
                         ),
                       ),
                     ],
@@ -906,8 +1133,55 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
                   ],
                 ],
               ),
+            PartnerStatus.rejected => Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    '$partnerName 已拒绝邀请',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: _errorRed,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    height: 48,
+                    child: FilledButton(
+                      onPressed: _showPartnerPickerSheet,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: _themeBlue,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: const Text(
+                        '从联系人中选择',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
           },
         ),
+        if (relation.syncFailed) ...[
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: _retryPartnerSync,
+            behavior: HitTestBehavior.opaque,
+            child: const Text(
+              '同步失败，点击重试',
+              style: TextStyle(
+                fontSize: 12,
+                color: _errorRed,
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -956,6 +1230,274 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _PartnerPickerSheet extends StatefulWidget {
+  const _PartnerPickerSheet({
+    required this.contacts,
+    required this.selectedPhone,
+    required this.avatarBuilder,
+  });
+
+  final List<ShareContact> contacts;
+  final String? selectedPhone;
+  final Widget Function(ShareContact contact, {required double size})
+      avatarBuilder;
+
+  @override
+  State<_PartnerPickerSheet> createState() => _PartnerPickerSheetState();
+}
+
+class _PartnerPickerSheetState extends State<_PartnerPickerSheet> {
+  static const _themeBlue = Color(0xFF1A73E8);
+  static const _mutedGrey = Color(0xFF9CA3AF);
+  static const _titleGrey = Color(0xFF1F2937);
+
+  late final TextEditingController _searchController;
+  late final FocusNode _searchFocusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController();
+    _searchFocusNode = FocusNode();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _dismissKeyboardAndPop([ShareContact? selected]) {
+    FocusManager.instance.primaryFocus?.unfocus();
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (!mounted) return;
+      Navigator.pop(context, selected);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final query = _searchController.text.trim().toLowerCase();
+    final filtered = widget.contacts.where((c) {
+      if (query.isEmpty) return true;
+      return c.name.toLowerCase().contains(query) ||
+          c.phone.contains(query);
+    }).toList();
+
+    return SizedBox(
+      height: MediaQuery.sizeOf(context).height * 0.8,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.viewInsetsOf(context).bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 12, 12),
+                child: Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        '选择亲密关系联系人',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: _titleGrey,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => _dismissKeyboardAndPop(),
+                      icon: const Icon(Icons.close, color: _mutedGrey),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 32,
+                        minHeight: 32,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: TextField(
+                  controller: _searchController,
+                  focusNode: _searchFocusNode,
+                  onChanged: (_) => setState(() {}),
+                  decoration: InputDecoration(
+                    hintText: '搜索联系人',
+                    hintStyle: TextStyle(
+                      color: _mutedGrey.withValues(alpha: 0.8),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(18),
+                      borderSide: const BorderSide(
+                        color: Color(0xFFE2E8F0),
+                        width: 0.7,
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(18),
+                      borderSide: const BorderSide(
+                        color: Color(0xFFE2E8F0),
+                        width: 0.7,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(18),
+                      borderSide: const BorderSide(
+                        color: _themeBlue,
+                        width: 0.7,
+                      ),
+                    ),
+                    isDense: true,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Flexible(
+                child: widget.contacts.isEmpty
+                    ? _buildEmptyState()
+                    : filtered.isEmpty
+                        ? Center(
+                            child: Text(
+                              '未找到匹配的联系人',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: _mutedGrey,
+                              ),
+                            ),
+                          )
+                        : ListView.separated(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                            ),
+                            itemCount: filtered.length,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(height: 4),
+                            itemBuilder: (context, index) {
+                              final c = filtered[index];
+                              final isSelected = widget.selectedPhone != null &&
+                                  widget.selectedPhone == c.phone;
+                              return Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () => _dismissKeyboardAndPop(c),
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 10,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        widget.avatarBuilder(c, size: 40),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                c.name,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(
+                                                  fontSize: 15,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: _titleGrey,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                c.maskedPhone,
+                                                style: const TextStyle(
+                                                  fontSize: 13,
+                                                  color: _mutedGrey,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        if (isSelected)
+                                          const Icon(
+                                            Icons.check_circle,
+                                            size: 20,
+                                            color: _themeBlue,
+                                          )
+                                        else
+                                          Container(
+                                            width: 20,
+                                            height: 20,
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              border: Border.all(
+                                                color: const Color(0xFFE5E7EB),
+                                                width: 1.5,
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => _dismissKeyboardAndPop(),
+                child: Text(
+                  '取消',
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: _mutedGrey,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '暂无常用联系人，请先添加',
+            style: TextStyle(fontSize: 14, color: _mutedGrey),
+          ),
+          const SizedBox(height: 12),
+          TextButton(
+            onPressed: () => _dismissKeyboardAndPop(),
+            child: const Text(
+              '去添加联系人',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: _themeBlue,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

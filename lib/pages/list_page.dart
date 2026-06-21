@@ -10,7 +10,6 @@ import 'package:time_calendar/models/list_event.dart';
 import 'package:time_calendar/models/reminder_tag.dart';
 import 'package:time_calendar/pages/event_add_page.dart';
 import 'package:time_calendar/pages/event_detail_sheet.dart';
-import 'package:time_calendar/services/event_service.dart';
 import 'package:time_calendar/services/event_usage_service.dart';
 import 'package:time_calendar/services/membership_service.dart';
 import 'package:time_calendar/services/memory_service.dart';
@@ -18,7 +17,6 @@ import 'package:time_calendar/services/tag_bar_state.dart';
 import 'package:time_calendar/services/tag_service.dart';
 import 'package:time_calendar/theme/app_theme.dart';
 import 'package:time_calendar/utils/event_date_utils.dart';
-import 'package:time_calendar/utils/partner_test_data.dart';
 import 'package:time_calendar/widgets/confirm_delete_dialog.dart';
 import 'package:time_calendar/widgets/membership_soft_paywall.dart';
 import 'package:time_calendar/widgets/pinned_star_badge.dart';
@@ -313,17 +311,6 @@ class _ListPageState extends State<ListPage> {
       if (!mounted) return;
       widget.onEventsChanged(_events);
       _reloadArchivedIds();
-      // TODO: 测试完成后删除此行
-      await PartnerTestData.generate();
-      if (!mounted) return;
-      await TagBarState().loadTags();
-      if (!mounted) return;
-      final refreshed = await EventService.loadAllEvents();
-      _events = refreshed;
-      widget.onEventsChanged(_events);
-      EventUsageService.updateCount(_events.length);
-      if (!mounted) return;
-      setState(() {});
     });
     _reloadArchivedIds();
   }
@@ -910,18 +897,28 @@ class _ListEventCard extends StatelessWidget {
   static bool _shouldShowPartnerShareMarker(String tagId) =>
       TagService.shouldShowPartnerShareMarker(tagId);
 
-  static Widget _partnerShareTitleMarker(String tagId) {
-    if (!_shouldShowPartnerShareMarker(tagId)) {
-      return const SizedBox.shrink();
+  static Widget _partnerShareTitleMarker(ListEvent event) {
+    if (_shouldShowPartnerShareMarker(event.tagId)) {
+      return Padding(
+        padding: const EdgeInsets.only(left: 4),
+        child: SvgPicture.asset(
+          'assets/images/ic_couple_hearts.svg',
+          width: 16,
+          height: 16,
+        ),
+      );
     }
-    return Padding(
-      padding: const EdgeInsets.only(left: 4),
-      child: SvgPicture.asset(
-        'assets/images/ic_couple_hearts.svg',
-        width: 16,
-        height: 16,
-      ),
-    );
+    if (event.historicalPartnerName?.trim().isNotEmpty == true) {
+      return const Padding(
+        padding: EdgeInsets.only(left: 4),
+        child: Icon(
+          Icons.favorite_border,
+          size: 16,
+          color: Color(0xFF9CA3AF),
+        ),
+      );
+    }
+    return const SizedBox.shrink();
   }
 
   @override
@@ -994,7 +991,7 @@ class _ListEventCard extends StatelessWidget {
                                   style: titleStyle,
                                 ),
                               ),
-                              _partnerShareTitleMarker(event.tagId),
+                              _partnerShareTitleMarker(event),
                             ],
                           ),
                           const SizedBox(height: 8),

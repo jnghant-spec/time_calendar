@@ -4,10 +4,13 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:time_calendar/models/memory_collection.dart';
 import 'package:time_calendar/models/memory_event.dart';
+import 'package:time_calendar/models/partner_relation.dart';
 import 'package:time_calendar/services/memory_service.dart';
 import 'package:time_calendar/services/tag_service.dart';
+import 'package:time_calendar/services/user_session.dart';
 import 'package:time_calendar/widgets/tag_circle_widget.dart';
 import 'package:time_calendar/utils/event_date_utils.dart';
+import 'package:time_calendar/utils/partner_share_detail_ui.dart';
 
 /// 时光集详情弹窗（横向/纵向）共用顶部区块。
 class MemoryCollectionDetailHeader extends StatelessWidget {
@@ -32,6 +35,7 @@ class MemoryCollectionDetailHeader extends StatelessWidget {
 
   static const Color _titleColor = Color(0xFF1F2937);
   static const Color _muted = Color(0xFF94A3B8);
+  static const Color _metaHint = Color(0xFF9CA3AF);
   static const Color _themeBlue = Color(0xFF1A73E8);
 
   String? _coverPath() {
@@ -59,10 +63,67 @@ class MemoryCollectionDetailHeader extends StatelessWidget {
     return TagCircleWidget(tag: tag, size: 40, showLabel: false);
   }
 
+  bool _hasHistoricalCollectionPartnerShare() {
+    if (TagService.shouldShowPartnerShareMarker(collection.tagId)) {
+      return false;
+    }
+    if (!TagService.isPartnerTag(collection.tagId)) return false;
+    return TagService.getPartnerRelation().status != PartnerStatus.accepted;
+  }
+
+  String? _resolveHistoricalPartnerName() {
+    final modified = collection.lastModifiedByName?.trim();
+    if (modified != null && modified.isNotEmpty) return modified;
+    final relation = TagService.getPartnerRelation();
+    final name = relation.partnerName?.trim();
+    if (name != null && name.isNotEmpty) return name;
+    return null;
+  }
+
+  PartnerShareDetailInfo _partnerShareInfo() {
+    if (TagService.shouldShowPartnerShareMarker(collection.tagId)) {
+      final name = TagService.getPartnerRelation().partnerName?.trim();
+      final displayName =
+          name == null || name.isEmpty ? '另一半' : name;
+      final autoSync = UserSession.instance.autoShareEnabled;
+      final text = autoSync
+          ? '已与 $displayName 绑定（实时同步）'
+          : '已与 $displayName 绑定（修改仅自己可见）';
+      return PartnerShareDetailInfo(
+        mode: PartnerShareDetailMode.active,
+        partnerName: displayName,
+        statusText: text,
+      );
+    }
+    if (_hasHistoricalCollectionPartnerShare()) {
+      final name = _resolveHistoricalPartnerName();
+      final displayName =
+          name == null || name.isEmpty ? '另一半' : name;
+      return PartnerShareDetailInfo(
+        mode: PartnerShareDetailMode.historical,
+        partnerName: displayName,
+        statusText: '曾与 $displayName 共享',
+      );
+    }
+    return const PartnerShareDetailInfo(mode: PartnerShareDetailMode.none);
+  }
+
+  static const TextStyle _metaHintStyle = TextStyle(
+    fontSize: 12,
+    color: _metaHint,
+    height: 20 / 12,
+  );
+
   @override
   Widget build(BuildContext context) {
     final cover = _coverPath();
     final photoCount = MemoryService.countPhotosInCollection(events);
+    final partnerShareInfo = _partnerShareInfo();
+    final modifiedLabel = buildPartnerModifiedLabel(
+      lastModifiedByName: collection.lastModifiedByName,
+      lastModifiedAt: collection.lastModifiedAt,
+    );
+    final showPartnerMeta = partnerShareInfo.mode != PartnerShareDetailMode.none;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -125,23 +186,72 @@ class MemoryCollectionDetailHeader extends StatelessWidget {
             ),
           ),
         ),
-        Text(
-          collection.name.isNotEmpty ? collection.name : '未命名时光集',
-          textAlign: TextAlign.center,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            color: _titleColor,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Flexible(
+              child: Text(
+                collection.name.isNotEmpty ? collection.name : '未命名时光集',
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: _titleColor,
+                ),
+              ),
+            ),
+            buildPartnerShareTitleMarker(partnerShareInfo),
+          ],
         ),
         const SizedBox(height: 4),
-        Text(
-          _rangeLine(),
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 13, color: _muted),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                _rangeLine(),
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 13, color: _muted),
+              ),
+            ),
+            if (modifiedLabel != null && !showPartnerMeta)
+              Text(
+                modifiedLabel,
+                style: _metaHintStyle,
+              ),
+          ],
         ),
+        if (showPartnerMeta) ...[
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (showPartnerMeta)
+                  Flexible(
+                    fit: FlexFit.loose,
+                    child: buildPartnerShareStatusRow(
+                      partnerShareInfo,
+                      textStyle: _metaHintStyle,
+                    ),
+                  ),
+                if (showPartnerMeta && modifiedLabel != null)
+                  const SizedBox(width: 16),
+                if (modifiedLabel != null && showPartnerMeta)
+                  Flexible(
+                    child: Text(
+                      modifiedLabel,
+                      style: _metaHintStyle,
+                      textAlign: TextAlign.right,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
         const SizedBox(height: 8),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,

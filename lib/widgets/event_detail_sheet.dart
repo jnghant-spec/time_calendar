@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:lunar/lunar.dart';
 import 'package:time_calendar/models/list_event.dart';
 import 'package:time_calendar/services/tag_service.dart';
+import 'package:time_calendar/utils/partner_share_detail_ui.dart';
 
 /// 日历页半屏事件详情（底部 Modal）。
 class EventDetailSheet extends StatelessWidget {
@@ -22,6 +23,7 @@ class EventDetailSheet extends StatelessWidget {
   static const Color _star = Color(0xFFFFB800);
   static const Color _lunarBg = Color(0xFFFFF7ED);
   static const Color _lunarFg = Color(0xFFF97316);
+  static const Color _modifiedHint = Color(0xFF9CA3AF);
 
   static String _weekdayZh(int weekday) {
     const w = ['一', '二', '三', '四', '五', '六', '日'];
@@ -131,6 +133,11 @@ class EventDetailSheet extends StatelessWidget {
           )
         : baseD;
     final solarLine = _formatSolarLine(d);
+    final modifiedLabel = buildPartnerModifiedLabel(
+      lastModifiedByName: event.lastModifiedByName,
+      lastModifiedAt: event.lastModifiedAt,
+    );
+    final partnerShareInfo = resolvePartnerShareDetail(event);
 
     final lunar = Lunar.fromDate(d);
     final lunarPillText = '农历 ${lunar.getMonthInChinese()}月${lunar.getDayInChinese()}';
@@ -195,15 +202,25 @@ class EventDetailSheet extends StatelessWidget {
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: Text(
-                              event.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: _titleColor,
-                              ),
+                            child: Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    event.title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                      color: _titleColor,
+                                    ),
+                                  ),
+                                ),
+                                buildPartnerShareTitleMarker(
+                                  partnerShareInfo,
+                                  size: 14,
+                                ),
+                              ],
                             ),
                           ),
                           if (event.isPinned) ...[
@@ -226,6 +243,14 @@ class EventDetailSheet extends StatelessWidget {
                               ),
                             ),
                           ),
+                          if (modifiedLabel != null)
+                            Text(
+                              modifiedLabel,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: _modifiedHint,
+                              ),
+                            ),
                           if (event.isLunarRecurring) ...[
                             const SizedBox(width: 8),
                             Container(
@@ -246,6 +271,14 @@ class EventDetailSheet extends StatelessWidget {
                             ),
                           ],
                         ],
+                      ),
+                      buildPartnerShareStatusRow(
+                        partnerShareInfo,
+                        textStyle: const TextStyle(
+                          fontSize: 12,
+                          color: _modifiedHint,
+                          height: 20 / 12,
+                        ),
                       ),
                       const SizedBox(height: 16),
                       if (displaySolarDate != null &&

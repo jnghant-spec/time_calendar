@@ -1,15 +1,20 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:time_calendar/models/collection_sub_event.dart';
 import 'package:time_calendar/models/list_event.dart';
 import 'package:time_calendar/models/memory_collection.dart';
 import 'package:time_calendar/models/memory_event.dart';
 import 'package:time_calendar/models/partner_relation.dart';
 import 'package:time_calendar/models/reminder_tag.dart';
+import 'package:time_calendar/models/share_contact.dart';
 import 'package:time_calendar/services/event_service.dart';
 import 'package:time_calendar/services/memory_service.dart';
 import 'package:time_calendar/services/tag_service.dart';
 
 /// 伴侣共享 UI 模拟器验证用测试数据（临时；验证完成后移除 [ListPage] 中的调用）。
+/// TODO 验证完成后移除
 class PartnerTestData {
   PartnerTestData._();
 
@@ -24,6 +29,9 @@ class PartnerTestData {
   static const String _kSubBeijing = 'partner_test_beijing';
   static const String _kSubShanghai = 'partner_test_shanghai';
   static const String _kSubGuangzhou = 'partner_test_guangzhou';
+  static const String _kPrefsContacts = 'tc.share_management.contacts_v1';
+  static const String _kZhangSanPhone = '13800138000';
+  static const String _kZhangSanName = '张三';
 
   static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
@@ -34,6 +42,15 @@ class PartnerTestData {
 
     await _ensureListEvents(tagId);
     await _ensureTravelCollection(tagId);
+
+    await _ensureZhangSanContact();
+    await TagService.setPartnerRelation(
+      const PartnerRelation(
+        status: PartnerStatus.accepted,
+        partnerContactId: _kZhangSanPhone,
+        partnerName: _kZhangSanName,
+      ),
+    );
   }
 
   static Future<String> _ensurePartnerTagId() async {
@@ -83,6 +100,37 @@ class PartnerTestData {
         status: PartnerStatus.accepted,
         partnerName: '宝宝',
       ),
+    );
+  }
+
+  static Future<void> _ensureZhangSanContact() async {
+    final p = await SharedPreferences.getInstance();
+    final raw = p.getString(_kPrefsContacts);
+    final contacts = <ShareContact>[];
+    if (raw != null && raw.isNotEmpty) {
+      try {
+        final list = jsonDecode(raw) as List<dynamic>;
+        for (final e in list) {
+          if (e is Map<String, dynamic>) {
+            contacts.add(ShareContact.fromJson(e));
+          } else if (e is Map) {
+            contacts.add(
+              ShareContact.fromJson(
+                e.map((k, v) => MapEntry(k.toString(), v)),
+              ),
+            );
+          }
+        }
+      } catch (_) {}
+    }
+    if (contacts.any((c) => c.phone == _kZhangSanPhone)) return;
+    contacts.insert(
+      0,
+      ShareContact(name: _kZhangSanName, phone: _kZhangSanPhone),
+    );
+    await p.setString(
+      _kPrefsContacts,
+      jsonEncode(contacts.map((e) => e.toJson()).toList()),
     );
   }
 
