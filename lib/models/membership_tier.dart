@@ -10,7 +10,6 @@ class TierBenefits {
   final bool lunarBirthday;
   final bool customPhotoUpload;
   final int photosPerEvent;
-  final bool batchImportContacts;
   final bool festivalShareCard;
 
   const TierBenefits({
@@ -23,7 +22,6 @@ class TierBenefits {
     required this.lunarBirthday,
     required this.customPhotoUpload,
     required this.photosPerEvent,
-    required this.batchImportContacts,
     required this.festivalShareCard,
   });
 }
@@ -40,7 +38,6 @@ class MembershipConfig {
       lunarBirthday: false,
       customPhotoUpload: true,
       photosPerEvent: 1,
-      batchImportContacts: false,
       festivalShareCard: false,
     ),
     MembershipTier.basic: TierBenefits(
@@ -53,7 +50,6 @@ class MembershipConfig {
       lunarBirthday: true,
       customPhotoUpload: true,
       photosPerEvent: 9,
-      batchImportContacts: false,
       festivalShareCard: false,
     ),
     MembershipTier.premium: TierBenefits(
@@ -66,7 +62,6 @@ class MembershipConfig {
       lunarBirthday: true,
       customPhotoUpload: true,
       photosPerEvent: 9,
-      batchImportContacts: true,
       festivalShareCard: true,
     ),
   };

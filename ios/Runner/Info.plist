@@ -65,7 +65,7 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>NSContactsUsageDescription</key>
-	<string>用于批量导入联系人生日，创建生日提醒。</string>
+	<string>用于从通讯录选择共享联系人。</string>
 	<key>NSCameraUsageDescription</key>
 	<string>时光集需要访问相机，以便您为重要日子拍摄纪念照片。</string>
 	<key>NSPhotoLibraryUsageDescription</key>

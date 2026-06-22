@@ -8,6 +8,7 @@ class MemoryCollection {
     this.isPinned = false,
     required this.createdAt,
     this.lastModifiedByName,
+    this.lastModifiedByPhone,
     this.lastModifiedAt,
   });
 
@@ -19,6 +20,8 @@ class MemoryCollection {
   final DateTime createdAt;
   /// 伴侣共享场景下最后修改者称呼。
   final String? lastModifiedByName;
+  /// 伴侣共享场景下最后修改者手机号。
+  final String? lastModifiedByPhone;
   /// 伴侣共享场景下最后修改时间。
   final DateTime? lastModifiedAt;
 
@@ -30,8 +33,10 @@ class MemoryCollection {
     bool? isPinned,
     DateTime? createdAt,
     String? lastModifiedByName,
+    String? lastModifiedByPhone,
     DateTime? lastModifiedAt,
     bool clearLastModifiedByName = false,
+    bool clearLastModifiedByPhone = false,
     bool clearLastModifiedAt = false,
   }) {
     return MemoryCollection(
@@ -44,6 +49,9 @@ class MemoryCollection {
       lastModifiedByName: clearLastModifiedByName
           ? null
           : (lastModifiedByName ?? this.lastModifiedByName),
+      lastModifiedByPhone: clearLastModifiedByPhone
+          ? null
+          : (lastModifiedByPhone ?? this.lastModifiedByPhone),
       lastModifiedAt:
           clearLastModifiedAt ? null : (lastModifiedAt ?? this.lastModifiedAt),
     );
@@ -58,6 +66,8 @@ class MemoryCollection {
     'createdAt': createdAt.toIso8601String(),
     if (lastModifiedByName != null && lastModifiedByName!.isNotEmpty)
       'lastModifiedByName': lastModifiedByName,
+    if (lastModifiedByPhone != null && lastModifiedByPhone!.isNotEmpty)
+      'lastModifiedByPhone': lastModifiedByPhone,
     if (lastModifiedAt != null)
       'lastModifiedAt': lastModifiedAt!.toIso8601String(),
   };
@@ -71,6 +81,7 @@ class MemoryCollection {
       isPinned: json['isPinned'] as bool? ?? false,
       createdAt: DateTime.parse(json['createdAt'] as String),
       lastModifiedByName: json['lastModifiedByName'] as String?,
+      lastModifiedByPhone: json['lastModifiedByPhone'] as String?,
       lastModifiedAt: json['lastModifiedAt'] != null
           ? DateTime.tryParse(json['lastModifiedAt'] as String)
           : null,

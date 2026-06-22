@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:time_calendar/models/collection_sub_event.dart';
@@ -10,6 +11,7 @@ import 'package:time_calendar/models/memory_collection.dart';
 import 'package:time_calendar/models/memory_event.dart';
 import 'package:time_calendar/models/reminder_tag.dart';
 import 'package:time_calendar/services/tag_service.dart';
+import 'package:time_calendar/services/user_session.dart';
 import 'package:time_calendar/utils/event_date_utils.dart';
 
 /// 子事件已在目标事件集中关联。
@@ -195,6 +197,16 @@ class MemoryService {
     await prefs.setString(prefsKeyCollections, encoded);
   }
 
+  static MemoryCollection _stampCollectionModified(MemoryCollection collection) {
+    final nickname = UserSession.instance.nickname.trim();
+    final phone = UserSession.instance.phone.trim();
+    return collection.copyWith(
+      lastModifiedByName: nickname.isNotEmpty ? nickname : null,
+      lastModifiedByPhone: phone.isNotEmpty ? phone : null,
+      lastModifiedAt: DateTime.now(),
+    );
+  }
+
   static Future<void> addCollection(MemoryCollection collection) async {
     final list = await loadCollections();
     list.add(collection);
@@ -288,12 +300,13 @@ class MemoryService {
   }
 
   static Future<void> upsertEvent(MemoryEvent event) async {
+    final cleaned = sanitizeMemoryEvent(event);
     final list = await loadEvents();
-    final i = list.indexWhere((e) => e.id == event.id);
+    final i = list.indexWhere((e) => e.id == cleaned.id);
     if (i >= 0) {
-      list[i] = event;
+      list[i] = cleaned;
     } else {
-      list.add(event);
+      list.add(cleaned);
     }
     await saveEvents(list);
   }
@@ -486,7 +499,7 @@ class MemoryService {
     final list = await loadCollections();
     final i = list.indexWhere((c) => c.id == collection.id);
     if (i >= 0) {
-      list[i] = collection;
+      list[i] = _stampCollectionModified(collection);
       await saveCollections(list);
       return true;
     }
@@ -571,6 +584,42 @@ class MemoryService {
           ? slots[i]!
           : '',
     );
+  }
+
+  /// 九宫格 slot：无效路径（空或本地文件不存在）置为 null。
+  static List<String?> sanitizePhotoGridSlots(List<String?> slots) {
+    return List.generate(9, (i) {
+      if (i >= slots.length) return null;
+      final p = slots[i];
+      if (p == null || p.trim().isEmpty || !File(p).existsSync()) {
+        return null;
+      }
+      return p;
+    });
+  }
+
+  static List<String> sanitizePhotoPaths(List<String> stored) {
+    return encodePhotoGridSlots(
+      sanitizePhotoGridSlots(decodePhotoGridSlots(stored)),
+    );
+  }
+
+  static MemoryEvent sanitizeMemoryEvent(MemoryEvent event) {
+    final sanitized = sanitizePhotoPaths(event.photoPaths);
+    if (listEquals(sanitized, event.photoPaths)) {
+      return event;
+    }
+    return event.copyWith(photoPaths: sanitized);
+  }
+
+  static void deletePhotoFileIfExists(String? path) {
+    if (path == null || path.trim().isEmpty) return;
+    try {
+      final file = File(path);
+      if (file.existsSync()) {
+        file.deleteSync();
+      }
+    } catch (_) {}
   }
 
   static List<String?> decodePhotoGridSlots(List<String> stored) {

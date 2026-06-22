@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:time_calendar/models/memory_collection.dart';
@@ -89,8 +90,8 @@ class MemoryPhotoStreamSheet extends StatefulWidget {
 }
 
 class _MemoryPhotoStreamSheetState extends State<MemoryPhotoStreamSheet> {
-  static const double _kViewportFraction = 0.72;
-  static const double _cardPhotoHeight = 280;
+  static const double _kViewportFraction =
+      MemoryDetailDesignTokens.cardViewportFraction;
 
   static const Color _titleColor = Color(0xFF1F2937);
   static const Color _muted = Color(0xFF94A3B8);
@@ -170,7 +171,15 @@ class _MemoryPhotoStreamSheetState extends State<MemoryPhotoStreamSheet> {
     final col =
         await MemoryService.getCollectionById(widget.collection.id) ??
             widget.collection;
-    final list = await MemoryService.getEventsSorted(widget.collection.id);
+    final rawList = await MemoryService.getEventsSorted(widget.collection.id);
+    final list = <MemoryEvent>[];
+    for (final event in rawList) {
+      final cleaned = MemoryService.sanitizeMemoryEvent(event);
+      if (!listEquals(cleaned.photoPaths, event.photoPaths)) {
+        await MemoryService.upsertEvent(cleaned);
+      }
+      list.add(cleaned);
+    }
     if (!mounted) return;
     _pageController?.dispose();
     final n = list.length;
@@ -659,14 +668,24 @@ class _MemoryPhotoStreamSheetState extends State<MemoryPhotoStreamSheet> {
   }
 
   Widget _buildHorizontalCardView() {
-    final toolbarPad =
-        MemoryDetailBottomToolbar.totalHeight(context) + 8;
-    return ListView(
-      physics: const BouncingScrollPhysics(),
-      padding: EdgeInsets.only(bottom: toolbarPad),
-      children: [
-        _horizontalStream(),
-      ],
+    final toolbarPad = MemoryDetailBottomToolbar.totalHeight(context);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableHeight = constraints.maxHeight - toolbarPad;
+        final photoHeight = MemoryDetailDesignTokens.computeCardPhotoHeight(
+          context,
+        );
+        return Padding(
+          padding: EdgeInsets.only(bottom: toolbarPad),
+          child: SizedBox(
+            height: availableHeight,
+            child: Align(
+              alignment: Alignment.center,
+              child: _horizontalStream(photoHeight: photoHeight),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -799,7 +818,12 @@ class _MemoryPhotoStreamSheetState extends State<MemoryPhotoStreamSheet> {
     );
   }
 
-  Widget _eventPhotoImage(MemoryEvent e, double width) {
+  Widget _eventPhotoImage(
+    MemoryEvent e,
+    double width, {
+    double? photoHeight,
+  }) {
+    final height = photoHeight ?? MemoryDetailDesignTokens.cardMinHeight;
     final path = MemoryService.firstSlotPhotoPath(e);
     final hasPhoto = path != null && File(path).existsSync();
 
@@ -810,7 +834,7 @@ class _MemoryPhotoStreamSheetState extends State<MemoryPhotoStreamSheet> {
           File(path),
           key: ValueKey('${e.id}-$path'),
           width: width,
-          height: _cardPhotoHeight,
+          height: height,
           fit: BoxFit.cover,
         ),
       );
@@ -820,7 +844,7 @@ class _MemoryPhotoStreamSheetState extends State<MemoryPhotoStreamSheet> {
       borderRadius: BorderRadius.circular(16),
       child: Container(
         width: width,
-        height: _cardPhotoHeight,
+        height: height,
         color: const Color(0xFFF1F5F9),
         alignment: Alignment.center,
         child: const Column(
@@ -848,12 +872,14 @@ class _MemoryPhotoStreamSheetState extends State<MemoryPhotoStreamSheet> {
   Widget _buildEventCard(
     MemoryEvent e,
     double photoWidth, {
+    double? photoHeight,
     required double scale,
     required bool showShadow,
   }) {
+    final cardHeight = photoHeight ?? MemoryDetailDesignTokens.cardMinHeight;
     return SizedBox(
       width: photoWidth,
-      height: _cardPhotoHeight,
+      height: cardHeight,
       child: Transform.scale(
         scale: scale,
         alignment: Alignment.center,
@@ -862,7 +888,7 @@ class _MemoryPhotoStreamSheetState extends State<MemoryPhotoStreamSheet> {
           children: [
             Container(
               width: photoWidth,
-              height: _cardPhotoHeight,
+              height: cardHeight,
               clipBehavior: Clip.none,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
@@ -877,7 +903,11 @@ class _MemoryPhotoStreamSheetState extends State<MemoryPhotoStreamSheet> {
                       ]
                     : const [],
               ),
-              child: _eventPhotoImage(e, photoWidth),
+              child: _eventPhotoImage(
+                e,
+                photoWidth,
+                photoHeight: cardHeight,
+              ),
             ),
             _eventInfoOverlay(e),
           ],
@@ -886,13 +916,15 @@ class _MemoryPhotoStreamSheetState extends State<MemoryPhotoStreamSheet> {
     );
   }
 
-  Widget _horizontalStream() {
+  Widget _horizontalStream({double? photoHeight}) {
     final pc = _pageController;
     final n = _events.length;
+    final cardPhotoHeight =
+        photoHeight ?? MemoryDetailDesignTokens.cardMinHeight;
 
     if (n == 0 || pc == null) {
       return SizedBox(
-        height: _cardPhotoHeight + 24,
+        height: cardPhotoHeight + 24,
         child: const Center(
           child: Text('暂无事件', style: TextStyle(color: _muted)),
         ),
@@ -904,7 +936,7 @@ class _MemoryPhotoStreamSheetState extends State<MemoryPhotoStreamSheet> {
         : const ClampingScrollPhysics();
 
     return SizedBox(
-      height: _cardPhotoHeight + 32,
+      height: cardPhotoHeight + 32,
       child: LayoutBuilder(
         builder: (context, _) {
           final screenWidth = MediaQuery.sizeOf(context).width;
@@ -916,7 +948,7 @@ class _MemoryPhotoStreamSheetState extends State<MemoryPhotoStreamSheet> {
             alignment: Alignment.center,
             children: [
               SizedBox(
-                height: _cardPhotoHeight,
+                height: cardPhotoHeight,
                 width: screenWidth,
                 child: PageView.builder(
                   controller: pc,
@@ -930,7 +962,7 @@ class _MemoryPhotoStreamSheetState extends State<MemoryPhotoStreamSheet> {
                     child: Container(
                       color: Colors.transparent,
                       width: itemWidth,
-                      height: _cardPhotoHeight,
+                      height: cardPhotoHeight,
                     ),
                   ),
                 ),
@@ -975,6 +1007,7 @@ class _MemoryPhotoStreamSheetState extends State<MemoryPhotoStreamSheet> {
                             child: _buildEventCard(
                               event,
                               photoWidth,
+                              photoHeight: cardPhotoHeight,
                               scale: transform.scale,
                               showShadow: transform.showShadow,
                             ),
@@ -990,7 +1023,7 @@ class _MemoryPhotoStreamSheetState extends State<MemoryPhotoStreamSheet> {
 
                   return SizedBox(
                     width: screenWidth,
-                    height: _cardPhotoHeight,
+                    height: cardPhotoHeight,
                     child: Stack(
                       clipBehavior: Clip.none,
                       children: [
@@ -998,7 +1031,7 @@ class _MemoryPhotoStreamSheetState extends State<MemoryPhotoStreamSheet> {
                         if (n > 0)
                           Positioned(
                             left: screenWidth / 2 + photoWidth / 2 - 36,
-                            top: _cardPhotoHeight - 36,
+                            top: cardPhotoHeight - 36,
                             child: Material(
                               color: Colors.transparent,
                               child: InkWell(

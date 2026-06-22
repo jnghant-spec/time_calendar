@@ -71,7 +71,9 @@ class _MemoryEventSheetState extends State<MemoryEventSheet> {
     _titleCtrl = TextEditingController(text: e?.title ?? '');
     _locCtrl = TextEditingController(text: e?.location ?? '');
     _date = e?.date ?? DateTime.now();
-    _slotPhotos = MemoryService.decodePhotoGridSlots(e?.photoPaths ?? const []);
+    _slotPhotos = MemoryService.sanitizePhotoGridSlots(
+      MemoryService.decodePhotoGridSlots(e?.photoPaths ?? const []),
+    );
   }
 
   @override
@@ -109,7 +111,16 @@ class _MemoryEventSheetState extends State<MemoryEventSheet> {
       if (file == null) return;
       final path = await _persistPhoto(file);
       if (!mounted || path == null) return;
-      setState(() => _slotPhotos[slotIndex] = path);
+      final oldPath = _slotPhotos[slotIndex];
+      setState(() {
+        _slotPhotos[slotIndex] = path;
+        _slotPhotos = MemoryService.sanitizePhotoGridSlots(_slotPhotos);
+      });
+      if (oldPath != null &&
+          oldPath != path &&
+          oldPath.trim().isNotEmpty) {
+        MemoryService.deletePhotoFileIfExists(oldPath);
+      }
     } catch (_) {}
   }
 
@@ -184,12 +195,13 @@ class _MemoryEventSheetState extends State<MemoryEventSheet> {
       return;
     }
     final locText = _locCtrl.text.trim();
+    final slots = MemoryService.sanitizePhotoGridSlots(_slotPhotos);
     final event = MemoryEvent(
       id: widget.initial?.id ?? MemoryService.generateId('mev'),
       title: title,
       location: locText.isEmpty ? null : locText,
       date: _date,
-      photoPaths: MemoryService.encodePhotoGridSlots(_slotPhotos),
+      photoPaths: MemoryService.encodePhotoGridSlots(slots),
     );
     if (widget.initial == null) {
       await MemoryService.addEventToCollection(event, widget.collectionId);
@@ -247,7 +259,9 @@ class _MemoryEventSheetState extends State<MemoryEventSheet> {
               title: const Text('删除照片'),
               onTap: () {
                 Navigator.pop(ctx);
+                final oldPath = _slotPhotos[index];
                 setState(() => _slotPhotos[index] = null);
+                MemoryService.deletePhotoFileIfExists(oldPath);
               },
             ),
           ],

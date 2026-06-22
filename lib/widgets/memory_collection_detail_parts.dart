@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -11,6 +10,43 @@ import 'package:time_calendar/services/user_session.dart';
 import 'package:time_calendar/widgets/tag_circle_widget.dart';
 import 'package:time_calendar/utils/event_date_utils.dart';
 import 'package:time_calendar/utils/partner_share_detail_ui.dart';
+
+/// 时光集详情页设计 token（顶部元信息、横滑卡片、标题栏按钮）。
+class MemoryDetailDesignTokens {
+  MemoryDetailDesignTokens._();
+
+  static const double metaFontSize = 12;
+  static const Color metaColor = Color(0xFF9CA3AF);
+  static const double metaLineHeight = 20;
+
+  static const double cardViewportFraction = 0.72;
+  static const double cardAspectWidth = 4;
+  static const double cardAspectHeight = 5;
+  static const double cardMaxHeightFactor = 0.45;
+  static const double cardMinHeight = 240;
+
+  static const double headerIconSize = 32;
+  static const Color headerIconBg = Color(0xFFF1F5F9);
+  static const Color headerIconColor = Color(0xFF94A3B8);
+  static const double headerIconRadius = 8;
+  static const double headerIconGlyphSize = 18;
+
+  static TextStyle get metaTextStyle => const TextStyle(
+        fontSize: metaFontSize,
+        color: metaColor,
+        height: metaLineHeight / metaFontSize,
+      );
+
+  /// 横滑子事件卡片高度：4:5 比例，上限屏高 45%，下限 240。
+  static double computeCardPhotoHeight(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final photoWidth = screenWidth * cardViewportFraction;
+    final aspectHeight = photoWidth * cardAspectHeight / cardAspectWidth;
+    final maxHeight = screenHeight * cardMaxHeightFactor;
+    return aspectHeight.clamp(cardMinHeight, maxHeight);
+  }
+}
 
 /// 时光集详情弹窗（横向/纵向）共用顶部区块。
 class MemoryCollectionDetailHeader extends StatelessWidget {
@@ -35,22 +71,7 @@ class MemoryCollectionDetailHeader extends StatelessWidget {
 
   static const Color _titleColor = Color(0xFF1F2937);
   static const Color _muted = Color(0xFF94A3B8);
-  static const Color _metaHint = Color(0xFF9CA3AF);
   static const Color _themeBlue = Color(0xFF1A73E8);
-
-  String? _coverPath() {
-    final custom = collection.coverPhotoPath;
-    if (custom != null &&
-        custom.isNotEmpty &&
-        File(custom).existsSync()) {
-      return custom;
-    }
-    for (var i = events.length - 1; i >= 0; i--) {
-      final p = MemoryService.firstSlotPhotoPath(events[i]);
-      if (p != null) return p;
-    }
-    return null;
-  }
 
   String _rangeLine() {
     if (events.isEmpty) return '暂无事件';
@@ -108,145 +129,145 @@ class MemoryCollectionDetailHeader extends StatelessWidget {
     return const PartnerShareDetailInfo(mode: PartnerShareDetailMode.none);
   }
 
-  static const TextStyle _metaHintStyle = TextStyle(
-    fontSize: 12,
-    color: _metaHint,
-    height: 20 / 12,
-  );
+  static TextStyle get _metaHintStyle => MemoryDetailDesignTokens.metaTextStyle;
+
+  String? _collectionModifiedLabel() {
+    final at = collection.lastModifiedAt;
+    if (at == null) return null;
+
+    final currentPhone = UserSession.instance.phone.trim();
+    final modifierPhone = collection.lastModifiedByPhone?.trim();
+    final String displayName;
+    if (modifierPhone != null &&
+        modifierPhone.isNotEmpty &&
+        modifierPhone == currentPhone) {
+      displayName = '我';
+    } else {
+      final partnerName =
+          TagService.getPartnerRelation().partnerName?.trim();
+      if (partnerName != null && partnerName.isNotEmpty) {
+        displayName = partnerName;
+      } else {
+        final fallback = collection.lastModifiedByName?.trim();
+        if (fallback == null || fallback.isEmpty) return null;
+        displayName = fallback;
+      }
+    }
+
+    return '最新修改：$displayName ${formatPartnerModifiedAt(at)}';
+  }
+
+  Widget _headerIconButton({
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: MemoryDetailDesignTokens.headerIconSize,
+        height: MemoryDetailDesignTokens.headerIconSize,
+        decoration: BoxDecoration(
+          color: MemoryDetailDesignTokens.headerIconBg,
+          borderRadius: BorderRadius.circular(
+            MemoryDetailDesignTokens.headerIconRadius,
+          ),
+        ),
+        alignment: Alignment.center,
+        child: Icon(
+          icon,
+          size: MemoryDetailDesignTokens.headerIconGlyphSize,
+          color: MemoryDetailDesignTokens.headerIconColor,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final cover = _coverPath();
     final photoCount = MemoryService.countPhotosInCollection(events);
     final partnerShareInfo = _partnerShareInfo();
-    final modifiedLabel = buildPartnerModifiedLabel(
-      lastModifiedByName: collection.lastModifiedByName,
-      lastModifiedAt: collection.lastModifiedAt,
-    );
+    final modifiedLabel = _collectionModifiedLabel();
     final showPartnerMeta = partnerShareInfo.mode != PartnerShareDetailMode.none;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Container(
-          height: 200,
-          width: double.infinity,
-          margin: const EdgeInsets.all(16),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                cover != null
-                    ? Image.file(File(cover), fit: BoxFit.cover)
-                    : GestureDetector(
-                        onTap: onEditCollection,
-                        behavior: HitTestBehavior.opaque,
-                        child: Container(
-                          color: const Color(0xFFF1F5F9),
-                          alignment: Alignment.center,
-                          child: const Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.camera_alt_outlined,
-                                size: 32,
-                                color: Color(0xFFCBD5E1),
-                              ),
-                              SizedBox(height: 8),
-                              Text(
-                                '点击添加封面',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Color(0xFF94A3B8),
-                                ),
-                              ),
-                            ],
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const SizedBox(width: 72),
+              Expanded(
+                child: Center(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          collection.name.isNotEmpty
+                              ? collection.name
+                              : '未命名时光集',
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                            color: _titleColor,
                           ),
                         ),
                       ),
-                Positioned(
-                  top: 24,
-                  right: 24,
-                  child: Row(
-                    children: [
-                      MemoryGlassIconButton(
-                        icon: Icons.share_outlined,
-                        onTap: onShare,
-                      ),
-                      const SizedBox(width: 8),
-                      MemoryGlassIconButton(
-                        icon: Icons.edit_outlined,
-                        onTap: onEditCollection,
-                      ),
+                      const SizedBox(width: 4),
+                      buildPartnerShareTitleMarker(partnerShareInfo),
                     ],
                   ),
                 ),
-              ],
-            ),
-          ),
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Flexible(
-              child: Text(
-                collection.name.isNotEmpty ? collection.name : '未命名时光集',
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: _titleColor,
+              ),
+              SizedBox(
+                width: 72,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    _headerIconButton(icon: Icons.share, onTap: onShare),
+                    const SizedBox(width: 8),
+                    _headerIconButton(
+                      icon: Icons.edit,
+                      onTap: onEditCollection,
+                    ),
+                  ],
                 ),
               ),
-            ),
-            buildPartnerShareTitleMarker(partnerShareInfo),
-          ],
+            ],
+          ),
         ),
         const SizedBox(height: 4),
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                _rangeLine(),
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 13, color: _muted),
-              ),
-            ),
-            if (modifiedLabel != null && !showPartnerMeta)
-              Text(
-                modifiedLabel,
-                style: _metaHintStyle,
-              ),
-          ],
+        Text(
+          _rangeLine(),
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 13, color: _muted),
         ),
-        if (showPartnerMeta) ...[
+        if (showPartnerMeta || modifiedLabel != null) ...[
           const SizedBox(height: 4),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 if (showPartnerMeta)
-                  Flexible(
-                    fit: FlexFit.loose,
+                  Center(
                     child: buildPartnerShareStatusRow(
                       partnerShareInfo,
                       textStyle: _metaHintStyle,
                     ),
                   ),
                 if (showPartnerMeta && modifiedLabel != null)
-                  const SizedBox(width: 16),
-                if (modifiedLabel != null && showPartnerMeta)
-                  Flexible(
-                    child: Text(
-                      modifiedLabel,
-                      style: _metaHintStyle,
-                      textAlign: TextAlign.right,
-                    ),
+                  const SizedBox(height: 4),
+                if (modifiedLabel != null)
+                  Text(
+                    modifiedLabel,
+                    textAlign: TextAlign.center,
+                    style: _metaHintStyle,
                   ),
               ],
             ),
@@ -265,7 +286,7 @@ class MemoryCollectionDetailHeader extends StatelessWidget {
           ],
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Container(height: 1, color: const Color(0xFFF1F5F9)),
         ),
         Padding(

@@ -149,6 +149,7 @@ Widget buildPartnerShareStatusRow(
         height: 20 / 12,
       );
   return Row(
+    mainAxisSize: MainAxisSize.min,
     children: [
       if (info.mode == PartnerShareDetailMode.active)
         SvgPicture.asset(

@@ -112,10 +112,6 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
         return const MemoryPage();
       case 3:
         return ProfilePage(
-          existingEvents: _globalEvents,
-          onBirthdaysImported: (imported) {
-            _onEventsChanged([..._globalEvents, ...imported]);
-          },
           onMembershipTierChanged: _onMembershipTierChanged,
         );
       default:

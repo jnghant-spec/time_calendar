@@ -1,3 +1,13 @@
+---
+description: 
+alwaysApply: true
+---
+
+---
+description: 
+alwaysApply: true
+---
+
 # 时光集 - 项目上下文
 - 技术栈:Flutter 3.x,Dart,Android + iOS 双端
 - 包名:time_calendar(严禁修改,否则 import 路径断裂)
@@ -21,6 +31,6 @@
 
 # 开发纪律
 - 修改前检查 dart analyze 和 flutter test
-- 严禁修改无关模块（会员系统、节日设置页、日历页、分享卡片、通讯录导入）
+- 严禁修改无关模块（会员系统、节日设置页、日历页、分享卡片）
 - 严禁修改 pubspec.yaml 的 name 字段
 - 严禁修改 Android applicationId 和 iOS Bundle Identifier

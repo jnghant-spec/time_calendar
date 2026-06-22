@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:time_calendar/models/list_event.dart';
 import 'package:time_calendar/models/membership_tier.dart';
-import 'package:time_calendar/pages/contact_import_page.dart';
 import 'package:time_calendar/pages/membership_sheet.dart';
 import 'package:time_calendar/pages/personal_info_page.dart';
 import 'package:time_calendar/pages/festival_settings_page.dart';
@@ -17,13 +15,9 @@ class ProfilePage extends StatefulWidget {
   const ProfilePage({
     super.key,
     this.onMembershipTierChanged,
-    this.existingEvents = const [],
-    this.onBirthdaysImported,
   });
 
   final VoidCallback? onMembershipTierChanged;
-  final List<ListEvent> existingEvents;
-  final ValueChanged<List<ListEvent>>? onBirthdaysImported;
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -134,8 +128,6 @@ class _ProfilePageState extends State<ProfilePage> {
                       _FeatureMenu(
                         colorScheme: cs,
                         textTheme: textTheme,
-                        existingEvents: widget.existingEvents,
-                        onBirthdaysImported: widget.onBirthdaysImported,
                       ),
                     ],
                   ),
@@ -433,14 +425,10 @@ class _FeatureMenu extends StatelessWidget {
   const _FeatureMenu({
     required this.colorScheme,
     required this.textTheme,
-    required this.existingEvents,
-    this.onBirthdaysImported,
   });
 
   final ColorScheme colorScheme;
   final TextTheme textTheme;
-  final List<ListEvent> existingEvents;
-  final ValueChanged<List<ListEvent>>? onBirthdaysImported;
 
   @override
   Widget build(BuildContext context) {
@@ -449,11 +437,6 @@ class _FeatureMenu extends StatelessWidget {
         asset: 'assets/images/ic_personal.svg',
         title: '个人信息',
         subtitle: '头像、昵称设置',
-      ),
-      _MenuItemData(
-        asset: 'assets/images/ic_contacts.svg',
-        title: '从通讯录导入生日',
-        subtitle: '批量创建每年循环生日（高级版）',
       ),
       _MenuItemData(
         asset: 'assets/images/ic_share.svg',
@@ -487,19 +470,6 @@ class _FeatureMenu extends StatelessWidget {
                     builder: (context) => const PersonalInfoPage(),
                   ),
                 );
-              } else if (items[i].title == '从通讯录导入生日') {
-                Navigator.of(context)
-                    .push<List<ListEvent>>(
-                  MaterialPageRoute<List<ListEvent>>(
-                    builder: (context) => ContactImportPage(
-                      existingEvents: existingEvents,
-                    ),
-                  ),
-                )
-                    .then((added) {
-                  if (added == null || added.isEmpty) return;
-                  onBirthdaysImported?.call(added);
-                });
               } else if (items[i].title == '共享管理') {
                 Navigator.of(context).push<void>(
                   MaterialPageRoute<void>(
