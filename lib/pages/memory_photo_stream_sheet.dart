@@ -26,6 +26,7 @@ Future<void> showMemoryPhotoStreamSheet(
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
     enableDrag: false,
+    isDismissible: false,
     builder: (ctx) => _MemoryPhotoStreamSheetHost(
       collection: collection,
       initialViewIndex: initialViewIndex,
@@ -150,6 +151,7 @@ class _MemoryPhotoStreamSheetState extends State<MemoryPhotoStreamSheet> {
   int _logicalIndex = 0;
   late int _currentViewIndex;
   double _dragOffset = 0;
+  bool _nestedSheetOpen = false;
 
   @override
   void initState() {
@@ -244,20 +246,29 @@ class _MemoryPhotoStreamSheetState extends State<MemoryPhotoStreamSheet> {
     showMemoryShareSheet(context, collection: _collection);
   }
 
+  Future<bool?> _openMemoryEventSheet({MemoryEvent? initial}) async {
+    if (!mounted) return null;
+    setState(() => _nestedSheetOpen = true);
+    try {
+      return await showMemoryEventSheet(
+        context,
+        collectionId: _collection.id,
+        initial: initial,
+      );
+    } finally {
+      if (mounted) setState(() => _nestedSheetOpen = false);
+    }
+  }
+
   Future<void> _onCreateEvent() async {
-    final changed =
-        await showMemoryEventSheet(context, collectionId: _collection.id);
+    final changed = await _openMemoryEventSheet();
     if (changed == true) await _reload();
   }
 
   Future<void> _onEditCurrentEvent() async {
     if (_events.isEmpty) return;
     final e = _events[_logicalIndex];
-    final changed = await showMemoryEventSheet(
-      context,
-      collectionId: _collection.id,
-      initial: e,
-    );
+    final changed = await _openMemoryEventSheet(initial: e);
     if (changed == true) await _reload(focusEventId: e.id);
   }
 
@@ -284,11 +295,7 @@ class _MemoryPhotoStreamSheetState extends State<MemoryPhotoStreamSheet> {
   }
 
   Future<void> _editEvent(MemoryEvent e) async {
-    final changed = await showMemoryEventSheet(
-      context,
-      collectionId: _collection.id,
-      initial: e,
-    );
+    final changed = await _openMemoryEventSheet(initial: e);
     if (changed == true) await _reload(focusEventId: e.id);
   }
 
@@ -1150,11 +1157,16 @@ class _MemoryPhotoStreamSheetState extends State<MemoryPhotoStreamSheet> {
                   child: GestureDetector(
                     behavior: HitTestBehavior.translucent,
                     onVerticalDragUpdate: (details) {
+                      if (_nestedSheetOpen) return;
                       if (details.delta.dy > 0) {
                         setState(() => _dragOffset += details.delta.dy);
                       }
                     },
                     onVerticalDragEnd: (details) {
+                      if (_nestedSheetOpen) {
+                        setState(() => _dragOffset = 0);
+                        return;
+                      }
                       final threshold = sheetHeight / 3;
                       if (_dragOffset > threshold ||
                           details.velocity.pixelsPerSecond.dy > 800) {

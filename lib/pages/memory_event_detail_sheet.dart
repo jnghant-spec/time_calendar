@@ -23,6 +23,7 @@ Future<void> showMemoryEventDetailSheet(
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
     enableDrag: false,
+    isDismissible: false,
     builder: (ctx) => _MemoryEventDetailSheetHost(
       event: event,
       collection: collection,
@@ -112,6 +113,7 @@ class _MemoryEventDetailSheetState extends State<MemoryEventDetailSheet>
   double _initialDragX = 0;
   double _initialDragY = 0;
   _PhotoDragMode _photoDragMode = _PhotoDragMode.none;
+  bool _nestedSheetOpen = false;
   late final AnimationController _photoAnimController;
   late Animation<double> _photoAnim;
   int _targetPhotoIndex = 0;
@@ -300,26 +302,31 @@ class _MemoryEventDetailSheetState extends State<MemoryEventDetailSheet>
   }
 
   Future<void> _openEdit() async {
-    final changed = await showMemoryEventSheet(
-      context,
-      collectionId: widget.collection.id,
-      initial: _event,
-    );
-    if (!mounted || changed != true) return;
-    final updated = await MemoryService.getEventById(_event.id);
-    if (updated != null) {
-      final photos = MemoryService.existingPhotoPaths(updated);
-      setState(() {
-        _event = updated;
-        if (photos.isEmpty) {
-          _currentPhotoIndex = 0;
-        } else {
-          _currentPhotoIndex =
-              _currentPhotoIndex.clamp(0, photos.length - 1);
-        }
-      });
+    setState(() => _nestedSheetOpen = true);
+    try {
+      final changed = await showMemoryEventSheet(
+        context,
+        collectionId: widget.collection.id,
+        initial: _event,
+      );
+      if (!mounted || changed != true) return;
+      final updated = await MemoryService.getEventById(_event.id);
+      if (updated != null) {
+        final photos = MemoryService.existingPhotoPaths(updated);
+        setState(() {
+          _event = updated;
+          if (photos.isEmpty) {
+            _currentPhotoIndex = 0;
+          } else {
+            _currentPhotoIndex =
+                _currentPhotoIndex.clamp(0, photos.length - 1);
+          }
+        });
+      }
+      widget.onChanged?.call();
+    } finally {
+      if (mounted) setState(() => _nestedSheetOpen = false);
     }
-    widget.onChanged?.call();
   }
 
   Future<void> _confirmDelete() async {
@@ -585,6 +592,7 @@ class _MemoryEventDetailSheetState extends State<MemoryEventDetailSheet>
                                 });
                               } else if (_photoDragMode ==
                                   _PhotoDragMode.vertical) {
+                                if (_nestedSheetOpen) return;
                                 if (details.delta.dy > 0) {
                                   setState(
                                     () => _sheetDragOffset += details.delta.dy,
@@ -630,12 +638,17 @@ class _MemoryEventDetailSheetState extends State<MemoryEventDetailSheet>
                                 _photoAnimController.forward(from: 0);
                               } else if (_photoDragMode ==
                                   _PhotoDragMode.vertical) {
-                                final threshold = _sheetHeight / 3;
-                                if (_sheetDragOffset > threshold ||
-                                    details.velocity.pixelsPerSecond.dy > 800) {
-                                  Navigator.of(context).pop();
-                                } else {
+                                if (_nestedSheetOpen) {
                                   setState(() => _sheetDragOffset = 0);
+                                } else {
+                                  final threshold = _sheetHeight / 3;
+                                  if (_sheetDragOffset > threshold ||
+                                      details.velocity.pixelsPerSecond.dy >
+                                          800) {
+                                    Navigator.of(context).pop();
+                                  } else {
+                                    setState(() => _sheetDragOffset = 0);
+                                  }
                                 }
                               }
                               _photoDragMode = _PhotoDragMode.none;
@@ -838,11 +851,16 @@ class _MemoryEventDetailSheetState extends State<MemoryEventDetailSheet>
             child: GestureDetector(
               behavior: HitTestBehavior.translucent,
               onVerticalDragUpdate: (details) {
+                if (_nestedSheetOpen) return;
                 if (details.delta.dy > 0) {
                   setState(() => _sheetDragOffset += details.delta.dy);
                 }
               },
               onVerticalDragEnd: (details) {
+                if (_nestedSheetOpen) {
+                  setState(() => _sheetDragOffset = 0);
+                  return;
+                }
                 final threshold = _sheetHeight / 3;
                 if (_sheetDragOffset > threshold ||
                     details.velocity.pixelsPerSecond.dy > 800) {

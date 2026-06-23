@@ -20,12 +20,18 @@ class PhotoViewerPage extends StatefulWidget {
     required this.initialIndex,
     required this.eventName,
     this.eventDate,
+    this.onReplaceCurrentPhoto,
+    this.onDeleteCurrentPhoto,
   });
+
+  static const Color themeBlue = Color(0xFF1A73E8);
 
   final List<MemoryPhoto> photos;
   final int initialIndex;
   final String eventName;
   final DateTime? eventDate;
+  final Future<void> Function(int currentIndex)? onReplaceCurrentPhoto;
+  final Future<void> Function(int currentIndex)? onDeleteCurrentPhoto;
 
   static Future<void> showForMemoryEvent(
     BuildContext context, {
@@ -49,6 +55,8 @@ class PhotoViewerPage extends StatefulWidget {
     required int initialIndex,
     required String eventName,
     DateTime? eventDate,
+    Future<void> Function(int currentIndex)? onReplaceCurrentPhoto,
+    Future<void> Function(int currentIndex)? onDeleteCurrentPhoto,
   }) async {
     final existing =
         photos.where((p) => File(p.path).existsSync()).toList(growable: false);
@@ -63,6 +71,8 @@ class PhotoViewerPage extends StatefulWidget {
           initialIndex: idx,
           eventName: eventName,
           eventDate: eventDate,
+          onReplaceCurrentPhoto: onReplaceCurrentPhoto,
+          onDeleteCurrentPhoto: onDeleteCurrentPhoto,
         ),
       ),
     );
@@ -126,6 +136,64 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
   }
 
   void _close() => Navigator.of(context).pop();
+
+  bool get _isEditable =>
+      widget.onReplaceCurrentPhoto != null ||
+      widget.onDeleteCurrentPhoto != null;
+
+  Future<void> _handleReplace() async {
+    final onReplace = widget.onReplaceCurrentPhoto;
+    if (onReplace == null) return;
+    await onReplace(_currentIndex);
+  }
+
+  Future<void> _handleDelete() async {
+    final onDelete = widget.onDeleteCurrentPhoto;
+    if (onDelete == null) return;
+    await onDelete(_currentIndex);
+  }
+
+  Widget _buildEditActions() {
+    return Row(
+      children: [
+        if (widget.onReplaceCurrentPhoto != null) ...[
+          Expanded(
+            child: FilledButton.icon(
+              onPressed: _handleReplace,
+              icon: const Icon(Icons.photo_library_outlined, size: 18),
+              label: const Text('更换照片'),
+              style: FilledButton.styleFrom(
+                backgroundColor: PhotoViewerPage.themeBlue,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+          ),
+        ],
+        if (widget.onReplaceCurrentPhoto != null &&
+            widget.onDeleteCurrentPhoto != null)
+          const SizedBox(width: 12),
+        if (widget.onDeleteCurrentPhoto != null)
+          TextButton(
+            onPressed: _handleDelete,
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFFFF6B6B),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            child: const Text(
+              '删除',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+            ),
+          ),
+      ],
+    );
+  }
 
   String _bottomSubtitle() {
     final datePart = widget.eventDate != null
@@ -242,6 +310,10 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
                           color: Colors.white.withValues(alpha: 0.8),
                         ),
                       ),
+                      if (_isEditable) ...[
+                        const SizedBox(height: 16),
+                        _buildEditActions(),
+                      ],
                     ],
                   ),
                 ),

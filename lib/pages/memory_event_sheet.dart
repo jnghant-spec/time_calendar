@@ -9,6 +9,70 @@ import 'package:time_calendar/services/memory_service.dart';
 import 'package:time_calendar/utils/event_date_utils.dart';
 import 'package:time_calendar/widgets/common_date_picker.dart';
 
+/// 子事件编辑页布局 token。
+abstract final class MemoryEventSheetLayoutTokens {
+  static const double dragHandleHeight = 40;
+  static const double scrollPaddingTop = 16;
+  static const double scrollPaddingBottom = 12;
+  static const double sectionGap = 12;
+  static const double bottomBarHeight = 48;
+  static const double bottomBarSafeMin = 12;
+  static const EdgeInsets textFieldContentPadding =
+      EdgeInsets.symmetric(horizontal: 16, vertical: 12);
+  static const double gridCrossSpacing = 8;
+  static const double gridMainSpacing = 8;
+  static const double horizontalPadding = 16;
+  static const double maxSheetFraction = 0.96;
+  static const double minSheetFraction = 0.5;
+  static const double sheetHeightSlack = 8;
+}
+
+double computeMemoryEventSheetContentHeight(BuildContext context) {
+  final screenWidth = MediaQuery.sizeOf(context).width;
+  final safeBottom = MediaQuery.paddingOf(context).bottom;
+
+  final gridInnerWidth = screenWidth -
+      MemoryEventSheetLayoutTokens.horizontalPadding * 2 -
+      MemoryEventSheetLayoutTokens.gridCrossSpacing * 2;
+  final cellSize = gridInnerWidth / 3;
+  final gridHeight =
+      cellSize * 3 + MemoryEventSheetLayoutTokens.gridMainSpacing * 2;
+
+  const titleFieldHeight = 48.0;
+  const locationFieldHeight = 48.0;
+  const dateCapsuleHeight = 40.0;
+  const photoHeaderHeight = 48.0;
+  const gap = MemoryEventSheetLayoutTokens.sectionGap;
+
+  return MemoryEventSheetLayoutTokens.dragHandleHeight +
+      MemoryEventSheetLayoutTokens.scrollPaddingTop +
+      titleFieldHeight +
+      gap +
+      locationFieldHeight +
+      gap +
+      dateCapsuleHeight +
+      gap +
+      photoHeaderHeight +
+      gap +
+      gridHeight +
+      MemoryEventSheetLayoutTokens.scrollPaddingBottom +
+      MemoryEventSheetLayoutTokens.bottomBarHeight +
+      MemoryEventSheetLayoutTokens.bottomBarSafeMin +
+      safeBottom +
+      MemoryEventSheetLayoutTokens.sheetHeightSlack;
+}
+
+double computeMemoryEventSheetInitialSize(BuildContext context) {
+  final screenHeight = MediaQuery.sizeOf(context).height;
+  if (screenHeight <= 0) return 0.95;
+  final fraction =
+      computeMemoryEventSheetContentHeight(context) / screenHeight;
+  return fraction.clamp(
+    MemoryEventSheetLayoutTokens.minSheetFraction,
+    MemoryEventSheetLayoutTokens.maxSheetFraction,
+  );
+}
+
 Future<bool?> showMemoryEventSheet(
   BuildContext context, {
   required String collectionId,
@@ -19,26 +83,21 @@ Future<bool?> showMemoryEventSheet(
     context: context,
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
+    isDismissible: true,
+    enableDrag: false,
     builder: (ctx) {
-      final height = MediaQuery.sizeOf(ctx).height;
-      return Padding(
-        padding: EdgeInsets.only(top: height * 0.08),
-        child: SizedBox(
-          height: height * 0.92,
-          child: MemoryEventSheet(
-            collectionId: collectionId,
-            initial: initial,
-            readOnlyPreview: readOnlyPreview,
-          ),
-        ),
+      return _MemoryEventSheetDraggableHost(
+        collectionId: collectionId,
+        initial: initial,
+        readOnlyPreview: readOnlyPreview,
       );
     },
   );
 }
 
-class MemoryEventSheet extends StatefulWidget {
-  const MemoryEventSheet({
-    super.key,
+/// 拖拽结束时按方向与 extent 判断是否关闭，避免连续 pop 连带关闭上一层。
+class _MemoryEventSheetDraggableHost extends StatefulWidget {
+  const _MemoryEventSheetDraggableHost({
     required this.collectionId,
     this.initial,
     this.readOnlyPreview = false,
@@ -47,6 +106,108 @@ class MemoryEventSheet extends StatefulWidget {
   final String collectionId;
   final MemoryEvent? initial;
   final bool readOnlyPreview;
+
+  @override
+  State<_MemoryEventSheetDraggableHost> createState() =>
+      _MemoryEventSheetDraggableHostState();
+}
+
+class _MemoryEventSheetDraggableHostState
+    extends State<_MemoryEventSheetDraggableHost> {
+  Offset? _pointerDown;
+  bool _dismissed = false;
+  bool _initialExtentSet = false;
+  double _lastExtent = 0.95;
+  double _minExtent = MemoryEventSheetLayoutTokens.minSheetFraction;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initialExtentSet) {
+      _lastExtent = computeMemoryEventSheetInitialSize(context);
+      _initialExtentSet = true;
+    }
+  }
+
+  void _onPointerDown(PointerDownEvent event) {
+    _pointerDown = event.position;
+    _dismissed = false;
+  }
+
+  void _onPointerUp(PointerUpEvent event) {
+    _tryDismiss(pointerUp: event.position);
+  }
+
+  void _tryDismiss({required Offset pointerUp}) {
+    if (_dismissed || _pointerDown == null || !mounted) return;
+
+    final down = _pointerDown!;
+    final dy = pointerUp.dy - down.dy;
+    final dx = pointerUp.dx - down.dx;
+    final atMinExtent = _lastExtent <= _minExtent + 0.001;
+    final verticalDominant = dy > 0 && dy.abs() > dx.abs();
+
+    if (!atMinExtent || !verticalDominant) return;
+
+    _dismissed = true;
+    _pointerDown = null;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final initialSize = computeMemoryEventSheetInitialSize(context);
+
+    return Listener(
+      onPointerDown: _onPointerDown,
+      onPointerUp: _onPointerUp,
+      onPointerCancel: (_) {
+        _pointerDown = null;
+      },
+      child: NotificationListener<DraggableScrollableNotification>(
+        onNotification: (notification) {
+          _lastExtent = notification.extent;
+          _minExtent = notification.minExtent;
+          return false;
+        },
+        child: DraggableScrollableSheet(
+          initialChildSize: initialSize,
+          minChildSize: MemoryEventSheetLayoutTokens.minSheetFraction,
+          maxChildSize: MemoryEventSheetLayoutTokens.maxSheetFraction,
+          expand: false,
+          snap: true,
+          snapSizes: [initialSize],
+          builder: (context, scrollController) {
+            return MemoryEventSheet(
+              collectionId: widget.collectionId,
+              initial: widget.initial,
+              readOnlyPreview: widget.readOnlyPreview,
+              scrollController: scrollController,
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class MemoryEventSheet extends StatefulWidget {
+  const MemoryEventSheet({
+    super.key,
+    required this.collectionId,
+    this.initial,
+    this.readOnlyPreview = false,
+    this.scrollController,
+  });
+
+  final String collectionId;
+  final MemoryEvent? initial;
+  final bool readOnlyPreview;
+  final ScrollController? scrollController;
 
   static const Color _titleColor = Color(0xFF1F2937);
   static const Color _themeBlue = Color(0xFF1A73E8);
@@ -100,7 +261,7 @@ class _MemoryEventSheetState extends State<MemoryEventSheet> {
     }
   }
 
-  Future<void> _pickForSlot(int slotIndex) async {
+  Future<bool> _pickForSlot(int slotIndex) async {
     try {
       final file = await ImagePicker().pickImage(
         source: ImageSource.gallery,
@@ -108,9 +269,9 @@ class _MemoryEventSheetState extends State<MemoryEventSheet> {
         maxWidth: 1080,
         maxHeight: 1080,
       );
-      if (file == null) return;
+      if (file == null) return false;
       final path = await _persistPhoto(file);
-      if (!mounted || path == null) return;
+      if (!mounted || path == null) return false;
       final oldPath = _slotPhotos[slotIndex];
       setState(() {
         _slotPhotos[slotIndex] = path;
@@ -121,7 +282,10 @@ class _MemoryEventSheetState extends State<MemoryEventSheet> {
           oldPath.trim().isNotEmpty) {
         MemoryService.deletePhotoFileIfExists(oldPath);
       }
-    } catch (_) {}
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<void> _pickMultiGallery() async {
@@ -149,28 +313,6 @@ class _MemoryEventSheetState extends State<MemoryEventSheet> {
           context,
         ).showSnackBar(const SnackBar(content: Text('最多保存 9 张照片，已忽略超出部分')));
       }
-    } catch (_) {}
-  }
-
-  Future<void> _takePhoto() async {
-    try {
-      final emptyIdx = _slotPhotos.indexWhere((s) => s == null);
-      if (emptyIdx < 0) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('九宫格已满')));
-        return;
-      }
-      final file = await ImagePicker().pickImage(
-        source: ImageSource.camera,
-        imageQuality: 85,
-        maxWidth: 1080,
-        maxHeight: 1080,
-      );
-      if (file == null) return;
-      final path = await _persistPhoto(file);
-      if (!mounted || path == null) return;
-      setState(() => _slotPhotos[emptyIdx] = path);
     } catch (_) {}
   }
 
@@ -212,61 +354,50 @@ class _MemoryEventSheetState extends State<MemoryEventSheet> {
     Navigator.pop(context, true);
   }
 
-  List<String> _viewerPhotoPaths() {
-    return _slotPhotos
-        .where(
-          (p) => p != null && p.trim().isNotEmpty && File(p).existsSync(),
-        )
-        .cast<String>()
-        .toList();
+  List<({String path, int gridIndex})> _viewerPhotoEntries() {
+    final entries = <({String path, int gridIndex})>[];
+    for (var i = 0; i < _slotPhotos.length; i++) {
+      final path = _slotPhotos[i];
+      if (path != null &&
+          path.trim().isNotEmpty &&
+          File(path).existsSync()) {
+        entries.add((path: path, gridIndex: i));
+      }
+    }
+    return entries;
+  }
+
+  void _deletePhotoAtGridIndex(int gridIndex) {
+    final oldPath = _slotPhotos[gridIndex];
+    setState(() => _slotPhotos[gridIndex] = null);
+    MemoryService.deletePhotoFileIfExists(oldPath);
   }
 
   void _openPhotoViewer(int gridIndex) {
-    final paths = _viewerPhotoPaths();
-    if (paths.isEmpty) return;
+    final entries = _viewerPhotoEntries();
+    if (entries.isEmpty) return;
     final path = _slotPhotos[gridIndex];
     if (path == null) return;
-    final initialIndex = paths.indexOf(path);
+    final initialIndex = entries.indexWhere((e) => e.gridIndex == gridIndex);
+    final gridIndices = entries.map((e) => e.gridIndex).toList(growable: false);
     PhotoViewerPage.show(
       context,
-      photos: paths.map((p) => MemoryPhoto(path: p)).toList(),
+      photos: entries.map((e) => MemoryPhoto(path: e.path)).toList(),
       initialIndex: initialIndex >= 0 ? initialIndex : 0,
       eventName: _titleCtrl.text.trim().isEmpty ? '纪念事件' : _titleCtrl.text.trim(),
       eventDate: _date,
-    );
-  }
-
-  void _showPhotoActionSheet(int index) {
-    showModalBottomSheet<void>(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('替换照片'),
-              onTap: () {
-                Navigator.pop(ctx);
-                _pickForSlot(index);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete_outline),
-              title: const Text('删除照片'),
-              onTap: () {
-                Navigator.pop(ctx);
-                final oldPath = _slotPhotos[index];
-                setState(() => _slotPhotos[index] = null);
-                MemoryService.deletePhotoFileIfExists(oldPath);
-              },
-            ),
-          ],
-        ),
-      ),
+      onReplaceCurrentPhoto: (viewerIndex) async {
+        final slotIndex = gridIndices[viewerIndex];
+        final replaced = await _pickForSlot(slotIndex);
+        if (!mounted || !replaced) return;
+        Navigator.of(context).pop();
+      },
+      onDeleteCurrentPhoto: (viewerIndex) async {
+        final slotIndex = gridIndices[viewerIndex];
+        _deletePhotoAtGridIndex(slotIndex);
+        if (!mounted) return;
+        Navigator.of(context).pop();
+      },
     );
   }
 
@@ -429,11 +560,28 @@ class _MemoryEventSheetState extends State<MemoryEventSheet> {
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => _onPhotoSlotTap(index),
-            onLongPress: () => _showPhotoActionSheet(index),
+            // 长按由 LongPressDraggable 占用，用于拖拽排序；更换/删除见预览页底栏。
             child: slotChrome(highlight: highlight, showImage: true),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildDragHandle() {
+    return SizedBox(
+      height: MemoryEventSheetLayoutTokens.dragHandleHeight,
+      width: double.infinity,
+      child: Center(
+        child: Container(
+          width: 36,
+          height: 4,
+          decoration: BoxDecoration(
+            color: const Color(0xFFE2E8F0),
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+      ),
     );
   }
 
@@ -450,21 +598,19 @@ class _MemoryEventSheetState extends State<MemoryEventSheet> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Center(
-                child: Container(
-                  margin: const EdgeInsets.only(top: 8),
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE2E8F0),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
+              _buildDragHandle(),
               Expanded(
                 child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+                  controller: widget.scrollController,
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
+                  padding: const EdgeInsets.fromLTRB(
+                    MemoryEventSheetLayoutTokens.horizontalPadding,
+                    MemoryEventSheetLayoutTokens.scrollPaddingTop,
+                    MemoryEventSheetLayoutTokens.horizontalPadding,
+                    MemoryEventSheetLayoutTokens.scrollPaddingBottom,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -472,6 +618,8 @@ class _MemoryEventSheetState extends State<MemoryEventSheet> {
                         controller: _titleCtrl,
                         decoration: InputDecoration(
                           hintText: '输入事件名称',
+                          contentPadding:
+                              MemoryEventSheetLayoutTokens.textFieldContentPadding,
                           hintStyle: const TextStyle(
                             color: Color(0xFFCBD5E1),
                           ),
@@ -493,11 +641,13 @@ class _MemoryEventSheetState extends State<MemoryEventSheet> {
                           color: Color(0xFF1F2937),
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: MemoryEventSheetLayoutTokens.sectionGap),
                       TextField(
                         controller: _locCtrl,
                         decoration: InputDecoration(
                           hintText: '添加地点',
+                          contentPadding:
+                              MemoryEventSheetLayoutTokens.textFieldContentPadding,
                           hintStyle: const TextStyle(
                             color: Color(0xFFCBD5E1),
                           ),
@@ -519,7 +669,7 @@ class _MemoryEventSheetState extends State<MemoryEventSheet> {
                           color: Color(0xFF1F2937),
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: MemoryEventSheetLayoutTokens.sectionGap),
                       Align(
                         alignment: Alignment.centerLeft,
                         child: GestureDetector(
@@ -559,21 +709,65 @@ class _MemoryEventSheetState extends State<MemoryEventSheet> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        '纪念照片',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: MemoryEventSheet._titleColor,
-                        ),
+                      const SizedBox(height: MemoryEventSheetLayoutTokens.sectionGap),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  '纪念照片',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: MemoryEventSheet._titleColor,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                const Text(
+                                  '最多 9 张 · 1 号为封面',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFF9CA3AF),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          TextButton.icon(
+                            onPressed: _pickMultiGallery,
+                            style: TextButton.styleFrom(
+                              foregroundColor: MemoryEventSheet._themeBlue,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            icon: const Icon(
+                              Icons.photo_library_outlined,
+                              size: 16,
+                            ),
+                            label: const Text(
+                              '从相册添加',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: MemoryEventSheetLayoutTokens.sectionGap),
                       GridView.count(
                         crossAxisCount: 3,
                         childAspectRatio: 1.0,
-                        mainAxisSpacing: 8,
-                        crossAxisSpacing: 8,
+                        mainAxisSpacing: MemoryEventSheetLayoutTokens.gridMainSpacing,
+                        crossAxisSpacing:
+                            MemoryEventSheetLayoutTokens.gridCrossSpacing,
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         children: List.generate(
@@ -586,79 +780,20 @@ class _MemoryEventSheetState extends State<MemoryEventSheet> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: MemoryEventSheet._themeBlue,
-                                side: const BorderSide(
-                                  color: MemoryEventSheet._themeBlue,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                ),
-                              ),
-                              onPressed: _pickMultiGallery,
-                              icon: const Icon(
-                                Icons.photo_library_outlined,
-                                size: 18,
-                                color: MemoryEventSheet._themeBlue,
-                              ),
-                              label: const Text(
-                                '从相册上传',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: MemoryEventSheet._themeBlue,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: MemoryEventSheet._themeBlue,
-                                side: const BorderSide(
-                                  color: MemoryEventSheet._themeBlue,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                ),
-                              ),
-                              onPressed: _takePhoto,
-                              icon: const Icon(
-                                Icons.camera_alt_outlined,
-                                size: 18,
-                                color: MemoryEventSheet._themeBlue,
-                              ),
-                              label: const Text(
-                                '拍照上传',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: MemoryEventSheet._themeBlue,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: MemoryEventSheetLayoutTokens.sectionGap),
                     ],
                   ),
                 ),
               ),
               SafeArea(
-                minimum: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                minimum: EdgeInsets.fromLTRB(
+                  MemoryEventSheetLayoutTokens.horizontalPadding,
+                  0,
+                  MemoryEventSheetLayoutTokens.horizontalPadding,
+                  MemoryEventSheetLayoutTokens.bottomBarSafeMin,
+                ),
                 child: SizedBox(
-                  height: 48,
+                  height: MemoryEventSheetLayoutTokens.bottomBarHeight,
                   child: Row(
                   children: [
                     Expanded(
