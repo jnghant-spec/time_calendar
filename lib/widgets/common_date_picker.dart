@@ -699,11 +699,27 @@ class _CalendarModePill extends StatelessWidget {
   }
 }
 
+/// 时光集子事件日期选择结果（公历锚点 + 是否农历 tab 确认）。
+class MemoryEventDatePickResult {
+  const MemoryEventDatePickResult({
+    required this.date,
+    required this.isLunarDate,
+  });
+
+  final DateTime date;
+  final bool isLunarDate;
+}
+
 /// 时光集事件日期：公历/农历切换 + 与清单页相同的滚轮弹层。
 class MemoryCompositeDatePickerSheet extends StatefulWidget {
-  const MemoryCompositeDatePickerSheet({super.key, required this.initialDate});
+  const MemoryCompositeDatePickerSheet({
+    super.key,
+    required this.initialDate,
+    this.initialIsLunarDate = false,
+  });
 
   final DateTime initialDate;
+  final bool initialIsLunarDate;
 
   @override
   State<MemoryCompositeDatePickerSheet> createState() =>
@@ -716,7 +732,7 @@ class _MemoryCompositeDatePickerSheetState
   late int _lunarYear;
   late int _lunarMonthSigned;
   late int _lunarDay;
-  bool _solarMode = true;
+  late bool _solarMode;
   MembershipTier _tier = MembershipTier.free;
 
   @override
@@ -727,6 +743,7 @@ class _MemoryCompositeDatePickerSheetState
       widget.initialDate.month,
       widget.initialDate.day,
     );
+    _solarMode = !widget.initialIsLunarDate;
     final lunar = Lunar.fromDate(_solarDate);
     _lunarYear = lunar.getYear();
     _lunarMonthSigned = lunar.getMonth();
@@ -940,8 +957,13 @@ class _MemoryCompositeDatePickerSheetState
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      onPressed: () =>
-                          Navigator.pop(context, _solarDate),
+                      onPressed: () => Navigator.pop(
+                        context,
+                        MemoryEventDatePickResult(
+                          date: _solarDate,
+                          isLunarDate: !_solarMode,
+                        ),
+                      ),
                       child: const Text(
                         '确定',
                         style: TextStyle(
@@ -961,18 +983,22 @@ class _MemoryCompositeDatePickerSheetState
   }
 }
 
-Future<DateTime?> showMemoryEventDatePicker(
+Future<MemoryEventDatePickResult?> showMemoryEventDatePicker(
   BuildContext context, {
   required DateTime initialDate,
+  bool initialIsLunarDate = false,
 }) {
-  return showModalBottomSheet<DateTime>(
+  return showModalBottomSheet<MemoryEventDatePickResult>(
     context: context,
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
     barrierColor: Colors.black54,
     builder: (ctx) => Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
-      child: MemoryCompositeDatePickerSheet(initialDate: initialDate),
+      child: MemoryCompositeDatePickerSheet(
+        initialDate: initialDate,
+        initialIsLunarDate: initialIsLunarDate,
+      ),
     ),
   );
 }

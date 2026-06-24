@@ -14,6 +14,7 @@ import 'package:time_calendar/pages/photo_viewer_page.dart';
 import 'package:time_calendar/services/memory_service.dart';
 import 'package:time_calendar/widgets/confirm_delete_dialog.dart';
 import 'package:time_calendar/widgets/memory_collection_detail_parts.dart';
+import 'package:time_calendar/widgets/memory_event_date_label.dart';
 import 'package:time_calendar/widgets/sub_event_action_sheet.dart';
 
 Future<void> showMemoryPhotoStreamSheet(
@@ -603,6 +604,11 @@ class _MemoryPhotoStreamSheetState extends State<MemoryPhotoStreamSheet> {
                             color: _titleColor,
                           ),
                         ),
+                        MemoryEventDateLabel(
+                          date: e.date,
+                          isLunarDate: e.isLunarDate,
+                          variant: MemoryEventDateLabelVariant.timelineInline,
+                        ),
                         if (loc != null && loc.isNotEmpty) ...[
                           const SizedBox(height: 6),
                           MemoryLocationCapsule(location: loc),
@@ -774,8 +780,6 @@ class _MemoryPhotoStreamSheetState extends State<MemoryPhotoStreamSheet> {
   Widget _eventInfoOverlay(MemoryEvent e) {
     final loc = e.location?.trim();
     final showLoc = loc != null && loc.isNotEmpty;
-    final dateLabel =
-        '${e.date.year}年${e.date.month}月${e.date.day}日';
 
     return Positioned(
       left: 0,
@@ -811,13 +815,27 @@ class _MemoryPhotoStreamSheetState extends State<MemoryPhotoStreamSheet> {
               ),
             ),
             const SizedBox(height: 4),
-            Text(
-              showLoc ? '$dateLabel · $loc' : dateLabel,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w400,
-                color: Colors.white.withValues(alpha: 0.85),
-              ),
+            Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 0,
+              runSpacing: 4,
+              children: [
+                MemoryEventDateLabel(
+                  date: e.date,
+                  isLunarDate: e.isLunarDate,
+                  variant: MemoryEventDateLabelVariant.cardOverlay,
+                ),
+                if (showLoc) ...[
+                  Text(
+                    ' · $loc',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.white.withValues(alpha: 0.85),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ],
         ),

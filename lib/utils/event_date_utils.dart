@@ -398,3 +398,9 @@ String formatWeekdayZh(DateTime d) => '周${weekdayZhShort(d.weekday)}';
 
 /// 横向事件卡片：「3月10日」。
 String formatMonthDayZh(DateTime d) => '${d.month}月${d.day}日';
+
+/// 时光集子事件农历 pill 文案：「农历 四月十九」。
+String formatMemoryEventLunarPill(DateTime solarDate) {
+  final lunar = Lunar.fromDate(solarDate);
+  return '农历 ${lunar.getMonthInChinese()}月${lunar.getDayInChinese()}';
+}

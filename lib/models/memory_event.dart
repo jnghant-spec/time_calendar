@@ -6,6 +6,7 @@ class MemoryEvent {
     this.location,
     required this.date,
     this.photoPaths = const [],
+    this.isLunarDate = false,
   });
 
   final String id;
@@ -13,6 +14,7 @@ class MemoryEvent {
   final String? location;
   final DateTime date;
   final List<String> photoPaths;
+  final bool isLunarDate;
 
   MemoryEvent copyWith({
     String? id,
@@ -20,6 +22,7 @@ class MemoryEvent {
     String? location,
     DateTime? date,
     List<String>? photoPaths,
+    bool? isLunarDate,
   }) {
     return MemoryEvent(
       id: id ?? this.id,
@@ -27,6 +30,7 @@ class MemoryEvent {
       location: location ?? this.location,
       date: date ?? this.date,
       photoPaths: photoPaths ?? this.photoPaths,
+      isLunarDate: isLunarDate ?? this.isLunarDate,
     );
   }
 
@@ -36,6 +40,7 @@ class MemoryEvent {
         'location': location,
         'date': date.toIso8601String(),
         'photoPaths': photoPaths,
+        'isLunarDate': isLunarDate,
       };
 
   factory MemoryEvent.fromJson(Map<String, dynamic> json) {
@@ -50,6 +55,7 @@ class MemoryEvent {
       location: json['location'] as String?,
       date: DateTime.parse(json['date'] as String),
       photoPaths: paths,
+      isLunarDate: json['isLunarDate'] as bool? ?? false,
     );
   }
 }

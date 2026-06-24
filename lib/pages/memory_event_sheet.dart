@@ -6,8 +6,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:time_calendar/models/memory_event.dart';
 import 'package:time_calendar/pages/photo_viewer_page.dart';
 import 'package:time_calendar/services/memory_service.dart';
-import 'package:time_calendar/utils/event_date_utils.dart';
 import 'package:time_calendar/widgets/common_date_picker.dart';
+import 'package:time_calendar/widgets/memory_event_date_label.dart';
 
 /// 子事件编辑页布局 token。
 abstract final class MemoryEventSheetLayoutTokens {
@@ -223,6 +223,7 @@ class _MemoryEventSheetState extends State<MemoryEventSheet> {
   late final TextEditingController _titleCtrl;
   late final TextEditingController _locCtrl;
   late DateTime _date;
+  late bool _isLunarDate;
   late List<String?> _slotPhotos;
 
   @override
@@ -232,6 +233,7 @@ class _MemoryEventSheetState extends State<MemoryEventSheet> {
     _titleCtrl = TextEditingController(text: e?.title ?? '');
     _locCtrl = TextEditingController(text: e?.location ?? '');
     _date = e?.date ?? DateTime.now();
+    _isLunarDate = e?.isLunarDate ?? false;
     _slotPhotos = MemoryService.sanitizePhotoGridSlots(
       MemoryService.decodePhotoGridSlots(e?.photoPaths ?? const []),
     );
@@ -317,14 +319,20 @@ class _MemoryEventSheetState extends State<MemoryEventSheet> {
   }
 
   Future<void> _pickDate() async {
-    final picked = await showMemoryEventDatePicker(
+    final result = await showMemoryEventDatePicker(
       context,
       initialDate: _date,
+      initialIsLunarDate: _isLunarDate,
     );
-    if (picked != null) {
-      setState(
-        () => _date = DateTime(picked.year, picked.month, picked.day),
-      );
+    if (result != null) {
+      setState(() {
+        _date = DateTime(
+          result.date.year,
+          result.date.month,
+          result.date.day,
+        );
+        _isLunarDate = result.isLunarDate;
+      });
     }
   }
 
@@ -344,6 +352,7 @@ class _MemoryEventSheetState extends State<MemoryEventSheet> {
       location: locText.isEmpty ? null : locText,
       date: _date,
       photoPaths: MemoryService.encodePhotoGridSlots(slots),
+      isLunarDate: _isLunarDate,
     );
     if (widget.initial == null) {
       await MemoryService.addEventToCollection(event, widget.collectionId);
@@ -696,13 +705,10 @@ class _MemoryEventSheetState extends State<MemoryEventSheet> {
                                   color: MemoryEventSheet._themeBlue,
                                 ),
                                 const SizedBox(width: 6),
-                                Text(
-                                  formatMemoryStreamDayZh(_date),
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: MemoryEventSheet._themeBlue,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                                MemoryEventDateLabel(
+                                  date: _date,
+                                  isLunarDate: _isLunarDate,
+                                  variant: MemoryEventDateLabelVariant.editChip,
                                 ),
                               ],
                             ),

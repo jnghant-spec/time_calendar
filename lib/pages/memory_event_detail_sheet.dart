@@ -11,6 +11,7 @@ import 'package:time_calendar/pages/photo_viewer_page.dart';
 import 'package:time_calendar/services/memory_service.dart';
 import 'package:time_calendar/utils/event_date_utils.dart';
 import 'package:time_calendar/widgets/confirm_delete_dialog.dart';
+import 'package:time_calendar/widgets/memory_event_date_label.dart';
 
 Future<void> showMemoryEventDetailSheet(
   BuildContext context, {
@@ -769,12 +770,11 @@ class _MemoryEventDetailSheetState extends State<MemoryEventDetailSheet>
                               color: _muted,
                             ),
                             const SizedBox(width: 6),
-                            Text(
-                              '${formatFullDate(_event.date)} ${formatWeekdayZh(_event.date)}',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Color(0xFF64748B),
-                              ),
+                            MemoryEventDateLabel(
+                              date: _event.date,
+                              isLunarDate: _event.isLunarDate,
+                              variant: MemoryEventDateLabelVariant.detailMuted,
+                              weekdaySuffix: formatWeekdayZh(_event.date),
                             ),
                           ],
                         ),
