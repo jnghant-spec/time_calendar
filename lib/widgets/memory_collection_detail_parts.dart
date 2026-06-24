@@ -4,12 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:time_calendar/models/memory_collection.dart';
 import 'package:time_calendar/models/memory_event.dart';
 import 'package:time_calendar/models/partner_relation.dart';
+import 'package:time_calendar/models/reminder_tag.dart';
 import 'package:time_calendar/services/memory_service.dart';
 import 'package:time_calendar/services/tag_service.dart';
 import 'package:time_calendar/services/user_session.dart';
 import 'package:time_calendar/widgets/tag_circle_widget.dart';
 import 'package:time_calendar/utils/event_date_utils.dart';
 import 'package:time_calendar/utils/partner_share_detail_ui.dart';
+import 'package:time_calendar/widgets/memory_detail_action_tile.dart';
 
 /// 时光集详情页设计 token（顶部元信息、横滑卡片、标题栏按钮）。
 class MemoryDetailDesignTokens {
@@ -25,11 +27,18 @@ class MemoryDetailDesignTokens {
   static const double cardMaxHeightFactor = 0.45;
   static const double cardMinHeight = 240;
 
-  static const double headerIconSize = 32;
-  static const Color headerIconBg = Color(0xFFF1F5F9);
-  static const Color headerIconColor = Color(0xFF94A3B8);
-  static const double headerIconRadius = 8;
-  static const double headerIconGlyphSize = 18;
+  static const double actionTileSize = MemoryDetailActionTokens.actionTileSize;
+  static const double actionTileRadius = MemoryDetailActionTokens.actionTileRadius;
+  static const double primaryCtaRadius = MemoryDetailActionTokens.primaryCtaRadius;
+  static const Color actionSecondaryBg = MemoryDetailActionTokens.actionSecondaryBg;
+  static const Color actionSecondaryIcon = MemoryDetailActionTokens.actionSecondaryIcon;
+  static const Color actionActiveBg = MemoryDetailActionTokens.actionActiveBg;
+  static const Color actionActiveIcon = MemoryDetailActionTokens.actionActiveIcon;
+  static const Color actionDestructiveIcon = MemoryDetailActionTokens.actionDestructiveIcon;
+  static const double actionSpacing = MemoryDetailActionTokens.actionSpacing;
+  static const Color actionBorder = MemoryDetailActionTokens.actionBorder;
+  static const double headerActionRowWidth =
+      MemoryDetailActionTokens.headerActionRowWidth;
 
   static TextStyle get metaTextStyle => const TextStyle(
         fontSize: metaFontSize,
@@ -71,17 +80,66 @@ class MemoryCollectionDetailHeader extends StatelessWidget {
 
   static const Color _titleColor = Color(0xFF1F2937);
   static const Color _muted = Color(0xFF94A3B8);
-  static const Color _themeBlue = Color(0xFF1A73E8);
 
   String _rangeLine() {
     if (events.isEmpty) return '暂无事件';
     return '${formatYearMonthDot(events.first.date)} - ${formatYearMonthDot(events.last.date)}';
   }
 
-  Widget _tagBadge() {
+  Widget _tagMetaPill(ReminderTag tag) {
+    final accent = TagCircleWidget.themeColorOrDefault(tag.accentColor);
+    final icon = TagPresetIcons.dataFor(tag.iconName) ??
+        TagCircleWidget.defaultIconData;
+
+    return Container(
+      height: 28,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        color: tag.iconBgColor,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 15, color: accent),
+          const SizedBox(width: 4),
+          Text(
+            tag.name,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: accent,
+              height: 1.0,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _tagAndStatsRow(int photoCount) {
     final tag = TagService.getTagById(collection.tagId);
-    if (tag == null) return const SizedBox.shrink();
-    return TagCircleWidget(tag: tag, size: 40, showLabel: false);
+    const statsStyle = TextStyle(
+      fontSize: 14,
+      color: Color(0xFF64748B),
+      height: 1.2,
+    );
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        if (tag != null) ...[
+          _tagMetaPill(tag),
+          const SizedBox(width: 8),
+        ],
+        Text(
+          '共 ${events.length} 个事件 · $photoCount 张照片',
+          style: statsStyle,
+        ),
+      ],
+    );
   }
 
   bool _hasHistoricalCollectionPartnerShare() {
@@ -157,31 +215,6 @@ class MemoryCollectionDetailHeader extends StatelessWidget {
     return '最新修改：$displayName ${formatPartnerModifiedAt(at)}';
   }
 
-  Widget _headerIconButton({
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: MemoryDetailDesignTokens.headerIconSize,
-        height: MemoryDetailDesignTokens.headerIconSize,
-        decoration: BoxDecoration(
-          color: MemoryDetailDesignTokens.headerIconBg,
-          borderRadius: BorderRadius.circular(
-            MemoryDetailDesignTokens.headerIconRadius,
-          ),
-        ),
-        alignment: Alignment.center,
-        child: Icon(
-          icon,
-          size: MemoryDetailDesignTokens.headerIconGlyphSize,
-          color: MemoryDetailDesignTokens.headerIconColor,
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final photoCount = MemoryService.countPhotosInCollection(events);
@@ -197,7 +230,7 @@ class MemoryCollectionDetailHeader extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const SizedBox(width: 72),
+              const SizedBox(width: MemoryDetailDesignTokens.headerActionRowWidth),
               Expanded(
                 child: Center(
                   child: Row(
@@ -225,15 +258,20 @@ class MemoryCollectionDetailHeader extends StatelessWidget {
                 ),
               ),
               SizedBox(
-                width: 72,
+                width: MemoryDetailDesignTokens.headerActionRowWidth,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    _headerIconButton(icon: Icons.share, onTap: onShare),
-                    const SizedBox(width: 8),
-                    _headerIconButton(
-                      icon: Icons.edit,
+                    MemoryDetailIconTile(
+                      icon: Icons.share_outlined,
+                      onTap: onShare,
+                      semanticsLabel: '分享时光集',
+                    ),
+                    const SizedBox(width: MemoryDetailDesignTokens.actionSpacing),
+                    MemoryDetailIconTile(
+                      icon: Icons.edit_outlined,
                       onTap: onEditCollection,
+                      semanticsLabel: '编辑时光集',
                     ),
                   ],
                 ),
@@ -274,17 +312,7 @@ class MemoryCollectionDetailHeader extends StatelessWidget {
           ),
         ],
         const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _tagBadge(),
-            const SizedBox(width: 8),
-            Text(
-              '· 共 ${events.length} 个事件 · $photoCount 张照片',
-              style: TextStyle(fontSize: 13, color: _muted),
-            ),
-          ],
-        ),
+        Center(child: _tagAndStatsRow(photoCount)),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Container(height: 1, color: const Color(0xFFF1F5F9)),
@@ -302,49 +330,15 @@ class MemoryCollectionDetailHeader extends StatelessWidget {
                   color: _titleColor,
                 ),
               ),
-              Row(
-                children: [
-                  _viewToggleBtn(
-                    Icons.view_list_outlined,
-                    isListViewActive,
-                    onSwitchToList,
-                  ),
-                  const SizedBox(width: 8),
-                  _viewToggleBtn(
-                    Icons.grid_view_outlined,
-                    !isListViewActive,
-                    onSwitchToGrid,
-                  ),
-                ],
+              MemoryDetailViewSegmentedControl(
+                isListViewActive: isListViewActive,
+                onSwitchToList: onSwitchToList,
+                onSwitchToGrid: onSwitchToGrid,
               ),
             ],
           ),
         ),
       ],
-    );
-  }
-
-  static Widget _viewToggleBtn(
-    IconData icon,
-    bool isActive,
-    VoidCallback onTap,
-  ) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: isActive ? _themeBlue : const Color(0xFFF1F5F9),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        alignment: Alignment.center,
-        child: Icon(
-          icon,
-          size: 18,
-          color: isActive ? Colors.white : _muted,
-        ),
-      ),
     );
   }
 }
@@ -483,9 +477,6 @@ class MemoryDetailBottomToolbar extends StatelessWidget {
   final VoidCallback? onDelete;
 
   static const double barHeight = 56;
-  static const Color _themeBlue = Color(0xFF1A73E8);
-  static const Color _sideIcon = Color(0xFF64748B);
-  static const Color _deleteTint = Color(0xFFEF4444);
 
   static double totalHeight(BuildContext context) =>
       barHeight + MediaQuery.paddingOf(context).bottom;
@@ -493,74 +484,51 @@ class MemoryDetailBottomToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bottom = MediaQuery.paddingOf(context).bottom;
+    final tileSize = MemoryDetailActionTokens.actionTileSize;
 
     return ClipRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
         child: Container(
           height: barHeight + bottom,
-          padding: EdgeInsets.only(left: 8, right: 8, bottom: bottom),
+          padding: EdgeInsets.fromLTRB(16, 0, 16, bottom),
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.7),
             border: Border(
               top: BorderSide(
-                color: const Color(0xFFE2E8F0).withValues(alpha: 0.8),
+                color: MemoryDetailActionTokens.actionBorder.withValues(alpha: 0.8),
               ),
             ),
           ),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              IconButton(
-                onPressed: onEdit,
-                icon: Icon(
-                  Icons.edit_outlined,
-                  size: 22,
-                  color: onEdit != null ? _sideIcon : _sideIcon.withValues(alpha: 0.35),
+              SizedBox(
+                width: tileSize,
+                child: Center(
+                  child: MemoryDetailIconTile(
+                    icon: Icons.edit_outlined,
+                    onTap: onEdit,
+                    semanticsLabel: '编辑当前事件',
+                    showBorder: true,
+                  ),
                 ),
               ),
               Expanded(
                 child: Center(
-                  child: Material(
-                    color: _themeBlue,
-                    elevation: 2,
-                    shadowColor: _themeBlue.withValues(alpha: 0.35),
-                    shape: const StadiumBorder(),
-                    child: InkWell(
-                      onTap: onAdd,
-                      customBorder: const StadiumBorder(),
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 10,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.add, size: 20, color: Colors.white),
-                            SizedBox(width: 6),
-                            Text(
-                              '添加事件',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
+                  child: MemoryDetailPrimaryCta(onTap: onAdd),
                 ),
               ),
-              IconButton(
-                onPressed: onDelete,
-                icon: Icon(
-                  Icons.delete_outline,
-                  size: 22,
-                  color: onDelete != null
-                      ? _deleteTint.withValues(alpha: 0.88)
-                      : _deleteTint.withValues(alpha: 0.35),
+              SizedBox(
+                width: tileSize,
+                child: Center(
+                  child: MemoryDetailIconTile(
+                    icon: Icons.delete_outline,
+                    onTap: onDelete,
+                    variant: MemoryDetailIconTileVariant.destructive,
+                    semanticsLabel: '删除当前事件',
+                    showBorder: true,
+                  ),
                 ),
               ),
             ],
