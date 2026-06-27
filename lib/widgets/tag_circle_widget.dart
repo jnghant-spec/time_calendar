@@ -195,7 +195,7 @@ class TagCircleWidget extends StatelessWidget {
         ),
         alignment: Alignment.center,
         child: Icon(
-          Icons.grid_view_rounded,
+          Icons.format_list_bulleted_rounded,
           size: 22,
           color: selected ? _themeBlue : _inactiveFilterLabel,
         ),
@@ -204,6 +204,7 @@ class TagCircleWidget extends StatelessWidget {
       circle = Container(
         width: _circleSize,
         height: _circleSize,
+        alignment: Alignment.center,
         decoration: BoxDecoration(
           color: selected ? _themeBlue : _allUnselectedBg,
           shape: BoxShape.circle,
@@ -211,6 +212,11 @@ class TagCircleWidget extends StatelessWidget {
               ? null
               : Border.all(color: _allUnselectedBorder, width: 1),
           boxShadow: selected ? _circleShadow(_themeBlue) : null,
+        ),
+        child: Icon(
+          Icons.format_list_bulleted_rounded,
+          size: 22,
+          color: selected ? Colors.white : _allUnselectedLabel,
         ),
       );
     }

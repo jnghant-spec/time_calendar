@@ -23,7 +23,7 @@ import 'package:time_calendar/widgets/pinned_star_badge.dart';
 import 'package:time_calendar/widgets/share_event_sheet.dart';
 import 'package:time_calendar/widgets/tag_circle_widget.dart';
 import 'package:time_calendar/widgets/tag_editor_sheet.dart';
-import 'package:time_calendar/widgets/unified_tag_bar.dart';
+import 'package:time_calendar/widgets/filter_page_chrome.dart';
 
 List<BoxShadow> _pinnedCardShadows() => [
       BoxShadow(
@@ -625,37 +625,6 @@ class _ListPageState extends State<ListPage> {
     widget.onEventsChanged(_events);
   }
 
-  Widget _buildHeader() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SizedBox(
-          height: 56 + MediaQuery.paddingOf(context).top,
-          child: Padding(
-            padding: EdgeInsets.only(
-              left: 16,
-              right: 16,
-              top: MediaQuery.paddingOf(context).top,
-            ),
-            child: Row(
-              children: [
-                Text(
-                  '所有提醒',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF0F172A),
-                    letterSpacing: -0.45,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   Future<bool> _deleteTagFromEditor(ReminderTag tag) async {
     if (!mounted) return false;
     final ok = await confirmUnlinkDeleteTag(context, tag);
@@ -692,12 +661,10 @@ class _ListPageState extends State<ListPage> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildHeader(),
-          UnifiedTagBar(
+          FilterPageChrome(
+            title: '所有提醒',
             onManagePressed: _openTagManage,
-            horizontalPadding: 16,
           ),
-          const SizedBox(height: 8),
           Expanded(
             child: ListenableBuilder(
               listenable: TagBarState(),

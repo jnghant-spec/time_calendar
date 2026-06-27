@@ -10,6 +10,8 @@ import 'package:time_calendar/pages/share_management_page.dart';
 import 'package:time_calendar/services/event_usage_service.dart';
 import 'package:time_calendar/services/membership_service.dart';
 import 'package:time_calendar/services/user_session.dart';
+import 'package:time_calendar/utils/user_avatar_picker.dart';
+import 'package:time_calendar/widgets/user_avatar_circle.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({
@@ -59,6 +61,13 @@ class _ProfilePageState extends State<ProfilePage> {
     await _reloadTier();
   }
 
+  Future<void> _openPersonalInfo() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(builder: (_) => const PersonalInfoPage()),
+    );
+    if (mounted) setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -74,39 +83,43 @@ class _ProfilePageState extends State<ProfilePage> {
     final quota =
         MembershipService.benefits(_tier).reminderQuota.clamp(1, 999999);
     final used = EventUsageService.currentCount;
+    final avatarPath = loadUserAvatarPath();
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.light,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
         systemNavigationBarColor: Colors.white,
         systemNavigationBarIconBrightness: Brightness.dark,
       ),
       child: ColoredBox(
         color: cs.surface,
-        child: SafeArea(
-          top: true,
-          bottom: true,
-          child: Column(
-            children: [
-              _ProfileHeader(
-                hPad: hPad,
-                vBlock: vBlock,
-                screenWidth: w,
-                textTheme: textTheme,
-                colorScheme: cs,
-                nickname: nickname,
-                phone: phone,
-                usedEvents: used,
-                eventCap: quota,
-                membershipTitle:
-                    '${MembershipConfig.benefits[_tier]!.label}会员',
-                trialBadgeText: _trialActive && _trialDays != null
-                    ? '高级体验还剩 $_trialDays 天'
-                    : null,
-                onMembershipTap: _openMembershipSheet,
-              ),
-              Expanded(
+        child: Column(
+          children: [
+            _ProfileHeader(
+              hPad: hPad,
+              vBlock: vBlock,
+              screenWidth: w,
+              textTheme: textTheme,
+              colorScheme: cs,
+              nickname: nickname,
+              phone: phone,
+              avatarPath: avatarPath,
+              usedEvents: used,
+              eventCap: quota,
+              membershipTitle:
+                  '${MembershipConfig.benefits[_tier]!.label}会员',
+              trialBadgeText: _trialActive && _trialDays != null
+                  ? '高级体验还剩 $_trialDays 天'
+                  : null,
+              onProfileTap: _openPersonalInfo,
+              onMembershipTap: _openMembershipSheet,
+            ),
+            Expanded(
+              child: SafeArea(
+                top: false,
+                bottom: false,
                 child: SingleChildScrollView(
                   padding: EdgeInsets.fromLTRB(
                     hPad,
@@ -128,12 +141,16 @@ class _ProfilePageState extends State<ProfilePage> {
                       _FeatureMenu(
                         colorScheme: cs,
                         textTheme: textTheme,
+                        onOpenPersonalInfo: _openPersonalInfo,
                       ),
                     ],
                   ),
                 ),
               ),
-              Padding(
+            ),
+            SafeArea(
+              top: false,
+              child: Padding(
                 padding: EdgeInsets.fromLTRB(
                   hPad.clamp(16.0, 24.0),
                   6,
@@ -173,8 +190,8 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -190,10 +207,12 @@ class _ProfileHeader extends StatelessWidget {
     required this.colorScheme,
     required this.nickname,
     required this.phone,
+    this.avatarPath,
     required this.usedEvents,
     required this.eventCap,
     required this.membershipTitle,
     this.trialBadgeText,
+    required this.onProfileTap,
     required this.onMembershipTap,
   });
 
@@ -204,10 +223,12 @@ class _ProfileHeader extends StatelessWidget {
   final ColorScheme colorScheme;
   final String nickname;
   final String phone;
+  final String? avatarPath;
   final int usedEvents;
   final int eventCap;
   final String membershipTitle;
   final String? trialBadgeText;
+  final VoidCallback onProfileTap;
   final VoidCallback onMembershipTap;
 
   @override
@@ -215,78 +236,85 @@ class _ProfileHeader extends StatelessWidget {
     final cs = colorScheme;
     final ratio = (usedEvents / eventCap).clamp(0.0, 1.0);
     final avatarD = (screenWidth * 0.22).clamp(72.0, 100.0);
+    final safeTop = MediaQuery.paddingOf(context).top;
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(hPad, 12, hPad, (vBlock * 0.8).clamp(16.0, 24.0)),
+      padding: EdgeInsets.fromLTRB(
+        hPad,
+        safeTop + 12,
+        hPad,
+        (vBlock * 0.8).clamp(16.0, 24.0),
+      ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
           colors: [
+            cs.surface,
+            const Color(0xFFEFF6FF),
+            Color.lerp(cs.primary, Colors.white, 0.35)!,
             cs.primary,
-            Color.lerp(cs.primary, cs.onPrimary, 0.1)!,
-            Color.lerp(cs.primary, cs.onPrimary, 0.18)!,
           ],
+          stops: const [0.0, 0.18, 0.45, 1.0],
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: avatarD,
-                height: avatarD,
-                padding: EdgeInsets.symmetric(
-                  horizontal: avatarD * 0.2,
-                  vertical: avatarD * 0.1,
-                ),
-                decoration: BoxDecoration(
-                  color: cs.onPrimary.withValues(alpha: 0.2),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: cs.onPrimary.withValues(alpha: 0.3),
-                    width: 1.2,
-                  ),
-                ),
-                child: Center(
-                  child: SvgPicture.asset(
-                    'assets/images/ic_avatar.svg',
-                    width: avatarD * 0.4,
-                    height: avatarD * 0.4,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ),
-              SizedBox(width: (vBlock * 0.6).clamp(12.0, 16.0)),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onProfileTap,
+              borderRadius: BorderRadius.circular(12),
+              splashColor: cs.onPrimary.withValues(alpha: 0.12),
+              highlightColor: cs.onPrimary.withValues(alpha: 0.06),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Text(
-                      nickname,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: textTheme.titleLarge?.copyWith(
-                        color: cs.onPrimary,
-                        fontWeight: FontWeight.w600,
+                    UserAvatarCircle.build(
+                      diameter: avatarD,
+                      colorScheme: cs,
+                      avatarPath: avatarPath,
+                      onPrimaryBackground: true,
+                    ),
+                    SizedBox(width: (vBlock * 0.6).clamp(12.0, 16.0)),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            nickname,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: textTheme.titleLarge?.copyWith(
+                              color: cs.onPrimary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          SizedBox(height: (vBlock * 0.15).clamp(4.0, 6.0)),
+                          Text(
+                            phone,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: textTheme.bodyLarge?.copyWith(
+                              color: cs.onPrimary.withValues(alpha: 0.8),
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    SizedBox(height: (vBlock * 0.15).clamp(4.0, 6.0)),
-                    Text(
-                      phone,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: textTheme.bodyLarge?.copyWith(
-                        color: cs.onPrimary.withValues(alpha: 0.8),
-                        fontWeight: FontWeight.w400,
-                      ),
+                    Icon(
+                      Icons.chevron_right,
+                      size: 20,
+                      color: cs.onPrimary.withValues(alpha: 0.7),
                     ),
                   ],
                 ),
               ),
-            ],
+            ),
           ),
           SizedBox(height: (vBlock * 0.5).clamp(12.0, 16.0)),
           Material(
@@ -425,10 +453,12 @@ class _FeatureMenu extends StatelessWidget {
   const _FeatureMenu({
     required this.colorScheme,
     required this.textTheme,
+    required this.onOpenPersonalInfo,
   });
 
   final ColorScheme colorScheme;
   final TextTheme textTheme;
+  final Future<void> Function() onOpenPersonalInfo;
 
   @override
   Widget build(BuildContext context) {
@@ -465,11 +495,7 @@ class _FeatureMenu extends StatelessWidget {
             textTheme: textTheme,
             onTap: () {
               if (items[i].title == '个人信息') {
-                Navigator.of(context).push<void>(
-                  MaterialPageRoute<void>(
-                    builder: (context) => const PersonalInfoPage(),
-                  ),
-                );
+                onOpenPersonalInfo();
               } else if (items[i].title == '共享管理') {
                 Navigator.of(context).push<void>(
                   MaterialPageRoute<void>(

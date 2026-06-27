@@ -16,7 +16,7 @@ import 'package:time_calendar/utils/event_date_utils.dart';
 import 'package:time_calendar/widgets/confirm_delete_dialog.dart';
 import 'package:time_calendar/widgets/tag_circle_widget.dart';
 import 'package:time_calendar/widgets/tag_editor_sheet.dart';
-import 'package:time_calendar/widgets/unified_tag_bar.dart';
+import 'package:time_calendar/widgets/filter_page_chrome.dart';
 
 /// FAB bottom(16) + FAB height(56) + breathing space(8)
 const _kListScrollBottomPadding = 16.0 + 56.0 + 8.0;
@@ -973,41 +973,21 @@ class _MemoryPageState extends State<MemoryPage> {
 
     return Scaffold(
       backgroundColor: MemoryPage._pageBg,
-      appBar: AppBar(
-        centerTitle: false,
-        titleSpacing: 16,
-        title: const Text(
-          '时光集',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            color: MemoryPage._titleColor,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: _MemoryViewModeCapsule(
-              narrowSelected: _narrowCardsSelected,
-              onNarrow: () => setState(() => _narrowCardsSelected = true),
-              onTall: () => setState(() => _narrowCardsSelected = false),
-            ),
-          ),
-        ],
-      ),
       body: Stack(
         children: [
           Positioned.fill(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (!_loading) ...[
-                  UnifiedTagBar(onManagePressed: _openTagManage),
-                  const SizedBox(height: 8),
-                ],
+                FilterPageChrome(
+                  title: '时光集',
+                  onManagePressed: _openTagManage,
+                  trailing: _MemoryViewModeCapsule(
+                    narrowSelected: _narrowCardsSelected,
+                    onNarrow: () => setState(() => _narrowCardsSelected = true),
+                    onTall: () => setState(() => _narrowCardsSelected = false),
+                  ),
+                ),
                 Expanded(
                   child: _loading
                       ? const Center(

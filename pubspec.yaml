@@ -89,7 +89,8 @@ flutter:
     - assets/images/ic_preference.svg
     - assets/images/ic_star.svg
     - assets/images/tab/ic_calendar.svg
-    - assets/images/tab/ic_list.svg
+    - assets/images/tab/ic_alarm.svg
+    - assets/images/tab/ic_memory.svg
     - assets/images/tab/ic_profile.svg
     - assets/data/ethnic_festivals.json
     - assets/data/religious_festivals.json

@@ -161,13 +161,18 @@ class _MainTabBar extends StatelessWidget {
         );
       case 1:
         return SvgPicture.asset(
-          'assets/images/tab/ic_list.svg',
+          'assets/images/tab/ic_alarm.svg',
           width: 24,
           height: 24,
           colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
         );
       case 2:
-        return Icon(Icons.photo_album, size: 24, color: color);
+        return SvgPicture.asset(
+          'assets/images/tab/ic_memory.svg',
+          width: 24,
+          height: 24,
+          colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+        );
       case 3:
         return SvgPicture.asset(
           'assets/images/tab/ic_profile.svg',

@@ -17,9 +17,12 @@ class UnifiedTagBar extends StatelessWidget {
 
   static const Color _pageBg = Color(0xFFFAFBFC);
   static const Color _divider = Color(0xFFF1F5F9);
-  static const Color _mutedIcon = Color(0xFF94A3B8);
-  static const Color _themeBlue = Color(0xFF1A73E8);
-  static const Color _allIdleBg = Color(0xFFE8F0FE);
+  static const Color _allAccent = Color(0xFF5C9CE6);
+  static const Color _allAccentSelected = Color(0xFF4A85D6);
+  static const Color _allIdleBg = Color(0xFFEAF3FF);
+  static const Color _allSelectedBg = Color(0xFFDBEAFE);
+  static const Color _manageIdleBg = Color(0xFFF8FAFC);
+  static const Color _manageBorder = Color(0xFFE2E8F0);
   static const Color _labelIdle = Color(0xFF64748B);
 
   static const double _barHeight = 80;
@@ -139,46 +142,6 @@ class _BarDivider extends StatelessWidget {
   }
 }
 
-/// 2×2 方块网格（24px）。
-class _AllGridIcon extends StatelessWidget {
-  const _AllGridIcon({required this.cellColor});
-
-  final Color cellColor;
-
-  static const double _size = 24;
-  static const double _cell = 10;
-
-  @override
-  Widget build(BuildContext context) {
-    Widget cell() => Container(
-          width: _cell,
-          height: _cell,
-          decoration: BoxDecoration(
-            color: cellColor,
-            borderRadius: BorderRadius.circular(2),
-          ),
-        );
-
-    return SizedBox(
-      width: _size,
-      height: _size,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [cell(), cell()],
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [cell(), cell()],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _AllTagItem extends StatelessWidget {
   const _AllTagItem({required this.selected, required this.onTap});
 
@@ -187,25 +150,30 @@ class _AllTagItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accent = selected
+        ? UnifiedTagBar._allAccentSelected
+        : UnifiedTagBar._allAccent;
     final circle = Container(
       width: UnifiedTagBar._circleSize,
       height: UnifiedTagBar._circleSize,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: selected ? UnifiedTagBar._themeBlue : UnifiedTagBar._allIdleBg,
+        color: selected ? UnifiedTagBar._allSelectedBg : UnifiedTagBar._allIdleBg,
         boxShadow: selected
             ? [
                 BoxShadow(
                   blurRadius: 2,
-                  color: Colors.black.withValues(alpha: 0.15),
+                  color: UnifiedTagBar._allAccentSelected.withValues(alpha: 0.15),
                 ),
               ]
             : null,
       ),
       clipBehavior: Clip.antiAlias,
-      child: _AllGridIcon(
-        cellColor: selected ? Colors.white : UnifiedTagBar._themeBlue,
+      child: Icon(
+        Icons.format_list_bulleted_rounded,
+        size: 22,
+        color: accent,
       ),
     );
 
@@ -217,7 +185,7 @@ class _AllTagItem extends StatelessWidget {
         children: [
           _ScaledCircle(selected: selected, child: circle),
           const SizedBox(height: 4),
-          const Text(
+          Text(
             '全部',
             textAlign: TextAlign.center,
             maxLines: 1,
@@ -225,7 +193,7 @@ class _AllTagItem extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              color: UnifiedTagBar._themeBlue,
+              color: accent,
               height: 1.15,
             ),
           ),
@@ -330,14 +298,18 @@ class _ManageTagItem extends StatelessWidget {
       width: UnifiedTagBar._circleSize,
       height: UnifiedTagBar._circleSize,
       alignment: Alignment.center,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: UnifiedTagBar._divider,
+        color: UnifiedTagBar._manageIdleBg,
+        border: Border.all(
+          color: UnifiedTagBar._manageBorder,
+          width: 1,
+        ),
       ),
       child: const Icon(
         Icons.settings_outlined,
-        size: 24,
-        color: UnifiedTagBar._mutedIcon,
+        size: 20,
+        color: UnifiedTagBar._labelIdle,
       ),
     );
 
