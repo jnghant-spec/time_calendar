@@ -3,7 +3,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:time_calendar/models/list_event.dart';
 import 'package:time_calendar/models/share_contact.dart';
+import 'package:time_calendar/services/event_share_service.dart';
 
 /// 事件分享底部分享 Sheet（清单页与添加事件页共用）。
 class _ShareResultEntry {
@@ -13,9 +15,16 @@ class _ShareResultEntry {
 }
 
 class ShareEventSheet extends StatefulWidget {
-  const ShareEventSheet({super.key, required this.parentContext});
+  const ShareEventSheet({
+    super.key,
+    required this.parentContext,
+    required this.event,
+    this.onShareComplete,
+  });
 
   final BuildContext parentContext;
+  final ListEvent event;
+  final VoidCallback? onShareComplete;
 
   @override
   State<ShareEventSheet> createState() => _ShareEventSheetState();
@@ -397,6 +406,15 @@ class _ShareEventSheetState extends State<ShareEventSheet> {
 
   Future<void> _submitShare() async {
     if (!_canConfirm) return;
+
+    final registeredPhones = _appContacts.map((c) => c.phone.trim()).toSet();
+    await EventShareService.createOutgoingShare(
+      event: widget.event,
+      recipients: List<ShareContact>.from(_selectedContacts),
+      registeredPhones: registeredPhones,
+    );
+    widget.onShareComplete?.call();
+
     final phones = _selectedContacts.map((c) => c.phone).toList();
 
     final results = <_ShareResultEntry>[];

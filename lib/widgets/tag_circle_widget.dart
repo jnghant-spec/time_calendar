@@ -19,6 +19,7 @@ class TagPresetIcons {
     MapEntry('pets', Icons.pets),
     MapEntry('sports', Icons.sports),
     MapEntry('music_note', Icons.music_note),
+    MapEntry('share', Icons.share),
   ];
 
   static IconData? dataFor(String? name) {

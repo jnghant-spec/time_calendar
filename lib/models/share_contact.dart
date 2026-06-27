@@ -1,5 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// TODO(后端): 增加 registered、avatarUrl，toJson/fromJson 一并持久化
 class ShareContact {
   ShareContact({required this.name, required this.phone});
 

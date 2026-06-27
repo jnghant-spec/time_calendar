@@ -7,9 +7,12 @@ import 'package:time_calendar/pages/memory_page.dart';
 import 'package:time_calendar/pages/membership_sheet.dart';
 import 'package:time_calendar/pages/profile_page.dart';
 import 'package:time_calendar/services/event_service.dart';
+import 'package:time_calendar/services/event_share_service.dart';
 import 'package:time_calendar/services/event_usage_service.dart';
 import 'package:time_calendar/services/membership_service.dart';
 import 'package:time_calendar/services/tag_service.dart';
+import 'package:time_calendar/utils/event_owner_filter.dart';
+import 'package:time_calendar/widgets/incoming_share_banner.dart';
 
 class MainNavigationPage extends StatefulWidget {
   const MainNavigationPage({super.key, this.initialIndex = 0})
@@ -31,23 +34,52 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
     super.initState();
     _currentIndex = widget.initialIndex;
     _globalEvents = const [];
-    TagService.reminderCountForTag =
-        (tagId) => _globalEvents.where((e) => e.tagId == tagId).length;
+    TagService.reminderCountForTag = (tagId) => filterEventsForCurrentUser(
+          _globalEvents,
+        ).where((e) => e.tagId == tagId).length;
     TagService.unlinkRemindersForTag = (tagId) async {
-      _onEventsChanged(
-        _globalEvents
-            .map(
-              (e) => e.tagId == tagId
-                  ? e.copyWith(tagId: TagService.uncategorizedTagId)
-                  : e,
-            )
-            .toList(),
-      );
+      final visible = filterEventsForCurrentUser(_globalEvents);
+      final updated = visible
+          .map(
+            (e) => e.tagId == tagId
+                ? e.copyWith(tagId: TagService.uncategorizedTagId)
+                : e,
+          )
+          .toList();
+      _onEventsChanged(updated);
     };
     _loadPersistedEvents();
+    EventShareService.ensureLoaded();
+    EventShareService.revision.addListener(_onShareDataChanged);
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => _maybeShowTrialEndedSnack(),
     );
+  }
+
+  @override
+  void dispose() {
+    EventShareService.revision.removeListener(_onShareDataChanged);
+    super.dispose();
+  }
+
+  Future<void> _onShareDataChanged() async {
+    final events = await EventService.loadAllEvents();
+    if (!mounted) return;
+    setState(() {
+      _globalEvents = events;
+      EventUsageService.updateCount(events.length);
+    });
+    await MembershipService.syncArchivedEventsForTier(events);
+  }
+
+  void _onEventsChanged(List<ListEvent> updatedForCurrentUser) {
+    final merged = mergeEventsForCurrentUser(
+      _globalEvents,
+      updatedForCurrentUser,
+    );
+    setState(() => _globalEvents = merged);
+    EventService.saveAllEvents(merged);
+    MembershipService.syncArchivedEventsForTier(merged);
   }
 
   Future<void> _loadPersistedEvents() async {
@@ -78,12 +110,6 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
     );
   }
 
-  void _onEventsChanged(List<ListEvent> updated) {
-    setState(() => _globalEvents = updated);
-    EventService.saveAllEvents(updated);
-    MembershipService.syncArchivedEventsForTier(updated);
-  }
-
   void _onMembershipTierChanged() {
     MembershipService.syncArchivedEventsForTier(_globalEvents);
     MembershipService.reconcileFestivalSubscriptions();
@@ -97,15 +123,16 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
   static const Color _tabIdle = Color(0xFF94A3B8);
 
   Widget _pageAt(int index) {
+    final visible = filterEventsForCurrentUser(_globalEvents);
     switch (index) {
       case 0:
         return CalendarPage(
-          events: _globalEvents,
+          events: visible,
           onEventsChanged: _onEventsChanged,
         );
       case 1:
         return ListPage(
-          initialEvents: _globalEvents,
+          initialEvents: visible,
           onEventsChanged: _onEventsChanged,
         );
       case 2:
@@ -123,7 +150,9 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: null,
-      body: _pageAt(_currentIndex),
+      body: IncomingShareBannerHost(
+        child: _pageAt(_currentIndex),
+      ),
       bottomNavigationBar: _MainTabBar(
         currentIndex: _currentIndex,
         labels: _labels,

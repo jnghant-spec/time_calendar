@@ -39,8 +39,27 @@ class UnifiedTagBar extends StatelessWidget {
       listenable: TagBarState(),
       builder: (context, child) {
         final state = TagBarState();
-        final tags = List<ReminderTag>.from(state.tags)
+        final allTags = List<ReminderTag>.from(state.tags)
           ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+
+        final sharedIncomingId = TagService.sharedIncomingTagId;
+        ReminderTag? sharedIncomingTag;
+        final userTags = <ReminderTag>[];
+        for (final tag in allTags) {
+          if (tag.id == sharedIncomingId) {
+            sharedIncomingTag = tag;
+          } else {
+            userTags.add(tag);
+          }
+        }
+
+        final sharedCount =
+            TagService.reminderCountForTag?.call(sharedIncomingId) ?? 0;
+        final tags = <ReminderTag>[...userTags];
+        if (sharedCount > 0 && sharedIncomingTag != null) {
+          tags.insert(0, sharedIncomingTag);
+        }
+
         final selectedId = state.selectedTagId;
 
         return Container(
@@ -80,6 +99,9 @@ class UnifiedTagBar extends StatelessWidget {
                                     _TagItem(
                                       tag: tags[i],
                                       selected: selectedId == tags[i].id,
+                                      badgeCount: tags[i].id == sharedIncomingId
+                                          ? sharedCount
+                                          : null,
                                       onTap: () => state.selectTag(tags[i].id),
                                     ),
                                   ],
@@ -208,11 +230,13 @@ class _TagItem extends StatelessWidget {
     required this.tag,
     required this.selected,
     required this.onTap,
+    this.badgeCount,
   });
 
   final ReminderTag tag;
   final bool selected;
   final VoidCallback onTap;
+  final int? badgeCount;
 
   @override
   Widget build(BuildContext context) {
@@ -249,7 +273,39 @@ class _TagItem extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _ScaledCircle(selected: selected, child: circle),
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                _ScaledCircle(selected: selected, child: circle),
+                if (badgeCount != null && badgeCount! > 0)
+                  Positioned(
+                    top: -2,
+                    right: 2,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 5,
+                        vertical: 1,
+                      ),
+                      constraints: const BoxConstraints(minWidth: 18),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEF4444),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.white, width: 1.5),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        badgeCount! > 99 ? '99+' : '$badgeCount',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                          height: 1.1,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
             const SizedBox(height: 4),
             Text(
               TagService.displayTagName(tag.name),

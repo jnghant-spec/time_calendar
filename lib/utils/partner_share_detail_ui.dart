@@ -32,6 +32,8 @@ String? resolveHistoricalPartnerName(ListEvent event) {
   final relation = TagService.getPartnerRelation();
   final name = relation.partnerName?.trim();
   if (name != null && name.isNotEmpty) return name;
+  final lastUnbound = TagService.getLastUnboundPartnerName()?.trim();
+  if (lastUnbound != null && lastUnbound.isNotEmpty) return lastUnbound;
   final modified = event.lastModifiedByName?.trim();
   if (modified != null && modified.isNotEmpty) return modified;
   return null;

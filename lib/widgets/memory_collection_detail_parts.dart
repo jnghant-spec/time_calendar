@@ -143,11 +143,13 @@ class MemoryCollectionDetailHeader extends StatelessWidget {
   }
 
   String? _resolveHistoricalPartnerName() {
-    final modified = collection.lastModifiedByName?.trim();
-    if (modified != null && modified.isNotEmpty) return modified;
     final relation = TagService.getPartnerRelation();
     final name = relation.partnerName?.trim();
     if (name != null && name.isNotEmpty) return name;
+    final lastUnbound = TagService.getLastUnboundPartnerName()?.trim();
+    if (lastUnbound != null && lastUnbound.isNotEmpty) return lastUnbound;
+    final modified = collection.lastModifiedByName?.trim();
+    if (modified != null && modified.isNotEmpty) return modified;
     return null;
   }
 

@@ -11,8 +11,10 @@ import 'package:time_calendar/models/list_event.dart';
 import 'package:time_calendar/models/membership_tier.dart';
 import 'package:time_calendar/models/reminder_tag.dart';
 import 'package:time_calendar/pages/photo_crop_page.dart';
+import 'package:time_calendar/services/event_share_service.dart';
 import 'package:time_calendar/services/membership_service.dart';
 import 'package:time_calendar/services/tag_service.dart';
+import 'package:time_calendar/services/user_session.dart';
 import 'package:time_calendar/widgets/common_date_picker.dart';
 import 'package:time_calendar/widgets/membership_soft_paywall.dart';
 import 'package:time_calendar/widgets/share_event_sheet.dart';
@@ -35,7 +37,10 @@ const List<BoxShadow> _kInputShadow = [
 ];
 
 /// 供添加事件流程在 `Navigator.pop` 之后调用（需传入仍挂载的页面 context，例如 Navigator 的 context）。
-void showShareSheetAfterEventAdd(BuildContext parentContext) {
+void showShareSheetAfterEventAdd(
+  BuildContext parentContext,
+  ListEvent event,
+) {
   showModalBottomSheet<void>(
     context: parentContext,
     isScrollControlled: true,
@@ -49,7 +54,11 @@ void showShareSheetAfterEventAdd(BuildContext parentContext) {
     builder: (sheetContext) {
       return Padding(
         padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(sheetContext).bottom),
-        child: ShareEventSheet(parentContext: parentContext),
+        child: ShareEventSheet(
+          parentContext: parentContext,
+          event: event,
+          onShareComplete: () => EventShareService.revision.value++,
+        ),
       );
     },
   );
@@ -896,11 +905,21 @@ class _EventAddPageState extends State<EventAddPage> {
       note: note,
       leapMonthPreference: _showLeapMonthPreference ? leapMonthPreference : null,
       eventType: _eventType,
+      lastModifiedByName: initial?.lastModifiedByName,
+      lastModifiedAt: initial?.lastModifiedAt,
+      historicalPartnerName: initial?.historicalPartnerName,
+      isShareIncoming: initial?.isShareIncoming ?? false,
+      sharedFromUserId: initial?.sharedFromUserId,
+      sharedFromUserName: initial?.sharedFromUserName,
+      sharedFromUserPhone: initial?.sharedFromUserPhone,
+      sharedAt: initial?.sharedAt,
+      sharedSourceEventId: initial?.sharedSourceEventId,
+      ownerPhone: initial?.ownerPhone ?? UserSession.instance.phone,
     );
     nav.pop(event);
     if (_shareEnabled) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (navCtx.mounted) showShareSheetAfterEventAdd(navCtx);
+        if (navCtx.mounted) showShareSheetAfterEventAdd(navCtx, event);
       });
     }
   }

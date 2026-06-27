@@ -6,11 +6,16 @@ import 'package:flutter/services.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:time_calendar/models/event_share_record.dart';
 import 'package:time_calendar/models/partner_relation.dart';
 import 'package:time_calendar/models/share_contact.dart';
 import 'package:time_calendar/services/event_service.dart';
+import 'package:time_calendar/services/event_share_service.dart';
+import 'package:time_calendar/services/tag_bar_state.dart';
 import 'package:time_calendar/services/tag_service.dart';
 import 'package:time_calendar/services/user_session.dart';
+import 'package:time_calendar/utils/debug_account_switch.dart';
+import 'package:time_calendar/widgets/incoming_share_banner.dart';
 import 'package:time_calendar/widgets/numeric_keypad.dart';
 
 /// 共享管理：常用联系人、伴侣类事件共享、接受他人共享。
@@ -61,6 +66,8 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
   bool _acceptOthers = true;
   bool _loaded = false;
   bool _debugToolsExpanded = false;
+  List<IncomingSharePayload> _pendingIncoming = const [];
+  bool _pendingExpanded = false;
 
   bool get _canAdd {
     return _nameController.text.trim().isNotEmpty &&
@@ -157,9 +164,43 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
     _partnerRelation = TagService.getPartnerRelation();
     _syncPartnerPhoneFromRelation();
     _reconcilePartner();
+    await _reloadPendingIncoming();
     if (mounted) {
       setState(() => _loaded = true);
     }
+  }
+
+  Future<void> _reloadPendingIncoming() async {
+    final pending = await EventShareService.getPendingForShareManagement();
+    if (!mounted) return;
+    setState(() {
+      _pendingIncoming = List<IncomingSharePayload>.from(pending)
+        ..sort((a, b) => b.sharedAt.compareTo(a.sharedAt));
+      if (_pendingIncoming.length <= 1) {
+        _pendingExpanded = false;
+      }
+    });
+  }
+
+  Future<void> _acceptPendingIncoming(IncomingSharePayload payload) async {
+    final event = await EventShareService.acceptIncoming(payload.id);
+    if (!mounted) return;
+    if (event != null) {
+      await TagBarState().loadTags();
+      EventShareService.revision.value++;
+    }
+    await _reloadPendingIncoming();
+    if (!mounted) return;
+    _toast(event != null ? '已接受「${payload.eventSnapshot.title}」' : '接受失败');
+  }
+
+  Future<void> _dismissPendingIncoming(IncomingSharePayload payload) async {
+    final ok = await EventShareService.dismissIncoming(payload.id);
+    if (!mounted) return;
+    if (ok) EventShareService.revision.value++;
+    await _reloadPendingIncoming();
+    if (!mounted) return;
+    _toast(ok ? '已忽略' : '操作失败');
   }
 
   void _syncPartnerPhoneFromRelation() {
@@ -203,6 +244,13 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
     }
   }
 
+  /// TODO(后端): 常用共享联系人 — 按手机号查询 App 注册用户
+  /// - 接口：GET /users/lookup?phone=xxx（或等价）
+  /// - 返回：{ registered: bool, avatarUrl?: string, nickname?: string }
+  /// - 添加联系人后静默查询；已注册展示服务端头像，未注册展示「未注册」小标签（非短信）
+  /// - 不在「添加联系人」时发送短信；短信/邀请仅在「首次分享提醒」或「亲密关系邀请」时触发
+  /// - 需扩展 ShareContact：registered、avatarUrl（本地缓存 + JSON 持久化）
+  /// - 关联：share_event_sheet.dart 分享结果页 App内/短信；_attemptPartnerInviteOrSync 伴侣邀请短信
   Future<void> _onAdd() async {
     if (!_canAdd) return;
     final name = _nameController.text.trim();
@@ -375,6 +423,24 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
     await _persistLocal();
   }
 
+  Future<void> _debugSwitchToLaowang() async {
+    if (!kDebugMode) return;
+    final label = await DebugAccountSwitch.switchToLaowang(_contacts);
+    if (!mounted) return;
+    await _reloadPendingIncoming();
+    if (!mounted) return;
+    _toast('已模拟切换为 $label');
+  }
+
+  Future<void> _debugSwitchToUserA() async {
+    if (!kDebugMode) return;
+    final label = await DebugAccountSwitch.switchToUserA();
+    if (!mounted) return;
+    await _reloadPendingIncoming();
+    if (!mounted) return;
+    _toast('已切回 $label');
+  }
+
   Widget _debugToolButton(String label, Future<void> Function() onTap) {
     return SizedBox(
       height: 36,
@@ -453,6 +519,13 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
           ),
           const SizedBox(height: 8),
           _debugToolButton('清空所有联系人', _debugClearAllContacts),
+          const SizedBox(height: 8),
+          _debugToolButton('模拟切换为：老王', _debugSwitchToLaowang),
+          const SizedBox(height: 8),
+          _debugToolButton(
+            '切回用户 A（${DebugAccountSwitch.userAPhone}）',
+            _debugSwitchToUserA,
+          ),
         ],
       ],
     );
@@ -508,9 +581,28 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
     }
   }
 
+  String? _resolvedPartnerNameForArchive() {
+    final fromRelation = _partnerRelation.partnerName?.trim();
+    if (fromRelation != null && fromRelation.isNotEmpty) return fromRelation;
+
+    final fromBound = _boundPartnerContact()?.name.trim();
+    if (fromBound != null && fromBound.isNotEmpty) return fromBound;
+
+    final phone = _partnerPhone ?? _partnerRelation.partnerContactId;
+    if (phone != null && phone.isNotEmpty) {
+      for (final c in _contacts) {
+        if (c.phone == phone) {
+          final fromContact = c.name.trim();
+          if (fromContact.isNotEmpty) return fromContact;
+        }
+      }
+    }
+    return null;
+  }
+
   Future<void> _archivePartnerNameToEvents() async {
-    final currentPartnerName = _partnerRelation.partnerName?.trim();
-    if (currentPartnerName == null || currentPartnerName.isEmpty) return;
+    final currentPartnerName = _resolvedPartnerNameForArchive();
+    if (currentPartnerName == null) return;
 
     final partnerTagIds =
         TagService.getPartnerTags().map((t) => t.id).toSet();
@@ -527,6 +619,7 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
     if (changed) {
       await EventService.saveAllEvents(events);
     }
+    await TagService.setLastUnboundPartnerName(currentPartnerName);
   }
 
   Future<void> _resetPartnerRelation() async {
@@ -547,6 +640,47 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
       await UserSession.instance.setAutoShareEnabled(false);
     }
     await _persistLocal();
+  }
+
+  String _resolvedPartnerDisplayName() {
+    return _resolvedPartnerNameForArchive() ?? '伴侣';
+  }
+
+  Future<void> _unbindPartnerWithFeedback() async {
+    final partnerName = _resolvedPartnerDisplayName();
+    await _resetPartnerRelation();
+    if (!mounted) return;
+    _toast('已解除与 $partnerName 的亲密关系');
+  }
+
+  Future<void> _confirmUnbindPartner() async {
+    final partnerName = _resolvedPartnerDisplayName();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('解除亲密关系'),
+          content: Text(
+            '确定解除与「$partnerName」的亲密关系？\n\n'
+            '• 将不再自动同步亲密关系类事件\n'
+            '• 已有内容会保留为「曾与 $partnerName 共享」\n'
+            '• $partnerName 仍会保留在常用共享联系人中',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('确定解除'),
+            ),
+          ],
+        );
+      },
+    );
+    if (ok != true || !mounted) return;
+    await _unbindPartnerWithFeedback();
   }
 
   Future<void> _cancelPartnerInvite() async {
@@ -751,6 +885,7 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
                       contact: c,
                       colorScheme: cs,
                       textTheme: textTheme,
+                      avatarBuilder: _buildContactAvatar,
                       onDelete: () => _removeContact(c),
                     );
                   },
@@ -759,6 +894,7 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
                 _sectionTitle(context, '共享通用设置'),
                 const SizedBox(height: 16),
                 _buildAcceptOthersCard(cs, textTheme),
+                _buildPendingIncomingSection(cs),
               ],
             ),
             ),
@@ -804,7 +940,7 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
             decoration: _fieldDecoration(
               cs,
               textTheme,
-              hint: '输入称呼（如：小李）',
+              hint: '输入称呼 (如:亲爱的...)',
             ),
             style: textTheme.bodyLarge?.copyWith(color: cs.onSurface),
           ),
@@ -929,9 +1065,7 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
     TextTheme textTheme,
   ) {
     final relation = _partnerRelation;
-    final partnerName = relation.partnerName?.trim().isNotEmpty == true
-        ? relation.partnerName!.trim()
-        : '伴侣';
+    final partnerName = _resolvedPartnerDisplayName();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -965,15 +1099,6 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
             PartnerStatus.none => Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    '你还没有设置亲密关系联系人',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: _mutedGrey,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
                   SizedBox(
                     height: 48,
                     child: FilledButton(
@@ -992,6 +1117,15 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
                           fontWeight: FontWeight.w500,
                         ),
                       ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    '设置后，亲密关系类提醒与时光集将自动同步给 TA，让 TA 实时感受到你的牵挂与陪伴。',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: _mutedGrey,
                     ),
                   ),
                 ],
@@ -1064,13 +1198,13 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
                         ),
                       ),
                       TextButton(
-                        onPressed: _showPartnerPickerSheet,
+                        onPressed: _confirmUnbindPartner,
                         child: const Text(
-                          '更换',
+                          '解除',
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w500,
-                            color: _themeBlue,
+                            color: _mutedGrey,
                           ),
                         ),
                       ),
@@ -1183,6 +1317,82 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
           ),
         ],
       ],
+    );
+  }
+
+  Widget _buildPendingIncomingSection(ColorScheme cs) {
+    if (_pendingIncoming.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final latest = _pendingIncoming.first;
+    final rest = _pendingIncoming.length > 1
+        ? _pendingIncoming.sublist(1)
+        : const <IncomingSharePayload>[];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 20),
+        _sectionTitle(context, '待处理的分享'),
+        const SizedBox(height: 12),
+        _buildPendingIncomingCard(latest),
+        if (rest.isNotEmpty && !_pendingExpanded)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: InkWell(
+              onTap: () => setState(() => _pendingExpanded = true),
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  '还有 ${rest.length} 条待处理 ▼',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: cs.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        if (rest.isNotEmpty && _pendingExpanded) ...[
+          ...rest.map(_buildPendingIncomingCard),
+          InkWell(
+            onTap: () => setState(() => _pendingExpanded = false),
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                '收起 ▲',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: cs.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildPendingIncomingCard(IncomingSharePayload payload) {
+    final cs = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: cs.outline, width: 0.7),
+        ),
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        child: IncomingShareActionPanel(
+          payload: payload,
+          onAccept: () => _acceptPendingIncoming(payload),
+          onDismiss: () => _dismissPendingIncoming(payload),
+        ),
+      ),
     );
   }
 
@@ -1508,12 +1718,15 @@ class _ContactRow extends StatelessWidget {
     required this.contact,
     required this.colorScheme,
     required this.textTheme,
+    required this.avatarBuilder,
     required this.onDelete,
   });
 
   final ShareContact contact;
   final ColorScheme colorScheme;
   final TextTheme textTheme;
+  final Widget Function(ShareContact contact, {required double size})
+      avatarBuilder;
   final VoidCallback onDelete;
 
   @override
@@ -1531,21 +1744,8 @@ class _ContactRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         child: Row(
           children: [
-            Container(
-              width: 36,
-              height: 36,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: cs.primary.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: SvgPicture.asset(
-                'assets/images/ic_avatar.svg',
-                width: 16,
-                height: 16,
-                fit: BoxFit.contain,
-              ),
-            ),
+            // TODO(后端): 已注册时用 NetworkImage(avatarUrl)，未注册显示「未注册」标签
+            avatarBuilder(contact, size: 36),
             const SizedBox(width: 12),
             Expanded(
               child: Column(

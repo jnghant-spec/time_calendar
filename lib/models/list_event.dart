@@ -62,6 +62,13 @@ class ListEvent {
     this.lastModifiedByName,
     this.lastModifiedAt,
     this.historicalPartnerName,
+    this.isShareIncoming = false,
+    this.sharedFromUserId,
+    this.sharedFromUserName,
+    this.sharedFromUserPhone,
+    this.sharedAt,
+    this.ownerPhone,
+    this.sharedSourceEventId,
   });
 
   final String id;
@@ -100,6 +107,18 @@ class ListEvent {
   /// 关系解除后保留的历史伴侣称呼（用于「曾与 XX 共享」展示）。
   final String? historicalPartnerName;
 
+  /// 是否为「他人分享给我」的提醒。
+  final bool isShareIncoming;
+  final String? sharedFromUserId;
+  final String? sharedFromUserName;
+  final String? sharedFromUserPhone;
+  /// 接收方接受分享的时间。
+  final DateTime? sharedAt;
+  /// 提醒所属账号手机号（本地 DEBUG 多账号隔离）。
+  final String? ownerPhone;
+  /// 接受分享时对应的源事件 id，用于去重。
+  final String? sharedSourceEventId;
+
   /// 循环起始日（与 [baseDate] 同日，仅保留年月日语义）。
   DateTime get anchorDate => DateTime(baseDate.year, baseDate.month, baseDate.day);
 
@@ -126,9 +145,22 @@ class ListEvent {
     String? lastModifiedByName,
     DateTime? lastModifiedAt,
     String? historicalPartnerName,
+    bool? isShareIncoming,
+    String? sharedFromUserId,
+    String? sharedFromUserName,
+    String? sharedFromUserPhone,
+    DateTime? sharedAt,
+    String? ownerPhone,
+    String? sharedSourceEventId,
     bool clearLastModifiedByName = false,
     bool clearLastModifiedAt = false,
     bool clearHistoricalPartnerName = false,
+    bool clearSharedFromUserId = false,
+    bool clearSharedFromUserName = false,
+    bool clearSharedFromUserPhone = false,
+    bool clearSharedAt = false,
+    bool clearOwnerPhone = false,
+    bool clearSharedSourceEventId = false,
   }) {
     return ListEvent(
       id: id ?? this.id,
@@ -158,6 +190,21 @@ class ListEvent {
       historicalPartnerName: clearHistoricalPartnerName
           ? null
           : (historicalPartnerName ?? this.historicalPartnerName),
+      isShareIncoming: isShareIncoming ?? this.isShareIncoming,
+      sharedFromUserId: clearSharedFromUserId
+          ? null
+          : (sharedFromUserId ?? this.sharedFromUserId),
+      sharedFromUserName: clearSharedFromUserName
+          ? null
+          : (sharedFromUserName ?? this.sharedFromUserName),
+      sharedFromUserPhone: clearSharedFromUserPhone
+          ? null
+          : (sharedFromUserPhone ?? this.sharedFromUserPhone),
+      sharedAt: clearSharedAt ? null : (sharedAt ?? this.sharedAt),
+      ownerPhone: clearOwnerPhone ? null : (ownerPhone ?? this.ownerPhone),
+      sharedSourceEventId: clearSharedSourceEventId
+          ? null
+          : (sharedSourceEventId ?? this.sharedSourceEventId),
     );
   }
 
@@ -188,6 +235,19 @@ class ListEvent {
         if (historicalPartnerName != null &&
             historicalPartnerName!.isNotEmpty)
           'historicalPartnerName': historicalPartnerName,
+        'isShareIncoming': isShareIncoming,
+        if (sharedFromUserId != null && sharedFromUserId!.isNotEmpty)
+          'sharedFromUserId': sharedFromUserId,
+        if (sharedFromUserName != null && sharedFromUserName!.isNotEmpty)
+          'sharedFromUserName': sharedFromUserName,
+        if (sharedFromUserPhone != null && sharedFromUserPhone!.isNotEmpty)
+          'sharedFromUserPhone': sharedFromUserPhone,
+        if (sharedAt != null) 'sharedAt': sharedAt!.toIso8601String(),
+        if (ownerPhone != null && ownerPhone!.isNotEmpty)
+          'ownerPhone': ownerPhone,
+        if (sharedSourceEventId != null &&
+            sharedSourceEventId!.isNotEmpty)
+          'sharedSourceEventId': sharedSourceEventId,
       };
 
   factory ListEvent.fromJson(Map<String, dynamic> json) {
@@ -228,6 +288,15 @@ class ListEvent {
           ? DateTime.tryParse(json['lastModifiedAt'] as String)
           : null,
       historicalPartnerName: json['historicalPartnerName'] as String?,
+      isShareIncoming: json['isShareIncoming'] as bool? ?? false,
+      sharedFromUserId: json['sharedFromUserId'] as String?,
+      sharedFromUserName: json['sharedFromUserName'] as String?,
+      sharedFromUserPhone: json['sharedFromUserPhone'] as String?,
+      sharedAt: json['sharedAt'] != null
+          ? DateTime.tryParse(json['sharedAt'] as String)
+          : null,
+      ownerPhone: json['ownerPhone'] as String?,
+      sharedSourceEventId: json['sharedSourceEventId'] as String?,
     );
   }
 }

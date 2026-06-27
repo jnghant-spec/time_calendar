@@ -8,6 +8,7 @@ import 'package:time_calendar/pages/memory_store_sheet.dart';
 import 'package:time_calendar/services/tag_service.dart';
 import 'package:time_calendar/utils/event_date_utils.dart';
 import 'package:time_calendar/utils/partner_share_detail_ui.dart';
+import 'package:time_calendar/utils/friend_share_detail_ui.dart';
 import 'package:time_calendar/widgets/event_photo_paths_preview.dart';
 
 /// 清单页事件详情底部弹层。
@@ -270,6 +271,7 @@ class EventDetailSheet extends StatelessWidget {
                                   height: 20 / 12,
                                 ),
                               ),
+                              FriendShareDetailSection(event: event),
                               if (event.isLunarRecurring) ...[
                                 const SizedBox(height: 6),
                                 Container(

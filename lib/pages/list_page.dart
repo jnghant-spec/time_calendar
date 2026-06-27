@@ -10,6 +10,7 @@ import 'package:time_calendar/models/list_event.dart';
 import 'package:time_calendar/models/reminder_tag.dart';
 import 'package:time_calendar/pages/event_add_page.dart';
 import 'package:time_calendar/pages/event_detail_sheet.dart';
+import 'package:time_calendar/services/event_share_service.dart';
 import 'package:time_calendar/services/event_usage_service.dart';
 import 'package:time_calendar/services/membership_service.dart';
 import 'package:time_calendar/services/memory_service.dart';
@@ -483,7 +484,11 @@ class _ListPageState extends State<ListPage> {
           padding: EdgeInsets.only(
             bottom: MediaQuery.viewInsetsOf(sheetContext).bottom,
           ),
-          child: ShareEventSheet(parentContext: context),
+          child: ShareEventSheet(
+            parentContext: context,
+            event: event,
+            onShareComplete: () => EventShareService.revision.value++,
+          ),
         );
       },
     );

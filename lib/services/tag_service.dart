@@ -17,13 +17,17 @@ class TagService {
 
   static const String prefsKey = 'reminder_tags_v1';
   static const String partnerRelationPrefsKey = 'partner_relation_v1';
-  static const int maxTagCount = 10;
+  static const String lastUnboundPartnerNamePrefsKey =
+      'partner_last_unbound_name_v1';
+  static const int maxTagCount = 20;
+  static const String sharedIncomingTagId = 'shared_incoming';
 
   /// 解除标签关联后提醒/事件集使用的占位 id（模型字段仍为 String）。
   static const String uncategorizedTagId = '';
 
   static List<ReminderTag>? _cache;
   static PartnerRelation? _partnerRelationCache;
+  static String? _lastUnboundPartnerNameCache;
 
   /// 由 [MainNavigationPage] 注入，用于统计/解除清单提醒关联。
   static int Function(String tagId)? reminderCountForTag;
@@ -71,7 +75,38 @@ class TagService {
         isDefault: true,
         createdAt: now,
       ),
+      ReminderTag(
+        id: sharedIncomingTagId,
+        name: '他人分享',
+        accentColor: const Color(0xFF10B981),
+        iconBgColor: const Color(0xFFECFDF5),
+        sortOrder: 999,
+        isDefault: true,
+        isSystemTag: true,
+        iconName: 'share',
+        createdAt: now,
+      ),
     ];
+  }
+
+  static ReminderTag buildSharedIncomingTag({DateTime? createdAt}) {
+    final now = createdAt ?? DateTime.now();
+    return ReminderTag(
+      id: sharedIncomingTagId,
+      name: '他人分享',
+      accentColor: const Color(0xFF10B981),
+      iconBgColor: const Color(0xFFECFDF5),
+      sortOrder: 999,
+      isDefault: true,
+      isSystemTag: true,
+      iconName: 'share',
+      createdAt: now,
+    );
+  }
+
+  static void _ensureSharedIncomingTag(List<ReminderTag> list) {
+    if (list.any((t) => t.id == sharedIncomingTagId)) return;
+    list.add(buildSharedIncomingTag());
   }
 
   static Future<void> _persist(List<ReminderTag> tags) async {
@@ -86,16 +121,29 @@ class TagService {
     if (raw == null || raw.isEmpty) {
       _partnerRelationCache =
           const PartnerRelation(status: PartnerStatus.none);
-      return;
+    } else {
+      try {
+        _partnerRelationCache = PartnerRelation.fromJson(
+          Map<String, dynamic>.from(jsonDecode(raw) as Map),
+        );
+      } catch (_) {
+        _partnerRelationCache =
+            const PartnerRelation(status: PartnerStatus.none);
+      }
     }
-    try {
-      _partnerRelationCache = PartnerRelation.fromJson(
-        Map<String, dynamic>.from(jsonDecode(raw) as Map),
-      );
-    } catch (_) {
-      _partnerRelationCache =
-          const PartnerRelation(status: PartnerStatus.none);
-    }
+    final lastName = prefs.getString(lastUnboundPartnerNamePrefsKey)?.trim();
+    _lastUnboundPartnerNameCache =
+        (lastName != null && lastName.isNotEmpty) ? lastName : null;
+  }
+
+  static String? getLastUnboundPartnerName() => _lastUnboundPartnerNameCache;
+
+  static Future<void> setLastUnboundPartnerName(String name) async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(lastUnboundPartnerNamePrefsKey, trimmed);
+    _lastUnboundPartnerNameCache = trimmed;
   }
 
   /// 首次为空时写入 4 个默认标签并返回排序后的列表。
@@ -113,6 +161,7 @@ class TagService {
           .map((e) => ReminderTag.fromJson(Map<String, dynamic>.from(e as Map)))
           .toList();
       list.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+      _ensureSharedIncomingTag(list);
       _cache = list;
       return List<ReminderTag>.from(list);
     } catch (_) {
@@ -149,8 +198,11 @@ class TagService {
     await saveTags(list);
   }
 
-  /// 系统预置「生日」标签：`id == 'birthday'`（种子数据固定 id，名称通常为「生日」）。
-  static bool isProtectedSystemTag(ReminderTag tag) => tag.id == 'birthday';
+  /// 系统预置标签：不可删除（生日、他人分享）。
+  static bool isProtectedSystemTag(ReminderTag tag) =>
+      tag.id == 'birthday' || tag.id == sharedIncomingTagId;
+
+  static bool isSharedIncomingTag(String tagId) => tagId == sharedIncomingTagId;
 
   static String displayTagName(String name, {int maxLen = 4}) {
     final trimmed = name.trim();

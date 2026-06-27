@@ -4,6 +4,7 @@ import 'package:lunar/lunar.dart';
 import 'package:time_calendar/models/list_event.dart';
 import 'package:time_calendar/services/tag_service.dart';
 import 'package:time_calendar/utils/partner_share_detail_ui.dart';
+import 'package:time_calendar/utils/friend_share_detail_ui.dart';
 
 /// 日历页半屏事件详情（底部 Modal）。
 class EventDetailSheet extends StatelessWidget {
@@ -280,6 +281,7 @@ class EventDetailSheet extends StatelessWidget {
                           height: 20 / 12,
                         ),
                       ),
+                      FriendShareDetailSection(event: event),
                       const SizedBox(height: 16),
                       if (displaySolarDate != null &&
                           (event.repeatRule != EventRepeatRule.none || event.isLunarRecurring) &&

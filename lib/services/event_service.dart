@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:time_calendar/models/list_event.dart';
 import 'package:time_calendar/services/event_usage_service.dart';
 import 'package:time_calendar/services/membership_service.dart';
+import 'package:time_calendar/services/user_session.dart';
 
 /// 清单/日历提醒事项的本地持久化（SharedPreferences）。
 class EventService {
@@ -58,6 +59,7 @@ class EventService {
 
   static List<ListEvent> buildJune5TestEvents() {
     final d = kListEventJune5TestDate;
+    const owner = UserPreferenceDefaults.defaultPhone;
     return [
       ListEvent(
         id: 'j5_birthday',
@@ -71,6 +73,7 @@ class EventService {
         advanceTimeHm: '08:00',
         sameDayTimeHm: '09:00',
         note: '订蛋糕',
+        ownerPhone: owner,
       ),
       ListEvent(
         id: 'j5_partner',
@@ -83,6 +86,7 @@ class EventService {
         advanceTimeHm: '09:00',
         sameDayTimeHm: '18:30',
         note: '预定餐厅',
+        ownerPhone: owner,
       ),
       ListEvent(
         id: 'j5_goal',
@@ -96,6 +100,7 @@ class EventService {
         advanceTimeHm: '09:00',
         sameDayTimeHm: '14:00',
         note: '准备汇报材料',
+        ownerPhone: owner,
       ),
       ListEvent(
         id: 'j5_idol',
@@ -106,6 +111,7 @@ class EventService {
         reminderType: EventReminderType.sameDayOnly,
         sameDayTimeHm: '20:00',
         note: '备好应援灯牌',
+        ownerPhone: owner,
       ),
       ListEvent(
         id: 'j5_weekly',
@@ -119,6 +125,7 @@ class EventService {
         advanceTimeHm: '09:00',
         sameDayTimeHm: '10:00',
         note: '带好电脑',
+        ownerPhone: owner,
       ),
       ListEvent(
         id: 'j5_card',
@@ -131,6 +138,7 @@ class EventService {
         advanceTimeHm: '09:00',
         sameDayTimeHm: '11:00',
         note: '核对本期账单',
+        ownerPhone: owner,
       ),
       ListEvent(
         id: 'j5_run',
@@ -141,6 +149,7 @@ class EventService {
         reminderType: EventReminderType.sameDayOnly,
         sameDayTimeHm: '07:00',
         note: '带好跑鞋',
+        ownerPhone: owner,
       ),
     ];
   }
