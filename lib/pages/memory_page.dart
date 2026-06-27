@@ -36,8 +36,6 @@ class MemoryPage extends StatefulWidget {
     BoxShadow(color: Color(0x0F000000), blurRadius: 8, offset: Offset(0, 2)),
   ];
 
-  static const Color _pinnedStarBg = Color(0xFFFFFBEB);
-
   static List<BoxShadow> _pinnedCollectionShadows() => [
         BoxShadow(
           color: _star.withValues(alpha: 0.08),
@@ -46,21 +44,14 @@ class MemoryPage extends StatefulWidget {
         ),
       ];
 
-  static Widget _pinnedStarBadge() {
-    return Container(
-      width: 32,
-      height: 32,
-      decoration: BoxDecoration(
-        color: _pinnedStarBg,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Center(
-        child: SvgPicture.asset(
-          'assets/images/ic_star.svg',
-          width: 20,
-          height: 20,
-        ),
-      ),
+  static double _pinnedStarSizeForTitle(TextStyle style) =>
+      (style.fontSize ?? 16) + 4;
+
+  static Widget _pinnedStarBadge({required double size}) {
+    return SvgPicture.asset(
+      'assets/images/ic_star.svg',
+      width: size,
+      height: size,
     );
   }
 
@@ -133,7 +124,7 @@ class _MemoryPageState extends State<MemoryPage> {
   }
 
   String _rangeLine(List<MemoryEvent> ev) {
-    if (ev.isEmpty) return '暂无事件';
+    if (ev.isEmpty) return '暂无瞬间';
     return '${formatYearMonthDot(ev.first.date)} - ${formatYearMonthDot(ev.last.date)}';
   }
 
@@ -359,7 +350,11 @@ class _MemoryPageState extends State<MemoryPage> {
     );
   }
 
-  Widget _collectionTitle(String name, String tagId, {required TextStyle style}) {
+  Widget _collectionTitle(
+    String name,
+    String tagId, {
+    required TextStyle style,
+  }) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -385,6 +380,27 @@ class _MemoryPageState extends State<MemoryPage> {
     );
   }
 
+  Widget _collectionTitleRow(
+    MemoryCollection c, {
+    required TextStyle titleStyle,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: _collectionTitle(c.name, c.tagId, style: titleStyle),
+        ),
+        if (c.isPinned)
+          Padding(
+            padding: const EdgeInsets.only(left: 8),
+            child: MemoryPage._pinnedStarBadge(
+              size: MemoryPage._pinnedStarSizeForTitle(titleStyle),
+            ),
+          ),
+      ],
+    );
+  }
+
   Widget _cardInfoColumn(
     MemoryCollection c,
     List<MemoryEvent> ev, {
@@ -394,66 +410,66 @@ class _MemoryPageState extends State<MemoryPage> {
   }) {
     final tagLabel = _collectionTagLabel(c);
     final photoCount = MemoryService.countPhotosInCollection(ev);
-    final statsText = '共 ${ev.length} 个事件 · $photoCount 张照片';
+    final statsText = '共 ${ev.length} 个瞬间 · $photoCount 张照片';
+
+    const tallTitleStyle = TextStyle(
+      fontSize: 18,
+      fontWeight: FontWeight.w600,
+      height: 1.2,
+      color: MemoryPage._titleColor,
+    );
+    const narrowTitleStyle = TextStyle(
+      fontSize: 16,
+      fontWeight: FontWeight.w600,
+      color: MemoryPage._titleColor,
+    );
 
     if (tallLayout) {
       return Expanded(
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _collectionTitle(
-                c.name,
-                c.tagId,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  height: 1.2,
-                  color: MemoryPage._titleColor,
-                ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _collectionTitleRow(c, titleStyle: tallTitleStyle),
+            const SizedBox(height: 4),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                return ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: constraints.maxWidth),
+                  child: tagLabel,
+                );
+              },
+            ),
+            const SizedBox(height: 4),
+            Text(
+              _rangeLine(ev),
+              style: const TextStyle(
+                fontSize: 12,
+                height: 1.2,
+                color: MemoryPage._muted,
               ),
-              const SizedBox(height: 4),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  return ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: constraints.maxWidth),
-                    child: tagLabel,
-                  );
-                },
-              ),
-              const SizedBox(height: 4),
-              Text(
-                _rangeLine(ev),
-                style: const TextStyle(
-                  fontSize: 12,
-                  height: 1.2,
-                  color: MemoryPage._muted,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: Text(
-                      statsText,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        height: 1.2,
-                        color: MemoryPage._muted,
-                      ),
+            ),
+            const SizedBox(height: 4),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Text(
+                    statsText,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      height: 1.2,
+                      color: MemoryPage._muted,
                     ),
                   ),
-                  ?statsTrailing,
-                ],
-              ),
-            ],
-          ),
+                ),
+                ?statsTrailing,
+              ],
+            ),
+          ],
         ),
       );
     }
@@ -461,18 +477,10 @@ class _MemoryPageState extends State<MemoryPage> {
     final lineGap = compactSpacing ? 4.0 : 6.0;
     return Expanded(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          _collectionTitle(
-            c.name,
-            c.tagId,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: MemoryPage._titleColor,
-            ),
-          ),
+          _collectionTitleRow(c, titleStyle: narrowTitleStyle),
           SizedBox(height: lineGap),
           LayoutBuilder(
             builder: (context, constraints) {
@@ -817,18 +825,6 @@ class _MemoryPageState extends State<MemoryPage> {
   }) {
     const margin = EdgeInsets.symmetric(horizontal: 16, vertical: 8);
     const padding = EdgeInsets.all(16);
-    final inner = Stack(
-      clipBehavior: Clip.none,
-      children: [
-        child,
-        if (isPinned)
-          Positioned(
-            top: 8,
-            right: 8,
-            child: MemoryPage._pinnedStarBadge(),
-          ),
-      ],
-    );
 
     if (!isPinned) {
       return GestureDetector(
@@ -841,7 +837,7 @@ class _MemoryPageState extends State<MemoryPage> {
             borderRadius: BorderRadius.circular(16),
             boxShadow: MemoryPage._cardShadow,
           ),
-          child: inner,
+          child: child,
         ),
       );
     }
@@ -860,7 +856,7 @@ class _MemoryPageState extends State<MemoryPage> {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: MemoryPage._pinnedCollectionShadows(),
               ),
-              child: inner,
+              child: child,
             ),
             Positioned(
               top: 0,

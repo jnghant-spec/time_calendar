@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:time_calendar/models/memory_collection.dart';
@@ -118,6 +119,10 @@ class _MemoryEventDetailSheetState extends State<MemoryEventDetailSheet>
   late final AnimationController _photoAnimController;
   late Animation<double> _photoAnim;
   int _targetPhotoIndex = 0;
+  final Map<int, double> _carouselHeights = {};
+  static const double _carouselFallbackHeight = 280;
+  static const double _carouselMinHeight = 200;
+  static const double _carouselMaxHeight = 360;
 
   @override
   void initState() {
@@ -138,6 +143,48 @@ class _MemoryEventDetailSheetState extends State<MemoryEventDetailSheet>
       }
     });
     _event = widget.event;
+    _preloadCarouselHeights();
+  }
+
+  Future<void> _preloadCarouselHeights() async {
+    final photos = MemoryService.existingPhotoPaths(_event);
+    for (var i = 0; i < photos.length; i++) {
+      await _resolveCarouselHeight(i, photos[i], _photoWidth > 0 ? _photoWidth : 300);
+    }
+  }
+
+  Future<void> _resolveCarouselHeight(int index, String path, double width) async {
+    if (width <= 0 || _carouselHeights.containsKey(index)) return;
+    try {
+      final bytes = await File(path).readAsBytes();
+      final codec = await ui.instantiateImageCodec(bytes);
+      final frame = await codec.getNextFrame();
+      final image = frame.image;
+      final iw = image.width.toDouble();
+      final ih = image.height.toDouble();
+      image.dispose();
+      if (iw <= 0 || ih <= 0) {
+        _setCarouselHeight(index, _carouselFallbackHeight);
+        return;
+      }
+      final maxH = math.min(_carouselMaxHeight, width);
+      final h = (width * ih / iw).clamp(_carouselMinHeight, maxH);
+      _setCarouselHeight(index, h);
+    } catch (_) {
+      _setCarouselHeight(index, _carouselFallbackHeight);
+    }
+  }
+
+  void _setCarouselHeight(int index, double height) {
+    if (!mounted) return;
+    if (_carouselHeights[index] == height) return;
+    setState(() => _carouselHeights[index] = height);
+  }
+
+  double _carouselHeightFor(int index, double width) {
+    final cached = _carouselHeights[index];
+    if (cached != null) return cached;
+    return _carouselFallbackHeight;
   }
 
   @override
@@ -316,6 +363,7 @@ class _MemoryEventDetailSheetState extends State<MemoryEventDetailSheet>
         final photos = MemoryService.existingPhotoPaths(updated);
         setState(() {
           _event = updated;
+          _carouselHeights.clear();
           if (photos.isEmpty) {
             _currentPhotoIndex = 0;
           } else {
@@ -323,6 +371,7 @@ class _MemoryEventDetailSheetState extends State<MemoryEventDetailSheet>
                 _currentPhotoIndex.clamp(0, photos.length - 1);
           }
         });
+        _preloadCarouselHeights();
       }
       widget.onChanged?.call();
     } finally {
@@ -547,11 +596,15 @@ class _MemoryEventDetailSheetState extends State<MemoryEventDetailSheet>
                     )
                   else
                     Container(
-                      height: 280,
                       margin: const EdgeInsets.all(16),
                       child: LayoutBuilder(
                         builder: (context, constraints) {
                           _photoWidth = constraints.maxWidth;
+                          for (var i = 0; i < photos.length; i++) {
+                            _resolveCarouselHeight(i, photos[i], _photoWidth);
+                          }
+                          final carouselHeight =
+                              _carouselHeightFor(_currentPhotoIndex, _photoWidth);
                           final totalOffset =
                               -_currentPhotoIndex * (_photoWidth + 16) +
                               _dragOffset;
@@ -657,7 +710,7 @@ class _MemoryEventDetailSheetState extends State<MemoryEventDetailSheet>
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(16),
                               child: SizedBox(
-                                height: 280,
+                                height: carouselHeight,
                                 child: Stack(
                                   clipBehavior: Clip.hardEdge,
                                   children: [
@@ -667,7 +720,7 @@ class _MemoryEventDetailSheetState extends State<MemoryEventDetailSheet>
                                             totalOffset,
                                         top: 0,
                                         width: _photoWidth,
-                                        height: 280,
+                                        height: carouselHeight,
                                         child: GestureDetector(
                                           behavior: HitTestBehavior.translucent,
                                           onTap: () => _openPhotoViewer(
@@ -678,7 +731,7 @@ class _MemoryEventDetailSheetState extends State<MemoryEventDetailSheet>
                                             key: ValueKey(photos[i]),
                                             fit: BoxFit.cover,
                                             width: _photoWidth,
-                                            height: 280,
+                                            height: carouselHeight,
                                           ),
                                         ),
                                       ),

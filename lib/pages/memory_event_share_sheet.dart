@@ -8,6 +8,7 @@ import 'package:time_calendar/services/memory_service.dart';
 import 'package:time_calendar/services/share_service.dart';
 import 'package:time_calendar/services/tag_service.dart';
 import 'package:time_calendar/utils/event_date_utils.dart';
+import 'package:time_calendar/widgets/memory_event_photo_grid.dart';
 
 enum _EventShareMode { concise, longImage }
 
@@ -133,8 +134,8 @@ class _MemoryEventShareSheetState extends State<MemoryEventShareSheet> {
         builders: [
           () => _EventShareConciseCard(
             event: _event,
-            coverPath: _coverPath,
             tagColor: _tagColor,
+            contentWidth: width,
             forExport: true,
           ),
         ],
@@ -143,7 +144,7 @@ class _MemoryEventShareSheetState extends State<MemoryEventShareSheet> {
       return paths;
     }
 
-    final pages = _buildLongExportPages();
+    final pages = _buildLongExportPages(width);
     if (pages.isEmpty) return [];
     final keys = List.generate(pages.length, (_) => GlobalKey());
     return _renderAndCapture(
@@ -155,6 +156,7 @@ class _MemoryEventShareSheetState extends State<MemoryEventShareSheet> {
             coverPath: _coverPath,
             tagColor: _tagColor,
             photoPaths: page.photoPaths,
+            photoTileHeight: MemoryEventPhotoGrid.shareTileHeight(width),
             showHeader: page.showHeader,
             showPhotoTitle: page.showPhotoTitle,
             showBrand: page.showBrand,
@@ -164,7 +166,7 @@ class _MemoryEventShareSheetState extends State<MemoryEventShareSheet> {
     );
   }
 
-  List<_LongExportSlice> _buildLongExportPages() {
+  List<_LongExportSlice> _buildLongExportPages(double contentWidth) {
     final photos = _photoPaths;
     if (photos.isEmpty) {
       return [
@@ -177,10 +179,12 @@ class _MemoryEventShareSheetState extends State<MemoryEventShareSheet> {
       ];
     }
 
-    const headerH = 280.0 + 130.0;
+    final photoTileHeight = MemoryEventPhotoGrid.shareTileHeight(contentWidth);
+    final photoBlockH =
+        photoTileHeight + MemoryEventPhotoGridTokens.sharePhotoSpacing;
+    final headerH = photoTileHeight + 130.0;
     const titleH = 48.0;
     const brandH = 132.0;
-    const photoBlockH = 296.0;
 
     final pages = <_LongExportSlice>[];
     var photoIndex = 0;
@@ -321,6 +325,7 @@ class _MemoryEventShareSheetState extends State<MemoryEventShareSheet> {
   Widget build(BuildContext context) {
     final bottom = MediaQuery.paddingOf(context).bottom;
     final longDisabled = !_hasPhotos;
+    final contentWidth = MediaQuery.sizeOf(context).width - 32;
 
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -397,8 +402,8 @@ class _MemoryEventShareSheetState extends State<MemoryEventShareSheet> {
                       ? _EventShareConciseCard(
                           key: const ValueKey('concise'),
                           event: _event,
-                          coverPath: _coverPath,
                           tagColor: _tagColor,
+                          contentWidth: contentWidth,
                           forExport: false,
                         )
                       : _EventShareLongPreviewCard(
@@ -407,6 +412,7 @@ class _MemoryEventShareSheetState extends State<MemoryEventShareSheet> {
                           coverPath: _coverPath,
                           tagColor: _tagColor,
                           photoPaths: _photoPaths,
+                          contentWidth: contentWidth,
                         ),
                 ),
               ),
@@ -705,15 +711,44 @@ class _EventShareConciseCard extends StatelessWidget {
   const _EventShareConciseCard({
     super.key,
     required this.event,
-    required this.coverPath,
     required this.tagColor,
+    required this.contentWidth,
     this.forExport = false,
   });
 
   final MemoryEvent event;
-  final String? coverPath;
   final Color tagColor;
+  final double contentWidth;
   final bool forExport;
+
+  Widget _buildPhotoHeader() {
+    final gridSlots = MemoryEventPhotoGrid.gridSlotPaths(event);
+    final photoCount = MemoryEventPhotoGrid.filledSlotCount(event);
+
+    if (photoCount == 0) {
+      return _EventShareCover(
+        height: 200,
+        coverPath: null,
+        tagColor: tagColor,
+        title: event.title,
+      );
+    }
+    if (photoCount == 1) {
+      return _EventShareCover(
+        height: 200,
+        coverPath: MemoryEventPhotoGrid.firstFilledSlotPath(event),
+        tagColor: tagColor,
+        title: event.title,
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+      child: MemoryEventShareConciseGrid(
+        gridSlotPaths: gridSlots,
+        contentWidth: contentWidth - 16,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -736,12 +771,7 @@ class _EventShareConciseCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _EventShareCover(
-            height: 200,
-            coverPath: coverPath,
-            tagColor: tagColor,
-            title: event.title,
-          ),
+          _buildPhotoHeader(),
           _EventShareInfoSection(event: event, titleSize: 20),
           const _EventShareBrandFooter(),
         ],
@@ -757,15 +787,19 @@ class _EventShareLongPreviewCard extends StatelessWidget {
     required this.coverPath,
     required this.tagColor,
     required this.photoPaths,
+    required this.contentWidth,
   });
 
   final MemoryEvent event;
   final String? coverPath;
   final Color tagColor;
   final List<String> photoPaths;
+  final double contentWidth;
 
   @override
   Widget build(BuildContext context) {
+    final photoTileHeight = MemoryEventPhotoGrid.shareTileHeight(contentWidth);
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
@@ -777,7 +811,7 @@ class _EventShareLongPreviewCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _EventShareCover(
-            height: 280,
+            height: photoTileHeight,
             coverPath: coverPath,
             tagColor: tagColor,
             title: event.title,
@@ -803,8 +837,14 @@ class _EventShareLongPreviewCard extends StatelessWidget {
               child: Column(
                 children: [
                   for (var i = 0; i < photoPaths.length; i++) ...[
-                    if (i > 0) const SizedBox(height: 16),
-                    _EventSharePhotoTile(path: photoPaths[i]),
+                    if (i > 0)
+                      SizedBox(
+                        height: MemoryEventPhotoGridTokens.sharePhotoSpacing,
+                      ),
+                    MemoryEventSharePhotoTile(
+                      path: photoPaths[i],
+                      height: photoTileHeight,
+                    ),
                   ],
                 ],
               ),
@@ -823,6 +863,7 @@ class _EventShareLongExportPage extends StatelessWidget {
     required this.coverPath,
     required this.tagColor,
     required this.photoPaths,
+    required this.photoTileHeight,
     required this.showHeader,
     required this.showPhotoTitle,
     required this.showBrand,
@@ -832,6 +873,7 @@ class _EventShareLongExportPage extends StatelessWidget {
   final String? coverPath;
   final Color tagColor;
   final List<String> photoPaths;
+  final double photoTileHeight;
   final bool showHeader;
   final bool showPhotoTitle;
   final bool showBrand;
@@ -846,7 +888,7 @@ class _EventShareLongExportPage extends StatelessWidget {
         children: [
           if (showHeader) ...[
             _EventShareCover(
-              height: 280,
+              height: photoTileHeight,
               coverPath: coverPath,
               tagColor: tagColor,
               title: event.title,
@@ -874,39 +916,20 @@ class _EventShareLongExportPage extends StatelessWidget {
               child: Column(
                 children: [
                   for (var i = 0; i < photoPaths.length; i++) ...[
-                    if (i > 0) const SizedBox(height: 16),
-                    _EventSharePhotoTile(path: photoPaths[i]),
+                    if (i > 0)
+                      SizedBox(
+                        height: MemoryEventPhotoGridTokens.sharePhotoSpacing,
+                      ),
+                    MemoryEventSharePhotoTile(
+                      path: photoPaths[i],
+                      height: photoTileHeight,
+                    ),
                   ],
                 ],
               ),
             ),
           if (showBrand) const _EventShareBrandFooter(topPadding: 32),
         ],
-      ),
-    );
-  }
-}
-
-class _EventSharePhotoTile extends StatelessWidget {
-  const _EventSharePhotoTile({required this.path});
-
-  final String path;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: 280,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        color: const Color(0xFFF1F5F9),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Image.file(
-        File(path),
-        fit: BoxFit.cover,
-        width: double.infinity,
-        height: 280,
       ),
     );
   }

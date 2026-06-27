@@ -82,37 +82,29 @@ class MemoryCollectionDetailHeader extends StatelessWidget {
   static const Color _muted = Color(0xFF94A3B8);
 
   String _rangeLine() {
-    if (events.isEmpty) return '暂无事件';
+    if (events.isEmpty) return '暂无瞬间';
     return '${formatYearMonthDot(events.first.date)} - ${formatYearMonthDot(events.last.date)}';
   }
 
   Widget _tagMetaPill(ReminderTag tag) {
     final accent = TagCircleWidget.themeColorOrDefault(tag.accentColor);
-    final icon = TagPresetIcons.dataFor(tag.iconName) ??
-        TagCircleWidget.defaultIconData;
 
     return Container(
       height: 28,
+      alignment: Alignment.center,
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
         color: tag.iconBgColor,
         borderRadius: BorderRadius.circular(14),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 15, color: accent),
-          const SizedBox(width: 4),
-          Text(
-            tag.name,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: accent,
-              height: 1.0,
-            ),
-          ),
-        ],
+      child: Text(
+        tag.name,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          color: accent,
+          height: 1.0,
+        ),
       ),
     );
   }
@@ -135,7 +127,7 @@ class MemoryCollectionDetailHeader extends StatelessWidget {
           const SizedBox(width: 8),
         ],
         Text(
-          '共 ${events.length} 个事件 · $photoCount 张照片',
+          '共 ${events.length} 个瞬间 · $photoCount 张照片',
           style: statsStyle,
         ),
       ],
@@ -323,7 +315,7 @@ class MemoryCollectionDetailHeader extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                '事件时间线',
+                '全部瞬间',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -509,7 +501,7 @@ class MemoryDetailBottomToolbar extends StatelessWidget {
                   child: MemoryDetailIconTile(
                     icon: Icons.edit_outlined,
                     onTap: onEdit,
-                    semanticsLabel: '编辑当前事件',
+                    semanticsLabel: '编辑当前瞬间',
                     showBorder: true,
                   ),
                 ),
@@ -526,7 +518,7 @@ class MemoryDetailBottomToolbar extends StatelessWidget {
                     icon: Icons.delete_outline,
                     onTap: onDelete,
                     variant: MemoryDetailIconTileVariant.destructive,
-                    semanticsLabel: '删除当前事件',
+                    semanticsLabel: '删除当前瞬间',
                     showBorder: true,
                   ),
                 ),

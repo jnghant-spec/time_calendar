@@ -172,7 +172,7 @@ class _MemoryShareSheetState extends State<MemoryShareSheet> {
   }
 
   String _rangeLine() {
-    if (_events.isEmpty) return '暂无事件';
+    if (_events.isEmpty) return '暂无瞬间';
     return '${formatYearMonthDot(_events.first.date)} - ${formatYearMonthDot(_events.last.date)}';
   }
 
@@ -833,7 +833,7 @@ class _ShareInfoSection extends StatelessWidget {
                 ),
               if (tag != null) const SizedBox(width: 8),
               Text(
-                '共 $eventCount 个事件 · $photoCount 张照片',
+                '共 $eventCount 个瞬间 · $photoCount 张照片',
                 style: const TextStyle(fontSize: 14, color: Color(0xFF94A3B8)),
               ),
             ],
@@ -1051,7 +1051,7 @@ class _ShareConciseCard extends StatelessWidget {
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                '事件时间线',
+                '时间线',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -1064,7 +1064,7 @@ class _ShareConciseCard extends StatelessWidget {
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 20),
               child: Text(
-                '暂无事件',
+                '暂无瞬间',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 14, color: Color(0xFF94A3B8)),
               ),

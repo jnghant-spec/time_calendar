@@ -8,6 +8,7 @@ import 'package:time_calendar/pages/photo_viewer_page.dart';
 import 'package:time_calendar/services/memory_service.dart';
 import 'package:time_calendar/widgets/common_date_picker.dart';
 import 'package:time_calendar/widgets/memory_event_date_label.dart';
+import 'package:time_calendar/widgets/memory_event_photo_grid.dart';
 
 /// 子事件编辑页布局 token。
 abstract final class MemoryEventSheetLayoutTokens {
@@ -217,9 +218,6 @@ class MemoryEventSheet extends StatefulWidget {
 }
 
 class _MemoryEventSheetState extends State<MemoryEventSheet> {
-  /// 九宫格 index 0~8 对应的 slot 编号（中心格为 1 号）。
-  static const List<int> _gridSlotOrder = [2, 3, 4, 5, 1, 6, 7, 8, 9];
-
   late final TextEditingController _titleCtrl;
   late final TextEditingController _locCtrl;
   late DateTime _date;
@@ -422,7 +420,7 @@ class _MemoryEventSheetState extends State<MemoryEventSheet> {
     final path = _slotPhotos[index];
     final hasPhoto = path != null && File(path).existsSync();
 
-    final slot = _gridSlotOrder[index];
+    final slot = MemoryEventPhotoGrid.gridSlotOrder[index];
 
     Widget slotBadge() {
       return Positioned(
@@ -737,6 +735,14 @@ class _MemoryEventSheetState extends State<MemoryEventSheet> {
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Color(0xFF9CA3AF),
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                const Text(
+                                  '方格展示会裁切边缘，完整照片可在详情中查看',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Color(0xFFCBD5E1),
                                   ),
                                 ),
                               ],

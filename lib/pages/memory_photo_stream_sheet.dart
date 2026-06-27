@@ -705,7 +705,7 @@ class _MemoryPhotoStreamSheetState extends State<MemoryPhotoStreamSheet> {
   Widget _buildVerticalListView() {
     if (_events.isEmpty) {
       return const Center(
-        child: Text('暂无事件', style: TextStyle(color: _muted)),
+        child: Text('暂无瞬间', style: TextStyle(color: _muted)),
       );
     }
 
@@ -760,7 +760,7 @@ class _MemoryPhotoStreamSheetState extends State<MemoryPhotoStreamSheet> {
               padding: const EdgeInsets.symmetric(vertical: 24),
               child: Center(
                 child: Text(
-                  '— 已展示全部 ${_events.length} 个事件 —',
+                  '— 已展示全部 ${_events.length} 个瞬间 —',
                   style: TextStyle(fontSize: 14, color: _muted),
                 ),
               ),
@@ -951,7 +951,7 @@ class _MemoryPhotoStreamSheetState extends State<MemoryPhotoStreamSheet> {
       return SizedBox(
         height: cardPhotoHeight + 24,
         child: const Center(
-          child: Text('暂无事件', style: TextStyle(color: _muted)),
+          child: Text('暂无瞬间', style: TextStyle(color: _muted)),
         ),
       );
     }
@@ -1089,14 +1089,14 @@ class _MemoryPhotoStreamSheetState extends State<MemoryPhotoStreamSheet> {
   }
 
   VoidCallback? _toolbarEditAction() {
-    if (_currentViewIndex == 1) return _editCollection;
+    if (_currentViewIndex == 0) return _editCollection;
     if (_events.isEmpty) return null;
     return _onEditCurrentEvent;
   }
 
   VoidCallback? _toolbarDeleteAction() {
     if (_events.isEmpty) return null;
-    return _currentViewIndex == 0 ? _onDeleteCurrentEvent : null;
+    return _currentViewIndex == 1 ? _onDeleteCurrentEvent : null;
   }
 
   @override
@@ -1128,11 +1128,11 @@ class _MemoryPhotoStreamSheetState extends State<MemoryPhotoStreamSheet> {
                         MemoryCollectionDetailHeader(
                           collection: _collection,
                           events: _events,
-                          isListViewActive: _currentViewIndex == 1,
+                          isListViewActive: _currentViewIndex == 0,
                           onShare: _onShareCollection,
                           onEditCollection: _editCollection,
-                          onSwitchToList: () => _switchToView(1),
-                          onSwitchToGrid: () => _switchToView(0),
+                          onSwitchToList: () => _switchToView(0),
+                          onSwitchToGrid: () => _switchToView(1),
                         ),
                         Expanded(
                           child: PageView(
@@ -1141,8 +1141,8 @@ class _MemoryPhotoStreamSheetState extends State<MemoryPhotoStreamSheet> {
                             onPageChanged: (index) =>
                                 setState(() => _currentViewIndex = index),
                             children: [
-                              _buildHorizontalCardView(),
                               _buildVerticalListView(),
+                              _buildHorizontalCardView(),
                             ],
                           ),
                         ),

@@ -205,7 +205,7 @@ class MemoryDetailPrimaryCta extends StatelessWidget {
   const MemoryDetailPrimaryCta({
     super.key,
     required this.onTap,
-    this.label = '添加事件',
+    this.label = '添加瞬间',
   });
 
   final VoidCallback onTap;

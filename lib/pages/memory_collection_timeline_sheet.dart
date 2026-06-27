@@ -10,6 +10,6 @@ Future<void> showMemoryCollectionTimelineSheet(
   return showMemoryPhotoStreamSheet(
     context,
     collection: collection,
-    initialViewIndex: 1,
+    initialViewIndex: 0,
   );
 }

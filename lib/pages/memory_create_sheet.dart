@@ -66,6 +66,8 @@ class MemoryCreateSheet extends StatefulWidget {
   static const Color _disabledBtn = Color(0xFFD1D5DB);
   static const Color _pageBg = Color(0xFFFAFBFC);
   static const Color _inactiveTagLabel = Color(0xFF666666);
+  static const double _coverThumbSize = 120;
+  static const double _coverThumbRadius = 16;
 
   @override
   State<MemoryCreateSheet> createState() => _MemoryCreateSheetState();
@@ -419,14 +421,14 @@ class _MemoryCreateSheetState extends State<MemoryCreateSheet> {
       children: [
         const Icon(
           Icons.add_photo_alternate,
-          size: 32,
+          size: 28,
           color: MemoryCreateSheet._muted,
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         Text(
-          '点击上传封面照片',
+          '上传封面',
           style: TextStyle(
-            fontSize: 14,
+            fontSize: 12,
             color: Colors.grey.shade500,
           ),
         ),
@@ -523,7 +525,7 @@ class _MemoryCreateSheetState extends State<MemoryCreateSheet> {
                   alignment: Alignment.center,
                   children: [
                     Text(
-                      _isEditMode ? '修改事件集' : '新建事件集',
+                      _isEditMode ? '修改时光集' : '新建时光集',
                       style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w600,
@@ -623,61 +625,65 @@ class _MemoryCreateSheetState extends State<MemoryCreateSheet> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        GestureDetector(
-                          onTap: _pickCover,
-                          child: Container(
-                            height: 120,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: MemoryCreateSheet._pillBorder,
-                                width: 2,
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: GestureDetector(
+                            onTap: _pickCover,
+                            child: Container(
+                              width: MemoryCreateSheet._coverThumbSize,
+                              height: MemoryCreateSheet._coverThumbSize,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(
+                                  MemoryCreateSheet._coverThumbRadius,
+                                ),
+                                border: Border.all(
+                                  color: MemoryCreateSheet._pillBorder,
+                                  width: 2,
+                                ),
                               ),
-                            ),
-                            clipBehavior: Clip.antiAlias,
-                            child: _coverPhotoPath != null &&
-                                    _coverPhotoPath!.isNotEmpty
-                                ? Stack(
-                                    fit: StackFit.expand,
-                                    children: [
-                                      ClipRRect(
-                                        borderRadius: BorderRadius.circular(16),
-                                        child: Image.file(
+                              clipBehavior: Clip.antiAlias,
+                              child: _coverPhotoPath != null &&
+                                      _coverPhotoPath!.isNotEmpty
+                                  ? Stack(
+                                      fit: StackFit.expand,
+                                      children: [
+                                        Image.file(
                                           File(_coverPhotoPath!),
                                           fit: BoxFit.cover,
-                                          width: double.infinity,
-                                          height: double.infinity,
-                                          errorBuilder: (context, error, stackTrace) =>
-                                              _coverPlaceholder(),
+                                          width: MemoryCreateSheet._coverThumbSize,
+                                          height: MemoryCreateSheet._coverThumbSize,
+                                          errorBuilder:
+                                              (context, error, stackTrace) =>
+                                                  _coverPlaceholder(),
                                         ),
-                                      ),
-                                      Positioned(
-                                        top: 6,
-                                        right: 6,
-                                        child: GestureDetector(
-                                          onTap: () => setState(
-                                            () => _coverPhotoPath = null,
-                                          ),
-                                          child: Container(
-                                            width: 20,
-                                            height: 20,
-                                            decoration: BoxDecoration(
-                                              color: Colors.black.withValues(
-                                                alpha: 0.45,
+                                        Positioned(
+                                          top: 6,
+                                          right: 6,
+                                          child: GestureDetector(
+                                            onTap: () => setState(
+                                              () => _coverPhotoPath = null,
+                                            ),
+                                            child: Container(
+                                              width: 20,
+                                              height: 20,
+                                              decoration: BoxDecoration(
+                                                color: Colors.black.withValues(
+                                                  alpha: 0.45,
+                                                ),
+                                                shape: BoxShape.circle,
                                               ),
-                                              shape: BoxShape.circle,
-                                            ),
-                                            child: const Icon(
-                                              Icons.close,
-                                              size: 12,
-                                              color: Colors.white,
+                                              child: const Icon(
+                                                Icons.close,
+                                                size: 12,
+                                                color: Colors.white,
+                                              ),
                                             ),
                                           ),
                                         ),
-                                      ),
-                                    ],
-                                  )
-                                : _coverPlaceholder(),
+                                      ],
+                                    )
+                                  : _coverPlaceholder(),
+                            ),
                           ),
                         ),
                         const SizedBox(height: 20),
