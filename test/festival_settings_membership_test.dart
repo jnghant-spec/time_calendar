@@ -20,9 +20,29 @@ void main() {
     await prefs.clear();
   });
 
-  test('recommended ethnic + religious id lists total six entries', () {
-    expect(MembershipRecommendedFestivals.ethnicIds.length, 3);
-    expect(MembershipRecommendedFestivals.religiousIds.length, 3);
+  test('kDefaultSubscribedIds excludes ethnic and religious festival ids', () async {
+    await FestivalDataLoader.ensureLoaded();
+
+    final ethnicIds = <String>{};
+    for (final m in FestivalDataLoader.ethnicFestivalsOrEmpty()) {
+      final id = m['id'];
+      if (id is String && id.isNotEmpty) ethnicIds.add(id);
+    }
+
+    final religiousIds = <String>{};
+    for (final m in FestivalDataLoader.religiousFestivalsOrEmpty()) {
+      final id = m['id'];
+      if (id is String && id.isNotEmpty) religiousIds.add(id);
+    }
+
+    expect(
+      FestivalService.kDefaultSubscribedIds.intersection(ethnicIds),
+      isEmpty,
+    );
+    expect(
+      FestivalService.kDefaultSubscribedIds.intersection(religiousIds),
+      isEmpty,
+    );
   });
 
   test('basic tier persists arbitrary ethnic picks without recommended-only filtering',
@@ -37,8 +57,7 @@ void main() {
       final id = m['id'];
       if (id is String && id.isNotEmpty) all.add(id);
     }
-    final nonRec = all.difference(MembershipRecommendedFestivals.ethnicIds);
-    final pick = nonRec.take(5).toSet();
+    final pick = all.take(5).toSet();
     expect(pick.length, 5);
 
     await MembershipService.persistFestivalsFromFullUserIntent(pick);

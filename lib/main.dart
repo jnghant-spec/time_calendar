@@ -79,6 +79,7 @@ class MyApp extends StatelessWidget {
       navigatorKey: navigatorKey,
       title: '时光集',
       theme: appTheme,
+      debugShowCheckedModeBanner: false, // ← 加这一行
       home: const MainNavigationPage(initialIndex: 3),
     );
   }

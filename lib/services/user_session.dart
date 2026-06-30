@@ -227,10 +227,10 @@ class UserSession {
 /// 与 [UserSession] 读路径一致的**编译期**默认值，便于单测与文档对照。
 abstract final class UserPreferenceDefaults {
   /// 个人中心等处展示用默认昵称
-  static const String defaultNickname = '冰山一角';
+  static const String defaultNickname = '张三';
 
   /// 展示用默认手机号
-  static const String defaultPhone = '17701601082';
+  static const String defaultPhone = '13999999999';
 
   /// 头像本地路径默认值：空串表示未设置，UI 使用占位图
   static const String defaultAvatarPath = '';

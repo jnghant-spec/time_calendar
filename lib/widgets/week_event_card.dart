@@ -6,6 +6,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:time_calendar/models/calendar_festival.dart';
 import 'package:time_calendar/models/list_event.dart';
 import 'package:time_calendar/services/tag_service.dart';
+import 'package:time_calendar/utils/festival_category_icon.dart';
 import 'package:time_calendar/widgets/pinned_star_badge.dart';
 
 /// 周视图提醒卡片。
@@ -206,7 +207,11 @@ class WeekViewEventCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
         ),
         alignment: Alignment.center,
-        child: Icon(Icons.celebration_outlined, color: accent, size: 40),
+        child: Icon(
+          festivalCategoryIcon(festival!.category),
+          color: accent,
+          size: 40,
+        ),
       );
     }
     final path = photoPath;

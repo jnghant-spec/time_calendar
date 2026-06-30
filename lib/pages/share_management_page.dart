@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb, defaultTargetPlatform;
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
@@ -14,7 +14,6 @@ import 'package:time_calendar/services/event_share_service.dart';
 import 'package:time_calendar/services/tag_bar_state.dart';
 import 'package:time_calendar/services/tag_service.dart';
 import 'package:time_calendar/services/user_session.dart';
-import 'package:time_calendar/utils/debug_account_switch.dart';
 import 'package:time_calendar/widgets/incoming_share_banner.dart';
 import 'package:time_calendar/widgets/numeric_keypad.dart';
 
@@ -65,7 +64,6 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
   bool _partnerAutoShare = true;
   bool _acceptOthers = true;
   bool _loaded = false;
-  bool _debugToolsExpanded = false;
   List<IncomingSharePayload> _pendingIncoming = const [];
   bool _pendingExpanded = false;
 
@@ -394,141 +392,6 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
   void _toast(String m) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
-  }
-
-  Future<void> _debugSetPartnerStatus(PartnerStatus status) async {
-    final current = _partnerRelation;
-    await TagService.setPartnerRelation(
-      PartnerRelation(
-        status: status,
-        partnerContactId: current.partnerContactId,
-        partnerName: current.partnerName,
-      ),
-    );
-    if (!mounted) return;
-    setState(() {
-      _partnerRelation = TagService.getPartnerRelation();
-      _syncPartnerPhoneFromRelation();
-      _reconcilePartner();
-    });
-  }
-
-  Future<void> _debugClearAllContacts() async {
-    await ShareContact.clearAllContacts();
-    if (!mounted) return;
-    setState(() {
-      _contacts.clear();
-      _reconcilePartner();
-    });
-    await _persistLocal();
-  }
-
-  Future<void> _debugSwitchToLaowang() async {
-    if (!kDebugMode) return;
-    final label = await DebugAccountSwitch.switchToLaowang(_contacts);
-    if (!mounted) return;
-    await _reloadPendingIncoming();
-    if (!mounted) return;
-    _toast('已模拟切换为 $label');
-  }
-
-  Future<void> _debugSwitchToUserA() async {
-    if (!kDebugMode) return;
-    final label = await DebugAccountSwitch.switchToUserA();
-    if (!mounted) return;
-    await _reloadPendingIncoming();
-    if (!mounted) return;
-    _toast('已切回 $label');
-  }
-
-  Widget _debugToolButton(String label, Future<void> Function() onTap) {
-    return SizedBox(
-      height: 36,
-      width: double.infinity,
-      child: OutlinedButton(
-        onPressed: () => onTap(),
-        style: OutlinedButton.styleFrom(
-          backgroundColor: Colors.white,
-          foregroundColor: _titleGrey,
-          side: const BorderSide(color: Color(0xFFE5E7EB), width: 1),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-          textStyle: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w400,
-          ),
-          padding: EdgeInsets.zero,
-        ),
-        child: Text(label),
-      ),
-    );
-  }
-
-  Widget _buildDebugTestTools() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const SizedBox(height: 20),
-        InkWell(
-          onTap: () => setState(() => _debugToolsExpanded = !_debugToolsExpanded),
-          borderRadius: BorderRadius.circular(8),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Row(
-              children: [
-                const Text(
-                  '测试工具',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: _mutedGrey,
-                  ),
-                ),
-                const Spacer(),
-                Icon(
-                  _debugToolsExpanded
-                      ? Icons.keyboard_arrow_up
-                      : Icons.keyboard_arrow_down,
-                  size: 20,
-                  color: _mutedGrey,
-                ),
-              ],
-            ),
-          ),
-        ),
-        if (_debugToolsExpanded) ...[
-          const SizedBox(height: 8),
-          _debugToolButton(
-            '设为 none（无关系）',
-            () => _debugSetPartnerStatus(PartnerStatus.none),
-          ),
-          const SizedBox(height: 8),
-          _debugToolButton(
-            '设为 pending（等待中）',
-            () => _debugSetPartnerStatus(PartnerStatus.pending),
-          ),
-          const SizedBox(height: 8),
-          _debugToolButton(
-            '设为 accepted（已接受）',
-            () => _debugSetPartnerStatus(PartnerStatus.accepted),
-          ),
-          const SizedBox(height: 8),
-          _debugToolButton(
-            '设为 rejected（已拒绝）',
-            () => _debugSetPartnerStatus(PartnerStatus.rejected),
-          ),
-          const SizedBox(height: 8),
-          _debugToolButton('清空所有联系人', _debugClearAllContacts),
-          const SizedBox(height: 8),
-          _debugToolButton('模拟切换为：老王', _debugSwitchToLaowang),
-          const SizedBox(height: 8),
-          _debugToolButton(
-            '切回用户 A（${DebugAccountSwitch.userAPhone}）',
-            _debugSwitchToUserA,
-          ),
-        ],
-      ],
-    );
   }
 
   /// TODO(后端): 发送伴侣邀请短信或同步推送。
@@ -867,7 +730,6 @@ class _ShareManagementPageState extends State<ShareManagementPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                 _buildPartnerRelationSection(context, cs, textTheme),
-                if (kDebugMode) _buildDebugTestTools(),
                 const SizedBox(height: 20),
                 _sectionTitle(context, '常用共享联系人'),
                 const SizedBox(height: 16),

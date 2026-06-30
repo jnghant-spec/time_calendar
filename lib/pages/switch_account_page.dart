@@ -1,13 +1,8 @@
 import 'dart:async';
-import 'dart:convert';
 
-import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show SystemUiOverlayStyle;
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:time_calendar/models/share_contact.dart';
 import 'package:time_calendar/services/user_session.dart';
-import 'package:time_calendar/utils/debug_account_switch.dart';
 import 'package:time_calendar/widgets/numeric_keypad.dart';
 
 /// 输入手机号与验证码，切换登录账号（UI 全屏，返回后底栏仍停留在「我的」Tab）。
@@ -19,8 +14,6 @@ class SwitchAccountPage extends StatefulWidget {
 }
 
 class _SwitchAccountPageState extends State<SwitchAccountPage> {
-  static const _kPrefsContacts = 'tc.share_management.contacts_v1';
-
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _codeController = TextEditingController();
   final FocusNode _phoneFocusNode = FocusNode();
@@ -28,7 +21,6 @@ class _SwitchAccountPageState extends State<SwitchAccountPage> {
   _SwitchInputTarget? _activeInputTarget;
   Timer? _countdownTimer;
   int _countdown = 0;
-  List<ShareContact> _shareContacts = const [];
 
   String get _phone => _phoneController.text;
   String get _code => _codeController.text;
@@ -43,32 +35,6 @@ class _SwitchAccountPageState extends State<SwitchAccountPage> {
     super.initState();
     _phoneController.addListener(_onFieldChanged);
     _codeController.addListener(_onFieldChanged);
-    if (kDebugMode) {
-      _loadShareContacts();
-    }
-  }
-
-  Future<void> _loadShareContacts() async {
-    final contacts = <ShareContact>[];
-    try {
-      final p = await SharedPreferences.getInstance();
-      final raw = p.getString(_kPrefsContacts);
-      if (raw != null && raw.isNotEmpty) {
-        final list = jsonDecode(raw) as List<dynamic>;
-        for (final e in list) {
-          if (e is Map<String, dynamic>) {
-            contacts.add(ShareContact.fromJson(e));
-          } else if (e is Map) {
-            contacts.add(
-              ShareContact.fromJson(
-                e.map((k, v) => MapEntry(k.toString(), v)),
-              ),
-            );
-          }
-        }
-      }
-    } catch (_) {}
-    if (mounted) setState(() => _shareContacts = contacts);
   }
 
   void _onFieldChanged() {
@@ -111,50 +77,8 @@ class _SwitchAccountPageState extends State<SwitchAccountPage> {
   Future<void> _onSwitch() async {
     if (!_canSwitch) return;
 
-    if (kDebugMode) {
-      final label = await DebugAccountSwitch.switchToPhone(
-        phone: _phone,
-        code: _code,
-        contacts: _shareContacts,
-      );
-      if (!mounted) return;
-      if (label != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('DEBUG：已切换为 $label')),
-        );
-        Navigator.of(context).pop(true);
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'DEBUG：验证码请填 ${DebugAccountSwitch.debugVerificationCode}',
-          ),
-        ),
-      );
-      return;
-    }
-
     // TODO(后端): 调用切换账号接口
     debugPrint('切换账号: phone=$_phone, code=$_code');
-  }
-
-  Future<void> _debugQuickSwitchToLaowang() async {
-    final label = await DebugAccountSwitch.switchToLaowang(_shareContacts);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('DEBUG：已切换为 $label')),
-    );
-    Navigator.of(context).pop(true);
-  }
-
-  Future<void> _debugQuickSwitchToUserA() async {
-    final label = await DebugAccountSwitch.switchToUserA();
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('DEBUG：已切回 $label')),
-    );
-    Navigator.of(context).pop(true);
   }
 
   void _activateInput(_SwitchInputTarget target) {
@@ -256,37 +180,6 @@ class _SwitchAccountPageState extends State<SwitchAccountPage> {
     return UserSession.instance.phone;
   }
 
-  Widget _buildDebugQuickSwitchSection(ColorScheme cs, TextTheme textTheme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          'DEBUG 快捷切换',
-          style: textTheme.bodySmall?.copyWith(
-            color: cs.onSurfaceVariant,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        const SizedBox(height: 8),
-        OutlinedButton(
-          onPressed: _debugQuickSwitchToLaowang,
-          child: const Text('模拟切换为：老王'),
-        ),
-        const SizedBox(height: 8),
-        OutlinedButton(
-          onPressed: _debugQuickSwitchToUserA,
-          child: Text('切回用户 A（${DebugAccountSwitch.userAPhone}）'),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          '或输入手机号 + 验证码 ${DebugAccountSwitch.debugVerificationCode}',
-          textAlign: TextAlign.center,
-          style: textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
-        ),
-      ],
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -360,10 +253,6 @@ class _SwitchAccountPageState extends State<SwitchAccountPage> {
                     accountLine: _currentAccountDisplay(),
                   ),
                   SizedBox(height: (vBlock * 1.2).clamp(20.0, 28.0)),
-                  if (kDebugMode) ...[
-                    _buildDebugQuickSwitchSection(cs, textTheme),
-                    SizedBox(height: (vBlock * 1.0).clamp(16.0, 24.0)),
-                  ],
                   Text(
                     '输入要切换的手机号',
                     style: textTheme.bodySmall?.copyWith(
